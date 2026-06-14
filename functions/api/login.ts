@@ -83,7 +83,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   return json(
     {
       ok: true,
-      redirectTo: "/area-personale",
+      redirectTo: "/dashboard",
       user: toPublicUser(user),
     },
     {

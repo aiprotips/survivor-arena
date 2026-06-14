@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PersonalAreaView } from "@/components/account/PersonalAreaView";
+import { AreaRedirect } from "@/components/account/AreaRedirect";
 
 export const metadata: Metadata = {
   title: "Area Personale | Survivor Arena",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function AreaPersonalePage() {
-  return <PersonalAreaView />;
+  return <AreaRedirect />;
 }
