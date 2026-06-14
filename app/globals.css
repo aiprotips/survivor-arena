@@ -3,21 +3,21 @@
 
 :root {
   /* Core palette */
-  --color-background: #01050D;
-  --color-surface: #050D1A;
-  --color-card: #071326;
-  --color-card-strong: #0A1A31;
-  --color-surface-elevated: #0D203A;
-  --color-blue: #063FB7;
-  --color-blue-hover: #0B55D6;
-  --color-blue-soft: #2A64CE;
+  --color-background: #00030A;
+  --color-surface: #020713;
+  --color-card: #030A17;
+  --color-card-strong: #061224;
+  --color-surface-elevated: #07152A;
+  --color-blue: #032A86;
+  --color-blue-hover: #043A9F;
+  --color-blue-soft: #174A9E;
   --color-gold: #C9A75A;
   --color-gold-strong: #E2BE68;
   --color-white: #F7F3EA;
   --color-muted: #A8B4C5;
   --color-muted-soft: #6F7E91;
-  --color-ink: #01050D;
-  --color-border: color-mix(in srgb, var(--color-blue-soft) 14%, transparent);
+  --color-ink: #00030A;
+  --color-border: color-mix(in srgb, var(--color-blue-soft) 12%, transparent);
   --color-border-strong: color-mix(in srgb, var(--color-gold) 26%, transparent);
   --color-text-primary: var(--color-white);
   --color-text-secondary: var(--color-muted);
@@ -39,9 +39,9 @@
 
   /* Elevation and glow */
   --shadow-card: 0 18px 48px color-mix(in srgb, var(--color-ink) 68%, transparent);
-  --shadow-glow: 0 0 28px color-mix(in srgb, var(--color-blue) 16%, transparent);
+  --shadow-glow: 0 0 24px color-mix(in srgb, var(--color-blue) 10%, transparent);
   --shadow-gold-glow: 0 0 30px color-mix(in srgb, var(--color-gold) 14%, transparent);
-  --shadow-button: 0 10px 26px color-mix(in srgb, var(--color-blue) 18%, transparent);
+  --shadow-button: 0 10px 24px color-mix(in srgb, var(--color-blue) 14%, transparent);
 
   /* Component rhythm */
   --button-height: 3.05rem;
@@ -108,7 +108,7 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--color-blue) 9%, transparent), transparent 30rem),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--color-blue) 5%, transparent), transparent 30rem),
     radial-gradient(circle at top right, color-mix(in srgb, var(--color-gold) 6%, transparent), transparent 28rem),
     var(--color-background);
   color: var(--color-text-primary);
@@ -138,7 +138,7 @@ a {
     min-height: 100vh;
     overflow: hidden;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-blue) 5%, transparent), transparent 22rem),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-blue) 3%, transparent), transparent 22rem),
       var(--color-background);
     color: var(--color-text-primary);
   }
@@ -207,7 +207,7 @@ a {
   }
 
   .site-nav-link:hover {
-    background: color-mix(in srgb, var(--color-blue) 8%, transparent);
+    background: color-mix(in srgb, var(--color-blue) 6%, transparent);
     color: var(--color-white);
     transform: translateY(-1px);
   }
@@ -273,7 +273,7 @@ a {
     min-height: 100dvh;
     overflow-y: auto;
     background:
-      radial-gradient(circle at 15% 12%, color-mix(in srgb, var(--color-blue) 12%, transparent), transparent 18rem),
+      radial-gradient(circle at 15% 12%, color-mix(in srgb, var(--color-blue) 8%, transparent), transparent 18rem),
       linear-gradient(180deg, color-mix(in srgb, var(--color-background) 96%, transparent), var(--color-background));
     padding:
       max(clamp(1.1rem, 4vw, 1.55rem), env(safe-area-inset-top))
@@ -309,7 +309,7 @@ a {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-panel);
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-blue) 5%, transparent), transparent 48%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-blue) 3%, transparent), transparent 48%),
       color-mix(in srgb, var(--color-card) 92%, transparent);
     box-shadow: var(--shadow-card);
     padding: clamp(1rem, 4vw, 1.35rem);
@@ -337,7 +337,7 @@ a {
   }
 
   .site-mobile-link:hover {
-    background: color-mix(in srgb, var(--color-blue) 8%, transparent);
+    background: color-mix(in srgb, var(--color-blue) 6%, transparent);
     color: var(--color-white);
   }
 
@@ -452,7 +452,7 @@ a {
   .ui-input:focus {
     border-color: color-mix(in srgb, var(--color-blue-soft) 72%, transparent);
     background: color-mix(in srgb, var(--color-card-strong) 72%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-blue) 10%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-blue) 7%, transparent);
   }
 
   .ui-input-with-action {
@@ -477,7 +477,7 @@ a {
   .ui-input-action:hover,
   .ui-input-action:focus-visible {
     border-color: var(--color-border);
-    background: color-mix(in srgb, var(--color-blue) 8%, transparent);
+    background: color-mix(in srgb, var(--color-blue) 6%, transparent);
     color: var(--color-white);
     outline: none;
   }
@@ -486,7 +486,7 @@ a {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-blue) 5%, transparent), transparent 52%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-blue) 3%, transparent), transparent 52%),
       var(--color-card);
     box-shadow: var(--shadow-card);
   }
@@ -593,7 +593,7 @@ a {
   .auth-page::after {
     z-index: -1;
     background:
-      radial-gradient(circle at 50% 26%, color-mix(in srgb, var(--color-blue) 14%, transparent), transparent 18rem),
+      radial-gradient(circle at 50% 26%, color-mix(in srgb, var(--color-blue) 8%, transparent), transparent 18rem),
       radial-gradient(circle at 88% 21%, color-mix(in srgb, var(--color-gold) 7%, transparent), transparent 11rem),
       linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-background) 68%, transparent) 58%, var(--color-background) 100%);
   }
@@ -651,7 +651,7 @@ a {
   .auth-close-button:hover,
   .auth-close-button:focus-visible {
     border-color: var(--color-blue-soft);
-    background: color-mix(in srgb, var(--color-blue) 18%, transparent);
+    background: color-mix(in srgb, var(--color-blue) 10%, transparent);
     outline: none;
     transform: translateY(-1px);
   }
@@ -675,14 +675,14 @@ a {
   .auth-card {
     display: grid;
     gap: clamp(1.1rem, 4vw, 1.55rem);
-    border-color: color-mix(in srgb, var(--color-blue-soft) 16%, transparent);
+    border-color: color-mix(in srgb, var(--color-blue-soft) 12%, transparent);
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-blue) 5%, transparent), transparent 44%),
-      color-mix(in srgb, var(--color-card) 86%, transparent);
+      linear-gradient(180deg, color-mix(in srgb, var(--color-blue) 3%, transparent), transparent 44%),
+      color-mix(in srgb, var(--color-card) 90%, transparent);
     box-shadow:
       var(--shadow-card),
       inset 0 0 0 1px color-mix(in srgb, var(--color-white) 2%, transparent),
-      0 0 30px color-mix(in srgb, var(--color-blue) 8%, transparent);
+      0 0 24px color-mix(in srgb, var(--color-blue) 5%, transparent);
     padding: var(--auth-card-padding);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -920,7 +920,7 @@ a {
     inset: 0;
     z-index: 1;
     background:
-      radial-gradient(circle at 50% 26%, color-mix(in srgb, var(--color-gold) 8%, transparent), transparent 15rem),
+      radial-gradient(circle at 50% 26%, color-mix(in srgb, var(--color-gold) 7%, transparent), transparent 15rem),
       linear-gradient(180deg, color-mix(in srgb, var(--color-background) 18%, transparent), transparent 36%, color-mix(in srgb, var(--color-background) 48%, transparent) 100%);
     pointer-events: none;
   }
@@ -1113,7 +1113,7 @@ a {
 
   .tournament-status-live {
     border-color: var(--color-border);
-    background: color-mix(in srgb, var(--color-blue) 12%, transparent);
+    background: color-mix(in srgb, var(--color-blue) 8%, transparent);
     color: var(--color-blue-soft);
   }
 
