@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   BarChart3,
-  CircleHelp,
   Home,
   MessageCircle,
   Trophy,
@@ -36,14 +35,9 @@ const mobileNavItems: Array<{
     icon: BarChart3,
     label: "Classifiche",
   },
-  {
-    href: "#",
-    icon: CircleHelp,
-    label: "Come Funziona",
-  },
 ];
 
-const legalItems = ["FAQ", "Privacy", "Termini", "Cookie"];
+const secondaryNavItems = ["FAQ", "Come Funziona", "Privacy", "Cookie"];
 
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -155,35 +149,38 @@ export function SiteHeader() {
                   </ButtonLink>
                 </div>
 
-                <div className="site-mobile-main-menu">
-                  <nav aria-label="Navigazione mobile" className="site-mobile-links">
-                    {mobileNavItems.map((item) => {
-                      const Icon = item.icon;
+                <nav aria-label="Navigazione mobile" className="site-mobile-links">
+                  {mobileNavItems.map((item) => {
+                    const Icon = item.icon;
 
-                      return (
-                        <a
-                          className="site-mobile-link"
-                          href={item.href}
-                          key={item.label}
-                          onClick={closeMenu}
-                        >
-                          <Icon aria-hidden="true" className="site-mobile-link-icon" />
-                          <span>{item.label}</span>
-                        </a>
-                      );
-                    })}
-                  </nav>
-
-                  <nav aria-label="Link legali" className="site-mobile-legal">
-                    {legalItems.map((item) => (
-                      <a href="#" key={item} onClick={closeMenu}>
-                        {item}
+                    return (
+                      <a
+                        className="site-mobile-link"
+                        href={item.href}
+                        key={item.label}
+                        onClick={closeMenu}
+                      >
+                        <Icon aria-hidden="true" className="site-mobile-link-icon" />
+                        <span>{item.label}</span>
                       </a>
-                    ))}
-                  </nav>
-                </div>
+                    );
+                  })}
+                </nav>
 
                 <PremiumDivider className="site-mobile-divider" />
+
+                <nav aria-label="Menu secondario" className="site-mobile-secondary-links">
+                  {secondaryNavItems.map((item) => (
+                    <a
+                      className="site-mobile-secondary-link"
+                      href="#"
+                      key={item}
+                      onClick={closeMenu}
+                    >
+                      {item}
+                    </a>
+                  ))}
+                </nav>
 
                 <section aria-labelledby="mobile-contact-title" className="site-mobile-contact">
                   <h2 className="site-mobile-contact-title" id="mobile-contact-title">

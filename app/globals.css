@@ -183,7 +183,7 @@ a {
   .site-header-brand:focus-visible,
   .site-nav-link:focus-visible,
   .site-mobile-link:focus-visible,
-  .site-mobile-legal a:focus-visible,
+  .site-mobile-secondary-link:focus-visible,
   .site-menu-close-button:focus-visible,
   .site-menu-button:focus-visible {
     outline: 2px solid var(--color-blue-soft);
@@ -317,11 +317,6 @@ a {
     padding-block: clamp(0.7rem, 3vw, 1.05rem) 0;
   }
 
-  .site-mobile-main-menu {
-    display: grid;
-    gap: clamp(0.85rem, 3vw, 1.15rem);
-  }
-
   .site-mobile-links {
     display: grid;
     gap: clamp(0.9rem, 3.6vw, 1.25rem);
@@ -355,8 +350,31 @@ a {
   }
 
   .site-mobile-divider {
-    justify-self: center;
+    align-self: center;
+    margin-inline: auto;
     margin-block: 0.1rem;
+  }
+
+  .site-mobile-secondary-links {
+    display: grid;
+    gap: clamp(0.72rem, 3vw, 1rem);
+    color: var(--color-muted);
+  }
+
+  .site-mobile-secondary-link {
+    width: fit-content;
+    border-radius: var(--radius-pill);
+    color: var(--color-muted);
+    font-size: clamp(0.98rem, 4.45vw, 1.18rem);
+    font-weight: 500;
+    line-height: 1;
+    padding-block: 0.12rem;
+    transition: color 180ms ease, transform 180ms ease;
+  }
+
+  .site-mobile-secondary-link:hover {
+    color: var(--color-white);
+    transform: translateX(0.12rem);
   }
 
   .site-mobile-auth-actions {
@@ -402,34 +420,6 @@ a {
     width: 1.08rem;
     flex: 0 0 auto;
     stroke-width: 1.9;
-  }
-
-  .site-mobile-legal {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 0.42rem;
-    color: var(--color-muted-soft);
-    font-size: 0.7rem;
-    font-weight: 550;
-    line-height: 1.35;
-  }
-
-  .site-mobile-legal a {
-    border-radius: var(--radius-pill);
-    padding: 0.1rem 0.15rem;
-    transition: color 180ms ease;
-  }
-
-  .site-mobile-legal a:not(:last-child)::after {
-    content: "•";
-    color: color-mix(in srgb, var(--color-muted-soft) 64%, transparent);
-    padding-left: 0.42rem;
-  }
-
-  .site-mobile-legal a:hover {
-    color: var(--color-muted);
   }
 
   .ui-button {
