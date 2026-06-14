@@ -1,19 +1,27 @@
 "use client";
 
 import {
+  AlertCircle,
+  ArrowUpRight,
+  BarChart3,
   Bell,
+  CheckCircle2,
+  Clock3,
   Crown,
   Gem,
+  Gift,
   KeyRound,
   Lock,
-  Medal,
   ShieldCheck,
-  Trophy,
+  Swords,
+  Timer,
+  TrendingUp,
 } from "lucide-react";
 import { PlaceholderCard } from "@/components/account/PlaceholderCard";
 import { StatCard } from "@/components/account/StatCard";
 import { UserLayout } from "@/components/account/UserLayout";
 import type { AccountUser, UserAreaPageKey } from "@/components/account/types";
+import { ButtonLink } from "@/components/ui/Button";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
 
 type UserAreaPageProps = {
@@ -66,50 +74,242 @@ function PageIntro({
 }
 
 function DashboardPage({ user }: { user: AccountUser }) {
-  return (
-    <>
-      <PageIntro
-        eyebrow="Area personale"
-        subtitle="Accesso effettuato correttamente. Le funzioni avanzate arriveranno nelle prossime fasi."
-        title={`Benvenuto, ${user.username}`}
-      />
+  const stats = [
+    {
+      icon: Gem,
+      label: "Coppe disponibili",
+      tone: "gold" as const,
+      value: "0",
+    },
+    {
+      icon: Swords,
+      label: "Arene attive",
+      value: "3",
+    },
+    {
+      icon: Crown,
+      label: "Arene vinte",
+      tone: "gold" as const,
+      value: "0",
+    },
+    {
+      icon: BarChart3,
+      label: "Posizione classifica",
+      value: "#128",
+    },
+  ];
 
-      <section className="user-summary-panel" aria-label="Riepilogo account">
-        <div>
+  const arenas = [
+    {
+      deadline: "1 giorno 12 ore",
+      entry: "250 Coppe",
+      progress: "40%",
+      progressClassName: "dashboard-progress-40",
+      status: "Scelta richiesta",
+      title: "Arena Champions",
+      turn: "Turno 4 di 10",
+    },
+    {
+      deadline: "2 giorni 04 ore",
+      entry: "150 Coppe",
+      progress: "20%",
+      progressClassName: "dashboard-progress-20",
+      status: "In corso",
+      title: "Survivor Cup",
+      turn: "Turno 2 di 8",
+    },
+    {
+      deadline: "5 giorni 18 ore",
+      entry: "100 Coppe",
+      progress: "10%",
+      progressClassName: "dashboard-progress-10",
+      status: "In arrivo",
+      title: "Legends Arena",
+      turn: "Turno 1 di 10",
+    },
+  ];
+
+  const actions = [
+    {
+      icon: AlertCircle,
+      label: "Devi effettuare una scelta",
+      meta: "Arena Champions",
+    },
+    {
+      icon: Timer,
+      label: "Arena in scadenza",
+      meta: "1 giorno 12 ore",
+    },
+    {
+      icon: Gift,
+      label: "Premio disponibile",
+      meta: "Ricompensa demo",
+    },
+  ];
+
+  const movements = [
+    ["+500 Coppe", "Vittoria Arena Champions"],
+    ["-100 Coppe", "Iscrizione Survivor Cup"],
+    ["+250 Coppe", "Bonus classifica"],
+    ["-50 Coppe", "Ingresso Legends Arena"],
+  ];
+
+  return (
+    <div className="dashboard-page-content">
+      <section className="dashboard-hero-card" aria-labelledby="dashboard-title">
+        <div className="dashboard-hero-copy">
+          <p className="user-page-kicker">Dashboard</p>
+          <h1 id="dashboard-title">Benvenuto, {user.username}</h1>
+          <p>Continua la tua scalata verso la vetta.</p>
+        </div>
+
+        <div className="dashboard-hero-status" aria-label="Riepilogo rapido">
           <span>Saldo Coppe</span>
           <strong>0 Coppe</strong>
         </div>
-        <div>
-          <span>Codice utente</span>
-          <strong>{user.user_code}</strong>
-        </div>
       </section>
 
-      <section className="user-stat-grid" aria-label="Statistiche demo">
-        <StatCard
-          icon={<Trophy aria-hidden="true" className="user-stat-svg" />}
-          label="Arene attive"
-          value="2"
-        />
-        <StatCard
-          icon={<Crown aria-hidden="true" className="user-stat-svg" />}
-          label="Arene vinte"
-          tone="gold"
-          value="0"
-        />
-        <StatCard
-          icon={<Medal aria-hidden="true" className="user-stat-svg" />}
-          label="Posizione classifica"
-          value="#128"
-        />
-        <StatCard
-          icon={<Gem aria-hidden="true" className="user-stat-svg" />}
-          label="Coppe disponibili"
-          tone="gold"
-          value="0"
-        />
+      <section className="user-stat-grid dashboard-stat-grid" aria-label="Statistiche principali">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+
+          return (
+            <StatCard
+              icon={<Icon aria-hidden="true" className="user-stat-svg" />}
+              key={stat.label}
+              label={stat.label}
+              tone={stat.tone}
+              value={stat.value}
+            />
+          );
+        })}
       </section>
-    </>
+
+      <div className="dashboard-layout-grid">
+        <section className="dashboard-panel dashboard-arenas-panel" aria-labelledby="my-arenas-title">
+          <div className="dashboard-section-heading">
+            <div>
+              <p className="user-page-kicker">In gioco</p>
+              <h2 id="my-arenas-title">Le mie Arene</h2>
+            </div>
+            <ButtonLink className="dashboard-section-link" href="/arene" variant="secondary">
+              Vedi tutte
+            </ButtonLink>
+          </div>
+
+          <div className="dashboard-arena-list">
+            {arenas.map((arena) => (
+              <article className="dashboard-arena-card" key={arena.title}>
+                <div className="dashboard-arena-top">
+                  <span className="dashboard-arena-status">{arena.status}</span>
+                  <span>{arena.entry}</span>
+                </div>
+
+                <div className="dashboard-arena-copy">
+                  <h3>{arena.title}</h3>
+                  <p>{arena.turn}</p>
+                </div>
+
+                <div className="dashboard-arena-meta">
+                  <div>
+                    <Clock3 aria-hidden="true" className="dashboard-small-icon" />
+                    <span>Scadenza: {arena.deadline}</span>
+                  </div>
+                  <div className="dashboard-progress" aria-label={`Avanzamento ${arena.progress}`}>
+                    <span className={arena.progressClassName} />
+                  </div>
+                </div>
+
+                <ButtonLink className="dashboard-arena-button" href="/arene">
+                  Vai all&apos;Arena
+                  <ArrowUpRight aria-hidden="true" className="dashboard-button-icon" />
+                </ButtonLink>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <aside className="dashboard-side-stack" aria-label="Riepiloghi dashboard">
+          <section className="dashboard-panel" aria-labelledby="next-actions-title">
+            <div className="dashboard-section-heading">
+              <div>
+                <p className="user-page-kicker">Priorità</p>
+                <h2 id="next-actions-title">Prossime Azioni</h2>
+              </div>
+            </div>
+
+            <div className="dashboard-action-list">
+              {actions.map((action) => {
+                const Icon = action.icon;
+
+                return (
+                  <article className="dashboard-action-item" key={action.label}>
+                    <span className="dashboard-action-icon">
+                      <Icon aria-hidden="true" className="dashboard-small-icon" />
+                    </span>
+                    <div>
+                      <strong>{action.label}</strong>
+                      <p>{action.meta}</p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="dashboard-panel dashboard-position-panel" aria-labelledby="position-title">
+            <div className="dashboard-section-heading">
+              <div>
+                <p className="user-page-kicker">Andamento</p>
+                <h2 id="position-title">La tua posizione</h2>
+              </div>
+            </div>
+
+            <div className="dashboard-position-card">
+              <span className="dashboard-position-rank">#128</span>
+              <div>
+                <strong>Globale</strong>
+                <p>+12 posizioni negli ultimi 7 giorni</p>
+              </div>
+            </div>
+
+            <div className="dashboard-position-metrics">
+              <div>
+                <TrendingUp aria-hidden="true" className="dashboard-small-icon" />
+                <span>Progressione</span>
+                <strong>+18%</strong>
+              </div>
+              <div>
+                <CheckCircle2 aria-hidden="true" className="dashboard-small-icon" />
+                <span>Scelte corrette</span>
+                <strong>72%</strong>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <section className="dashboard-panel dashboard-movements-panel" aria-labelledby="recent-movements-title">
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="user-page-kicker">Storico</p>
+            <h2 id="recent-movements-title">Ultimi Movimenti</h2>
+          </div>
+          <ButtonLink className="dashboard-section-link" href="/movimenti" variant="secondary">
+            Visualizza tutti
+          </ButtonLink>
+        </div>
+
+        <div className="dashboard-movement-list">
+          {movements.map(([amount, label]) => (
+            <article className="dashboard-movement-row" key={label}>
+              <span>{amount}</span>
+              <strong>{label}</strong>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
 
