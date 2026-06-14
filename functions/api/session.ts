@@ -25,11 +25,19 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     );
   }
 
+  let cupBalance = 0;
+
+  try {
+    cupBalance = await getWalletBalance(env.DB, session.user.id);
+  } catch (error) {
+    console.error("Unable to load user wallet balance.", error);
+  }
+
   return json({
     ok: true,
     user: {
       ...session.user,
-      cup_balance: await getWalletBalance(env.DB, session.user.id),
+      cup_balance: cupBalance,
     },
   });
 };
