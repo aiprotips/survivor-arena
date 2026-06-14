@@ -670,6 +670,8 @@ a {
     align-items: center;
     gap: 0.52rem;
     color: var(--color-gold-strong);
+    justify-self: center;
+    margin-inline: auto;
   }
 
   .ui-premium-divider-line {
