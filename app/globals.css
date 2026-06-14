@@ -45,7 +45,7 @@
   --card-padding: clamp(1.1rem, 4vw, 1.6rem);
   --layout-max-width: 78rem;
   --hero-min-height: clamp(35rem, 72vw, 46rem);
-  --hero-mobile-height: clamp(32rem, 136vw, 39rem);
+  --hero-mobile-height: clamp(42rem, 176vw, 46rem);
   --stat-icon-size: clamp(2.25rem, 9vw, 3rem);
 }
 
@@ -448,10 +448,10 @@ a {
     background-image:
       radial-gradient(circle at 50% 24%, color-mix(in srgb, var(--color-gold) 15%, transparent), transparent 14rem),
       linear-gradient(180deg, color-mix(in srgb, var(--color-background) 14%, transparent), transparent 36%, var(--color-background) 100%),
-      url("/assets/survivor-arena-hero.jpg");
+      url("/assets/hero-mobile.jpg");
     background-position: center top, center, top center;
     background-repeat: no-repeat;
-    background-size: auto, auto, 190% auto;
+    background-size: auto, auto, 100% auto;
   }
 
   .hero-panel::before {
@@ -717,6 +717,10 @@ a {
       border-radius: var(--radius-panel);
       border: 1px solid var(--color-border);
       box-shadow: var(--shadow-card);
+      background-image:
+        radial-gradient(circle at 50% 24%, color-mix(in srgb, var(--color-gold) 15%, transparent), transparent 14rem),
+        linear-gradient(180deg, color-mix(in srgb, var(--color-background) 14%, transparent), transparent 36%, var(--color-background) 100%),
+        url("/assets/hero-desktop.jpg");
       background-position: center, center, center;
       background-size: auto, auto, cover;
     }
