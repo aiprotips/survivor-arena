@@ -11,6 +11,8 @@
   --color-blue: #032A86;
   --color-blue-hover: #043A9F;
   --color-blue-soft: #174A9E;
+  --color-button-blue: #0753D6;
+  --color-button-blue-hover: #0B67F2;
   --color-gold: #C9A75A;
   --color-gold-strong: #E2BE68;
   --color-white: #F7F3EA;
@@ -41,7 +43,7 @@
   --shadow-card: 0 18px 48px color-mix(in srgb, var(--color-ink) 68%, transparent);
   --shadow-glow: 0 0 24px color-mix(in srgb, var(--color-blue) 10%, transparent);
   --shadow-gold-glow: 0 0 30px color-mix(in srgb, var(--color-gold) 14%, transparent);
-  --shadow-button: 0 10px 24px color-mix(in srgb, var(--color-blue) 14%, transparent);
+  --shadow-button: 0 10px 24px color-mix(in srgb, var(--color-button-blue) 20%, transparent);
 
   /* Component rhythm */
   --button-height: 3.05rem;
@@ -70,6 +72,8 @@
   --color-arena-blue: var(--color-blue);
   --color-arena-blue-hover: var(--color-blue-hover);
   --color-arena-blue-soft: var(--color-blue-soft);
+  --color-arena-button-blue: var(--color-button-blue);
+  --color-arena-button-blue-hover: var(--color-button-blue-hover);
   --color-arena-gold: var(--color-gold);
   --color-arena-gold-strong: var(--color-gold-strong);
   --color-arena-white: var(--color-white);
@@ -377,7 +381,7 @@ a {
   }
 
   .ui-button-primary {
-    background: linear-gradient(180deg, var(--color-blue-hover), var(--color-blue));
+    background: linear-gradient(180deg, var(--color-button-blue-hover), var(--color-button-blue));
     color: var(--color-white);
     box-shadow: var(--shadow-button);
   }
