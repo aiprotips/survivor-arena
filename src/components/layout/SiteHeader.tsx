@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   BarChart3,
+  CircleHelp,
   Home,
   MessageCircle,
   Trophy,
@@ -35,9 +36,14 @@ const mobileNavItems: Array<{
     icon: BarChart3,
     label: "Classifiche",
   },
+  {
+    href: "#",
+    icon: CircleHelp,
+    label: "Come Funziona",
+  },
 ];
 
-const secondaryNavItems = ["FAQ", "Come Funziona", "Privacy", "Cookie"];
+const secondaryNavItems = ["FAQ", "Privacy", "Cookie"];
 
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -182,10 +188,7 @@ export function SiteHeader() {
                   ))}
                 </nav>
 
-                <section aria-labelledby="mobile-contact-title" className="site-mobile-contact">
-                  <h2 className="site-mobile-contact-title" id="mobile-contact-title">
-                    Contattaci
-                  </h2>
+                <section aria-label="Contattaci" className="site-mobile-contact">
                   <Button className="site-mobile-contact-button" type="button" variant="secondary">
                     <MessageCircle aria-hidden="true" className="site-mobile-contact-icon" />
                     Contattaci
