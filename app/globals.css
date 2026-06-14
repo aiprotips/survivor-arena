@@ -513,6 +513,54 @@ a {
     color: var(--color-gold);
   }
 
+  .ui-premium-divider {
+    display: grid;
+    width: min(9.5rem, 48vw);
+    min-height: 0.9rem;
+    grid-template-columns: minmax(2rem, 1fr) auto minmax(2rem, 1fr);
+    align-items: center;
+    gap: 0.52rem;
+    color: var(--color-gold-strong);
+  }
+
+  .ui-premium-divider-line {
+    height: 1px;
+    opacity: 0.84;
+  }
+
+  .ui-premium-divider-line-left {
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-gold) 42%, transparent));
+  }
+
+  .ui-premium-divider-line-right {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--color-gold) 42%, transparent), transparent);
+  }
+
+  .ui-premium-divider-star {
+    position: relative;
+    display: grid;
+    width: 0.74rem;
+    aspect-ratio: 1;
+    place-items: center;
+    color: var(--color-gold-strong);
+    filter: drop-shadow(0 0 0.42rem color-mix(in srgb, var(--color-gold) 30%, transparent));
+  }
+
+  .ui-premium-divider-star::before {
+    content: "";
+    position: absolute;
+    inset: -0.52rem;
+    border-radius: var(--radius-pill);
+    background: radial-gradient(circle, color-mix(in srgb, var(--color-gold) 18%, transparent), transparent 68%);
+  }
+
+  .ui-premium-divider-star-icon {
+    position: relative;
+    z-index: 1;
+    width: 0.48rem;
+    fill: currentColor;
+  }
+
   .auth-page {
     position: relative;
     isolation: isolate;
@@ -687,27 +735,6 @@ a {
     font-size: clamp(0.88rem, 3.4vw, 1rem);
     font-weight: 500;
     line-height: 1.35;
-  }
-
-  .auth-heading-divider {
-    position: relative;
-    display: block;
-    width: min(9.5rem, 48vw);
-    height: 1px;
-    margin-top: 0.22rem;
-    background: color-mix(in srgb, var(--color-gold) 42%, transparent);
-  }
-
-  .auth-heading-divider::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 0.42rem;
-    aspect-ratio: 1;
-    background: var(--color-gold-strong);
-    box-shadow: var(--shadow-gold-glow);
-    transform: translate(-50%, -50%) rotate(45deg);
   }
 
   .auth-form {

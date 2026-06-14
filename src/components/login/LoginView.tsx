@@ -6,6 +6,7 @@ import type { FormEvent } from "react";
 import { BrandLogo } from "@/components/home/BrandLogo";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { PremiumDivider } from "@/components/ui/PremiumDivider";
 
 export function LoginView() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -35,7 +36,7 @@ export function LoginView() {
               Survivor <span className="auth-title-accent">Arena</span>
             </h2>
             <p className="auth-subtitle">Accedi al tuo conto per continuare</p>
-            <span className="auth-heading-divider" aria-hidden="true" />
+            <PremiumDivider />
           </div>
 
           <form className="auth-form" onSubmit={handleSubmit}>
