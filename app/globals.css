@@ -277,6 +277,7 @@ a {
     z-index: 90;
     min-height: 100dvh;
     overflow-y: auto;
+    animation: site-mobile-overlay-reveal 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     background:
       radial-gradient(circle at 15% 12%, color-mix(in srgb, var(--color-blue) 8%, transparent), transparent 18rem),
       linear-gradient(180deg, color-mix(in srgb, var(--color-background) 96%, transparent), var(--color-background));
@@ -294,6 +295,7 @@ a {
     min-height: calc(100dvh - max(clamp(1.1rem, 4vw, 1.55rem), env(safe-area-inset-top)) - max(clamp(1.4rem, 5vw, 2rem), env(safe-area-inset-bottom)));
     grid-template-rows: auto minmax(0, 1fr);
     margin-inline: auto;
+    animation: site-mobile-shell-enter 360ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
     gap: clamp(1rem, 4vw, 1.35rem);
   }
 
@@ -313,8 +315,47 @@ a {
     display: flex;
     min-height: 0;
     flex-direction: column;
+    animation: site-mobile-menu-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) 90ms both;
     gap: clamp(1.1rem, 4vw, 1.5rem);
     padding-block: clamp(0.7rem, 3vw, 1.05rem) 0;
+  }
+
+  @keyframes site-mobile-overlay-reveal {
+    from {
+      clip-path: inset(0 0 100% 0);
+    }
+
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  @keyframes site-mobile-shell-enter {
+    from {
+      transform: translateY(-0.85rem);
+    }
+
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes site-mobile-menu-enter {
+    from {
+      transform: translateY(-0.55rem);
+    }
+
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-mobile-overlay,
+    .site-mobile-overlay-shell,
+    .site-mobile-menu {
+      animation: none;
+    }
   }
 
   .site-mobile-links {
