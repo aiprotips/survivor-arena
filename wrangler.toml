@@ -1,3 +1,9 @@
 name = "survivor-arena"
 compatibility_date = "2026-06-14"
 pages_build_output_dir = "out"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "survivor-arena-db"
+database_id = "d94469cd-d5ee-4135-8aca-d5eb0d2195f4"
+preview_database_id = "DB"
