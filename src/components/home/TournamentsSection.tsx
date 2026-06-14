@@ -12,7 +12,7 @@ export function TournamentsSection() {
           </h2>
         </div>
         <p className="max-w-md text-base leading-7 text-arena-muted">
-          Competizioni demo pensate per mostrare prestigio, premi e partecipazione.
+          Competizioni demo pensate per mostrare prestigio, coppe e partecipazione.
         </p>
       </div>
       <div className="grid gap-5 lg:grid-cols-3">

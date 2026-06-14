@@ -10,9 +10,9 @@ export const homeStats = [
     value: "8.732",
   },
   {
-    icon: "€",
-    label: "Montepremi totale",
-    value: "€125.000",
+    icon: "C",
+    label: "Coppe in palio",
+    value: "125.000 coppe",
   },
   {
     icon: "V",
@@ -24,7 +24,7 @@ export const homeStats = [
 export const tournaments = [
   {
     title: "Arena Champions",
-    prize: "€25.000",
+    cups: "25.000 coppe",
     participants: "1.245 / 2.000",
     status: "In corso",
     image: "/assets/gold-trophy-arena.jpg",
@@ -32,7 +32,7 @@ export const tournaments = [
   },
   {
     title: "Survivor Cup",
-    prize: "€15.000",
+    cups: "15.000 coppe",
     participants: "840 / 1.500",
     status: "In arrivo",
     image: "/assets/arena-stadium.jpg",
@@ -40,7 +40,7 @@ export const tournaments = [
   },
   {
     title: "Legends Arena",
-    prize: "€10.000",
+    cups: "10.000 coppe",
     participants: "520 / 1.000",
     status: "In arrivo",
     image: "/assets/gold-trophy-arena.jpg",

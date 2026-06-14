@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 
 type TournamentCardProps = {
   title: string;
-  prize: string;
+  cups: string;
   participants: string;
   status: string;
   image: string;
@@ -14,7 +14,7 @@ type TournamentCardProps = {
 
 export function TournamentCard({
   title,
-  prize,
+  cups,
   participants,
   status,
   image,
@@ -42,9 +42,9 @@ export function TournamentCard({
           <div className="mt-5 grid grid-cols-2 gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.08em] text-arena-muted-soft">
-                Montepremi
+                Coppe in palio
               </p>
-              <p className="mt-1 text-lg font-black text-arena-gold">{prize}</p>
+              <p className="mt-1 text-lg font-black text-arena-gold">{cups}</p>
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.08em] text-arena-muted-soft">
