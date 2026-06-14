@@ -43,7 +43,7 @@ const mobileNavItems: Array<{
   },
 ];
 
-const secondaryNavItems = ["FAQ", "Privacy", "Cookie"];
+const secondaryNavItems = ["FAQ", "Privacy", "Termini e Condizioni", "Cookie"];
 
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
