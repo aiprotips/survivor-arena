@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -17,12 +18,14 @@ import {
   Timer,
   TrendingUp,
 } from "lucide-react";
+import { ArenaListContent } from "@/components/arena/ArenaListContent";
 import { PlaceholderCard } from "@/components/account/PlaceholderCard";
 import { StatCard } from "@/components/account/StatCard";
 import { UserLayout } from "@/components/account/UserLayout";
 import type { AccountUser, UserAreaPageKey } from "@/components/account/types";
 import { ButtonLink } from "@/components/ui/Button";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
+import { formatCups } from "@/lib/arena-client";
 
 type UserAreaPageProps = {
   page: UserAreaPageKey;
@@ -80,7 +83,7 @@ function DashboardPage({ user }: { user: AccountUser }) {
       icon: Gem,
       label: "Coppe disponibili",
       tone: "gold" as const,
-      value: "0",
+      value: formatCups(user.cup_balance ?? 0),
     },
     {
       icon: Swords,
@@ -186,7 +189,7 @@ function DashboardPage({ user }: { user: AccountUser }) {
 
         <div className="dashboard-hero-status" aria-label="Riepilogo rapido">
           <span>Saldo Coppe</span>
-          <strong>0 Coppe</strong>
+          <strong>{formatCups(user.cup_balance ?? 0)}</strong>
         </div>
       </section>
 
@@ -386,27 +389,7 @@ function DashboardEmptyState({
 }
 
 function ArenePage() {
-  return (
-    <>
-      <PageIntro
-        eyebrow="Competizione"
-        subtitle="Anteprima delle aree che ospiteranno le future sfide Survivor Arena."
-        title="Arene"
-      />
-
-      <section className="user-section-grid" aria-label="Arene demo">
-        <PlaceholderCard eyebrow="Demo" meta="Apertura prossimamente" title="Arene disponibili">
-          <p>Arena Champions, Survivor Cup e Legends Arena saranno elencate qui.</p>
-        </PlaceholderCard>
-        <PlaceholderCard eyebrow="Demo" meta="Nessuna arena attiva" title="Le mie Arene">
-          <p>Le competizioni a cui parteciperai compariranno in questa sezione.</p>
-        </PlaceholderCard>
-        <PlaceholderCard eyebrow="Demo" meta="Archivio non ancora attivo" title="Arene concluse">
-          <p>Lo storico delle arene completate verrà mostrato quando la logica sarà pronta.</p>
-        </PlaceholderCard>
-      </section>
-    </>
-  );
+  return <ArenaListContent />;
 }
 
 function ClassifichePage() {
@@ -499,29 +482,88 @@ function ProfiloPage({ user }: { user: AccountUser }) {
   );
 }
 
+type MovementRow = {
+  amount: number;
+  balance_after: number;
+  created_at: string;
+  description: string;
+  id: string;
+  movement_type: string;
+};
+
 function MovimentiPage() {
-  const movements = [
-    ["Iscrizione Arena Champions", "- 250 Coppe"],
-    ["Accredito Coppe", "+ 1.000 Coppe"],
-    ["Riscatto Premio", "- 500 Coppe"],
-    ["Bonus classifica", "+ 300 Coppe"],
-  ];
+  const [movements, setMovements] = useState<MovementRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadMovements() {
+      const response = await fetch("/api/arena/movements", {
+        credentials: "include",
+      });
+      const data = (await response.json()) as
+        | {
+            movements: MovementRow[];
+            ok: true;
+          }
+        | {
+            message: string;
+            ok: false;
+          };
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (data.ok) {
+        setMovements(data.movements);
+      }
+
+      setIsLoading(false);
+    }
+
+    loadMovements().catch(() => {
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <>
       <PageIntro
         eyebrow="Storico"
-        subtitle="Lista demo dei futuri movimenti account."
+        subtitle="Movimenti Coppe generati da iscrizioni, vite extra, rimborsi e premi."
         title="Lista Movimenti"
       />
 
-      <section className="user-detail-card" aria-label="Movimenti demo">
-        {movements.map(([label, value]) => (
-          <div className="user-detail-row" key={label}>
-            <span>{label}</span>
-            <strong>{value}</strong>
+      <section className="user-detail-card" aria-label="Movimenti account">
+        {isLoading ? (
+          <div className="user-detail-row">
+            <span>Caricamento</span>
+            <strong>Recupero movimenti...</strong>
           </div>
-        ))}
+        ) : movements.length > 0 ? (
+          movements.map((movement) => (
+            <div className="user-detail-row" key={movement.id}>
+              <span>{movement.description}</span>
+              <strong>
+                {movement.amount > 0 ? "+" : ""}
+                {formatCups(movement.amount)} • saldo {formatCups(movement.balance_after)}
+              </strong>
+            </div>
+          ))
+        ) : (
+          <div className="user-detail-row">
+            <span>Nessun movimento</span>
+            <strong>Le attività Arena compariranno qui.</strong>
+          </div>
+        )}
       </section>
     </>
   );

@@ -2,6 +2,7 @@
 
 import { json, methodNotAllowed, missingDatabase } from "../_shared/http";
 import { getSessionUser } from "../_shared/session";
+import { getWalletBalance } from "../_shared/arena";
 
 type Env = {
   DB: D1Database;
@@ -26,7 +27,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
 
   return json({
     ok: true,
-    user: session.user,
+    user: {
+      ...session.user,
+      cup_balance: await getWalletBalance(env.DB, session.user.id),
+    },
   });
 };
 

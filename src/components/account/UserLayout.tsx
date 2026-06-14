@@ -25,6 +25,10 @@ type UserLayoutProps = {
 
 const demoBalance = "0 Coppe";
 
+function formatCups(value: number) {
+  return `${value.toLocaleString("it-IT")} Coppe`;
+}
+
 export function UserLayout({ children, currentPage }: UserLayoutProps) {
   const router = useRouter();
   const [user, setUser] = useState<AccountUser | null>(null);
@@ -112,17 +116,19 @@ export function UserLayout({ children, currentPage }: UserLayoutProps) {
     );
   }
 
+  const balance = formatCups(user.cup_balance ?? 0);
+
   return (
     <main className="user-page" data-page={currentPage}>
       <UserHeader
-        balance={demoBalance}
+        balance={balance || demoBalance}
         onLogout={handleLogout}
         onMenuOpen={() => setIsMenuOpen(true)}
         user={user}
       />
 
       <MobileUserMenu
-        balance={demoBalance}
+        balance={balance || demoBalance}
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}
         onLogout={handleLogout}

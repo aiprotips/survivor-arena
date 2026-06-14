@@ -7,7 +7,9 @@ type Env = {
 };
 
 const protectedPaths = new Set([
+  "/admin",
   "/area-personale",
+  "/arena",
   "/arene",
   "/classifiche",
   "/dashboard",
@@ -48,6 +50,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   if (!session) {
     return Response.redirect(new URL("/login", url), 302);
+  }
+
+  if (
+    normalizePath(url.pathname).startsWith("/admin") &&
+    session.user.role !== "admin"
+  ) {
+    return Response.redirect(new URL("/dashboard", url), 302);
   }
 
   return context.next();

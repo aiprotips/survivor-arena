@@ -2462,6 +2462,908 @@ a {
     font-size: 0.7rem;
   }
 
+  .admin-page,
+  .arena-detail-page {
+    min-width: 0;
+  }
+
+  .admin-header {
+    position: sticky;
+    top: 0;
+    z-index: 70;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.8rem;
+    border-bottom: 1px solid var(--color-border);
+    background: color-mix(in srgb, var(--color-background) 86%, transparent);
+    padding:
+      clamp(0.7rem, 2.5vw, 1rem)
+      var(--spacing-page-x);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .admin-header-copy {
+    display: grid;
+    min-width: 0;
+    justify-items: end;
+    gap: 0.12rem;
+    line-height: 1;
+  }
+
+  .admin-header-copy span,
+  .admin-muted {
+    color: var(--color-muted-soft);
+    font-size: 0.72rem;
+    font-weight: 650;
+  }
+
+  .admin-header-copy strong {
+    overflow: hidden;
+    max-width: 9rem;
+    color: var(--color-white);
+    font-size: 0.86rem;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-logout-button,
+  .arena-leave-button,
+  .arena-info-button {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 50%, transparent);
+    color: var(--color-muted);
+    font: inherit;
+    font-weight: 650;
+    transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+  }
+
+  .admin-logout-button {
+    display: none;
+    min-height: 2.45rem;
+    padding-inline: 1rem;
+    font-size: 0.78rem;
+  }
+
+  .admin-logout-button:hover,
+  .arena-leave-button:hover,
+  .arena-info-button:hover {
+    border-color: var(--color-blue-soft);
+    background: color-mix(in srgb, var(--color-blue) 8%, transparent);
+    color: var(--color-white);
+    transform: translateY(-1px);
+  }
+
+  .admin-shell {
+    display: grid;
+    width: min(100%, var(--layout-max-width));
+    gap: clamp(1rem, 3.5vw, 1.5rem);
+    margin-inline: auto;
+    padding:
+      clamp(1.4rem, 5vw, 3rem)
+      var(--spacing-page-x)
+      max(clamp(2.5rem, 8vw, 5rem), env(safe-area-inset-bottom));
+  }
+
+  .admin-hero {
+    display: grid;
+    max-width: 52rem;
+    gap: 0.62rem;
+  }
+
+  .admin-hero h1 {
+    color: var(--color-white);
+    font-size: clamp(2rem, 8vw, 4rem);
+    font-weight: 700;
+    line-height: 0.95;
+  }
+
+  .admin-hero p:not(.user-page-kicker),
+  .admin-card-heading p:not(.user-page-kicker),
+  .admin-confirm-panel p,
+  .arena-user-card-copy p,
+  .arena-detail-hero p,
+  .arena-locked-card p,
+  .arena-empty-card p {
+    color: var(--color-muted);
+    font-size: 0.92rem;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  .admin-hero .ui-premium-divider {
+    justify-self: center;
+  }
+
+  .admin-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .admin-tab {
+    display: inline-flex;
+    min-height: 2.8rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.48rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 54%, transparent);
+    color: var(--color-muted);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 650;
+    line-height: 1;
+    padding-inline: 0.76rem;
+    transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+  }
+
+  .admin-tab-active {
+    border-color: color-mix(in srgb, var(--color-blue-soft) 42%, transparent);
+    background: color-mix(in srgb, var(--color-blue) 9%, transparent);
+    color: var(--color-white);
+  }
+
+  .admin-tab-icon,
+  .admin-metric-icon,
+  .arena-summary-card svg,
+  .arena-user-metrics svg,
+  .arena-deadline-pill svg,
+  .arena-locked-pill svg,
+  .arena-life-chip svg,
+  .arena-public-search svg,
+  .admin-search-icon {
+    width: 1rem;
+    flex: 0 0 auto;
+    color: currentColor;
+    stroke-width: 1.9;
+  }
+
+  .admin-layout-grid,
+  .admin-stack,
+  .admin-main-panel {
+    display: grid;
+    gap: clamp(1rem, 3.4vw, 1.35rem);
+    min-width: 0;
+  }
+
+  .admin-sidebar {
+    display: grid;
+    gap: 0.9rem;
+    align-content: start;
+    min-width: 0;
+  }
+
+  .admin-sidebar-section,
+  .admin-card,
+  .arena-user-card,
+  .arena-empty-card,
+  .arena-detail-hero,
+  .arena-round-panel,
+  .arena-public-choices,
+  .arena-locked-card,
+  .arena-modal-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--color-blue) 3%, transparent), transparent 60%),
+      color-mix(in srgb, var(--color-card) 90%, transparent);
+    box-shadow:
+      var(--shadow-card),
+      inset 0 0 0 1px color-mix(in srgb, var(--color-white) 2%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .admin-sidebar-section,
+  .admin-card,
+  .arena-empty-card,
+  .arena-detail-hero,
+  .arena-round-panel,
+  .arena-public-choices {
+    padding: clamp(1rem, 3.8vw, 1.45rem);
+  }
+
+  .admin-sidebar-section {
+    display: grid;
+    gap: 0.72rem;
+  }
+
+  .admin-sidebar-section h2 {
+    color: var(--color-white);
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .admin-sidebar-section p {
+    color: var(--color-muted-soft);
+    font-size: 0.82rem;
+    font-weight: 500;
+  }
+
+  .admin-tournament-list,
+  .admin-match-list,
+  .admin-event-list,
+  .admin-participant-list,
+  .admin-round-history,
+  .admin-history-matches,
+  .arena-public-list,
+  .arena-modal-list,
+  .arena-detail-page {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .admin-tournament-item {
+    display: grid;
+    gap: 0.25rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-surface) 62%, transparent);
+    color: var(--color-white);
+    font: inherit;
+    padding: 0.86rem;
+    text-align: left;
+  }
+
+  .admin-tournament-item-active {
+    border-color: color-mix(in srgb, var(--color-gold) 34%, transparent);
+    background: color-mix(in srgb, var(--color-gold) 7%, transparent);
+  }
+
+  .admin-tournament-item span {
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .admin-tournament-item small {
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 550;
+  }
+
+  .admin-card {
+    display: grid;
+    gap: clamp(1rem, 3.2vw, 1.25rem);
+  }
+
+  .admin-card-heading {
+    display: grid;
+    gap: 0.42rem;
+  }
+
+  .admin-card-heading h2,
+  .admin-confirm-panel h3,
+  .arena-user-card-copy h2,
+  .arena-detail-hero h1,
+  .arena-section-heading h2,
+  .arena-locked-card h3,
+  .arena-empty-card h2,
+  .arena-modal-card h2 {
+    color: var(--color-white);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.05;
+  }
+
+  .admin-card-heading h2,
+  .arena-section-heading h2 {
+    font-size: clamp(1.18rem, 4.8vw, 1.72rem);
+  }
+
+  .admin-form-grid,
+  .admin-summary-grid,
+  .arena-card-grid,
+  .arena-summary-grid,
+  .arena-match-choice-grid {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .admin-textarea {
+    min-height: 6rem;
+    resize: vertical;
+    border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-card-strong) 58%, transparent);
+    color: var(--color-white);
+    font: inherit;
+    font-size: 1rem;
+    padding: 0.9rem 1rem;
+    outline: none;
+  }
+
+  .admin-check,
+  .admin-match-flags label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--color-muted);
+    font-size: 0.84rem;
+    font-weight: 600;
+  }
+
+  .admin-check input,
+  .admin-match-flags input {
+    accent-color: var(--color-gold);
+  }
+
+  .admin-split-preview,
+  .admin-confirm-panel,
+  .admin-metric,
+  .admin-match-row,
+  .admin-result-row,
+  .admin-participant-card,
+  .admin-event-row,
+  .arena-summary-card,
+  .arena-public-list article {
+    border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-surface) 64%, transparent);
+  }
+
+  .admin-split-preview,
+  .admin-metric,
+  .arena-summary-card {
+    display: grid;
+    gap: 0.34rem;
+    padding: 0.9rem;
+  }
+
+  .admin-split-preview strong,
+  .admin-metric strong,
+  .arena-summary-card strong {
+    color: var(--color-white);
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .admin-split-preview span,
+  .admin-metric span,
+  .arena-summary-card span {
+    color: var(--color-muted-soft);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .admin-metric-icon,
+  .arena-summary-card svg,
+  .arena-user-metrics svg {
+    color: var(--color-gold);
+  }
+
+  .admin-wide-button,
+  .admin-inline-button {
+    width: 100%;
+  }
+
+  .admin-actions-row,
+  .arena-modal-actions,
+  .arena-detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+  }
+
+  .admin-actions-row .ui-button,
+  .arena-modal-actions .ui-button,
+  .arena-detail-actions .ui-button {
+    flex: 1 1 11rem;
+  }
+
+  .admin-inline-form,
+  .admin-search {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .admin-match-row {
+    display: grid;
+    gap: 0.85rem;
+    padding: 0.85rem;
+  }
+
+  .admin-match-fields {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .admin-match-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+  }
+
+  .admin-row-actions .ui-button {
+    min-height: 2.55rem;
+    font-size: 0.68rem;
+  }
+
+  .admin-calculate-panel {
+    display: grid;
+    gap: 0.75rem;
+    border-top: 1px solid var(--color-border);
+    padding-top: 1rem;
+  }
+
+  .admin-result-row {
+    display: grid;
+    gap: 0.6rem;
+    padding: 0.78rem;
+  }
+
+  .admin-result-row span {
+    color: var(--color-white);
+    font-weight: 650;
+  }
+
+  .admin-select {
+    width: 100%;
+    min-height: 2.7rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card-strong) 82%, transparent);
+    color: var(--color-white);
+    font: inherit;
+    padding-inline: 0.9rem;
+  }
+
+  .admin-round-history details,
+  .admin-participant-card {
+    overflow: hidden;
+  }
+
+  .admin-round-history summary,
+  .admin-participant-card summary {
+    cursor: pointer;
+    color: var(--color-white);
+    font-weight: 650;
+    padding: 0.85rem 0.95rem;
+  }
+
+  .admin-history-matches,
+  .admin-participant-detail {
+    border-top: 1px solid var(--color-border);
+    padding: 0.85rem 0.95rem;
+  }
+
+  .admin-history-matches span,
+  .admin-participant-detail p,
+  .admin-life-history span,
+  .admin-event-row p {
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .admin-search {
+    position: relative;
+  }
+
+  .admin-search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 1rem;
+    color: var(--color-muted-soft);
+    z-index: 1;
+  }
+
+  .admin-search .ui-input {
+    padding-left: 2.7rem;
+  }
+
+  .admin-search-button {
+    width: 100%;
+  }
+
+  .admin-participant-card summary {
+    display: grid;
+    gap: 0.22rem;
+  }
+
+  .admin-participant-card summary span,
+  .admin-event-row strong {
+    color: var(--color-white);
+    font-weight: 700;
+  }
+
+  .admin-participant-card summary strong {
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    font-weight: 550;
+  }
+
+  .admin-life-history {
+    display: grid;
+    gap: 0.6rem;
+    margin-top: 0.8rem;
+  }
+
+  .admin-life-history article {
+    display: grid;
+    gap: 0.28rem;
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-card) 58%, transparent);
+    padding: 0.72rem;
+  }
+
+  .admin-life-history strong {
+    color: var(--color-white);
+    font-size: 0.84rem;
+  }
+
+  .admin-event-row {
+    display: grid;
+    gap: 0.34rem;
+    padding: 0.86rem;
+  }
+
+  .admin-event-row span {
+    width: fit-content;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    color: var(--color-gold);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    padding: 0.38rem 0.58rem;
+    text-transform: uppercase;
+  }
+
+  .arena-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  }
+
+  .arena-user-card {
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1rem, 3.8vw, 1.35rem);
+  }
+
+  .arena-card-top,
+  .arena-section-heading,
+  .arena-match-title,
+  .arena-public-list article {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+  }
+
+  .arena-info-button {
+    display: grid;
+    width: 2.35rem;
+    aspect-ratio: 1;
+    place-items: center;
+    padding: 0;
+  }
+
+  .arena-info-button svg {
+    width: 1rem;
+  }
+
+  .arena-user-card-copy {
+    display: grid;
+    gap: 0.42rem;
+  }
+
+  .arena-user-card-copy h2 {
+    font-size: clamp(1.15rem, 4.4vw, 1.55rem);
+  }
+
+  .arena-user-metrics,
+  .arena-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .arena-user-metrics {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .arena-user-metrics div {
+    display: grid;
+    gap: 0.22rem;
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-surface) 62%, transparent);
+    padding: 0.65rem;
+  }
+
+  .arena-user-metrics span,
+  .arena-deadline-pill span {
+    color: var(--color-muted-soft);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .arena-user-metrics strong {
+    color: var(--color-white);
+    font-size: 0.85rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .arena-deadline-pill,
+  .arena-locked-pill {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card-strong) 58%, transparent);
+    color: var(--color-gold);
+    padding: 0.55rem 0.7rem;
+  }
+
+  .arena-empty-card {
+    display: grid;
+    min-height: 11rem;
+    align-content: center;
+    gap: 0.7rem;
+    text-align: center;
+  }
+
+  .arena-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 130;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--color-background) 78%, transparent);
+    padding: var(--spacing-page-x);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .arena-modal-card {
+    display: grid;
+    width: min(100%, 30rem);
+    gap: 0.9rem;
+    padding: clamp(1.1rem, 4.5vw, 1.6rem);
+  }
+
+  .arena-modal-list {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-surface) 68%, transparent);
+    padding: 0.9rem;
+  }
+
+  .arena-modal-list span {
+    color: var(--color-muted);
+    font-size: 0.86rem;
+    font-weight: 550;
+  }
+
+  .arena-detail-page {
+    gap: clamp(1rem, 3.5vw, 1.45rem);
+  }
+
+  .arena-detail-hero {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    min-height: clamp(13rem, 44vw, 18rem);
+    overflow: hidden;
+    align-items: end;
+    gap: 1.2rem;
+  }
+
+  .arena-detail-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--color-card) 96%, transparent), color-mix(in srgb, var(--color-card) 52%, transparent)),
+      url("/assets/gold-trophy-arena.jpg") center / cover no-repeat;
+    opacity: 0.62;
+  }
+
+  .arena-detail-hero h1 {
+    font-size: clamp(2rem, 8vw, 4rem);
+  }
+
+  .arena-summary-card {
+    min-width: 0;
+  }
+
+  .arena-summary-card strong {
+    overflow-wrap: anywhere;
+  }
+
+  .arena-round-panel,
+  .arena-public-choices {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .arena-life-selector {
+    display: flex;
+    gap: 0.65rem;
+    overflow-x: auto;
+    padding-bottom: 0.1rem;
+    scroll-snap-type: x mandatory;
+  }
+
+  .arena-life-chip {
+    display: inline-grid;
+    min-width: 9.5rem;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.42rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-surface) 64%, transparent);
+    color: var(--color-white);
+    font: inherit;
+    padding: 0.65rem 0.8rem;
+    scroll-snap-align: start;
+  }
+
+  .arena-life-chip svg {
+    color: var(--color-danger);
+    fill: currentColor;
+  }
+
+  .arena-life-chip span,
+  .arena-life-chip strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .arena-life-chip span {
+    font-size: 0.82rem;
+    font-weight: 650;
+  }
+
+  .arena-life-chip strong {
+    grid-column: 1 / -1;
+    color: var(--color-gold);
+    font-size: 0.72rem;
+    font-weight: 650;
+  }
+
+  .arena-life-chip-active {
+    border-color: color-mix(in srgb, var(--color-gold) 38%, transparent);
+    background: color-mix(in srgb, var(--color-gold) 7%, transparent);
+  }
+
+  .arena-life-chip-dead {
+    opacity: 0.45;
+  }
+
+  .arena-match-choice-card {
+    display: grid;
+    gap: 0.85rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-surface) 64%, transparent);
+    padding: 0.9rem;
+  }
+
+  .arena-match-title strong {
+    color: var(--color-white);
+    font-size: 0.96rem;
+    font-weight: 700;
+  }
+
+  .arena-match-title span {
+    color: var(--color-muted-soft);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .arena-team-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.58rem;
+  }
+
+  .arena-team-button {
+    position: relative;
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 58%, transparent);
+    color: var(--color-white);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 650;
+    padding-inline: 0.75rem;
+  }
+
+  .arena-team-button:disabled {
+    color: var(--color-muted-soft);
+    opacity: 0.55;
+  }
+
+  .arena-team-button-selected {
+    border-color: color-mix(in srgb, var(--color-gold) 42%, transparent);
+    background: color-mix(in srgb, var(--color-gold) 8%, transparent);
+  }
+
+  .arena-team-button em {
+    position: absolute;
+    right: 0.68rem;
+    width: 0.5rem;
+    aspect-ratio: 1;
+    border-radius: var(--radius-pill);
+    background: var(--color-gold);
+    box-shadow: var(--shadow-gold-glow);
+  }
+
+  .arena-locked-card {
+    display: grid;
+    justify-items: center;
+    gap: 0.55rem;
+    padding: 1.1rem;
+    text-align: center;
+  }
+
+  .arena-locked-card svg {
+    width: 1.5rem;
+    color: var(--color-gold);
+  }
+
+  .arena-public-search {
+    position: relative;
+    display: block;
+  }
+
+  .arena-public-search svg {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    z-index: 1;
+    color: var(--color-muted-soft);
+    transform: translateY(-50%);
+  }
+
+  .arena-public-search .ui-input {
+    padding-left: 2.75rem;
+  }
+
+  .arena-public-list article {
+    padding: 0.76rem 0.85rem;
+  }
+
+  .arena-public-list strong {
+    color: var(--color-white);
+    font-size: 0.86rem;
+    font-weight: 700;
+  }
+
+  .arena-public-list span,
+  .arena-public-list em {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-style: normal;
+    font-weight: 550;
+  }
+
+  .arena-leave-button {
+    min-height: var(--button-height);
+    padding-inline: 1rem;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .auth-step-panel,
     .auth-modal-card,
@@ -2973,6 +3875,80 @@ a {
   }
 
   @media (min-width: 48rem) {
+    .admin-logout-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .admin-tabs {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .admin-tab {
+      min-width: 10rem;
+    }
+
+    .admin-layout-grid {
+      grid-template-columns: minmax(15rem, 0.36fr) minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .admin-form-grid,
+    .admin-summary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-form-grid .admin-wide-button,
+    .admin-form-grid .admin-textarea,
+    .admin-form-grid .admin-split-preview,
+    .admin-match-form .admin-wide-button {
+      grid-column: 1 / -1;
+    }
+
+    .admin-inline-form,
+    .admin-search {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+    }
+
+    .admin-search .admin-search-button,
+    .admin-inline-button {
+      width: fit-content;
+      min-width: 9rem;
+    }
+
+    .admin-match-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
+
+    .admin-match-fields {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-row-actions {
+      grid-column: 1 / -1;
+    }
+
+    .arena-detail-hero {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+    }
+
+    .arena-detail-actions {
+      justify-content: end;
+    }
+
+    .arena-summary-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .arena-match-choice-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .auth-shell {
       margin-top: clamp(3rem, 7vh, 4rem);
     }
@@ -3088,6 +4064,18 @@ a {
   }
 
   @media (min-width: 64rem) {
+    .admin-layout-grid {
+      grid-template-columns: minmax(17rem, 0.3fr) minmax(0, 1fr);
+    }
+
+    .arena-summary-grid {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .arena-match-choice-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     .site-nav-panel {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;

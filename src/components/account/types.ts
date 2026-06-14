@@ -1,4 +1,5 @@
 export type AccountUser = {
+  cup_balance: number;
   email: string;
   id: string;
   phone: string;
@@ -8,6 +9,8 @@ export type AccountUser = {
 };
 
 export type UserAreaPageKey =
+  | "admin"
+  | "arena"
   | "arene"
   | "classifiche"
   | "dashboard"

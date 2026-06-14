@@ -83,7 +83,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   return json(
     {
       ok: true,
-      redirectTo: "/dashboard",
+      redirectTo: user.role === "admin" ? "/admin" : "/dashboard",
       user: toPublicUser(user),
     },
     {
