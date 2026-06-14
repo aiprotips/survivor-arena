@@ -1686,6 +1686,11 @@ a {
     line-height: 1.45;
   }
 
+  .user-page-intro .ui-premium-divider {
+    justify-self: center;
+    margin-inline: auto;
+  }
+
   .user-summary-panel,
   .user-detail-card,
   .user-stat-card,
