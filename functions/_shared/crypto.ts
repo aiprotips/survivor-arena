@@ -1,7 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
 const passwordHashAlgorithm = "pbkdf2-sha256";
-const passwordHashIterations = 210000;
+const passwordHashIterations = 100000;
 const passwordHashBits = 256;
 
 const textEncoder = new TextEncoder();
