@@ -8,6 +8,8 @@
     "build": "next build",
     "cloudflare:build": "next build",
     "cloudflare:dev": "npm run build && wrangler pages dev out",
+    "db:migrate": "wrangler d1 migrations apply survivor-arena-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply survivor-arena-db --local",
     "db:ping": "wrangler d1 execute survivor-arena-db --remote --command \"SELECT 1 AS ok;\" --json",
     "db:ping:local": "wrangler d1 execute survivor-arena-db --local --command \"SELECT 1 AS ok;\" --json",
     "lint": "eslint"

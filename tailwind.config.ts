@@ -19,6 +19,8 @@ const config = {
           "blue-soft": "var(--color-blue-soft)",
           gold: "var(--color-gold)",
           "gold-strong": "var(--color-gold-strong)",
+          danger: "var(--color-danger)",
+          success: "var(--color-success)",
           white: "var(--color-white)",
           muted: "var(--color-muted)",
           "muted-soft": "var(--color-muted-soft)",

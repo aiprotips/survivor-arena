@@ -1,12 +1,25 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import type { FormEvent } from "react";
+import { useMemo, useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { BrandLogo } from "@/components/home/BrandLogo";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
+import {
+  getPasswordRequirements,
+  validateConfirmPassword,
+  validateEmail,
+  validatePassword,
+  validatePhone,
+  validateRegistrationDataStep,
+  validateRegistrationValues,
+  validateUsername,
+  type FieldErrors,
+  type RegisterField,
+  type RegisterFormValues,
+} from "@/lib/auth-validation";
 import { cn } from "@/lib/cn";
 
 type RegisterStep = 1 | 2;
@@ -16,6 +29,21 @@ type ProgressStep = {
   label: string;
   title: string;
 };
+
+type RegisterResponse =
+  | {
+      ok: true;
+      user: {
+        user_code: string;
+        username: string;
+      };
+    }
+  | {
+      details?: string[];
+      field?: RegisterField;
+      message: string;
+      ok: false;
+    };
 
 const progressSteps: ProgressStep[] = [
   {
@@ -30,11 +58,29 @@ const progressSteps: ProgressStep[] = [
   },
 ];
 
+const initialValues: RegisterFormValues = {
+  confirmPassword: "",
+  email: "",
+  password: "",
+  phone: "",
+  username: "",
+};
+
 export function RegisterView() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<RegisterStep>(1);
+  const [values, setValues] = useState<RegisterFormValues>(initialValues);
+  const [errors, setErrors] = useState<FieldErrors<RegisterField>>({});
+  const [formMessage, setFormMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successUserCode, setSuccessUserCode] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+
+  const passwordRequirements = useMemo(
+    () => getPasswordRequirements(values.password),
+    [values.password],
+  );
 
   const handleClose = () => {
     if (window.history.length > 1) {
@@ -45,12 +91,100 @@ export function RegisterView() {
     router.push("/");
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const updateValue =
+    (field: RegisterField) => (event: ChangeEvent<HTMLInputElement>) => {
+      const nextValues = {
+        ...values,
+        [field]: event.target.value,
+      };
+
+      setValues(nextValues);
+      setFormMessage("");
+      setErrors((currentErrors) => ({
+        ...currentErrors,
+        [field]: getFieldError(field, nextValues),
+      }));
+    };
+
+  const goToSecurityStep = () => {
+    const validation = validateRegistrationDataStep(values);
+
+    setErrors(validation.errors);
+
+    if (!validation.isValid) {
+      return;
+    }
+
+    setValues((currentValues) => ({
+      ...currentValues,
+      email: validation.values.email,
+      phone: validation.values.phone,
+      username: validation.values.username,
+    }));
+    setCurrentStep(2);
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setFormMessage("");
 
     if (currentStep === 1) {
-      setCurrentStep(2);
+      goToSecurityStep();
+      return;
     }
+
+    const validation = validateRegistrationValues(values);
+    setErrors(validation.errors);
+
+    if (!validation.isValid) {
+      if (validation.errors.username || validation.errors.email || validation.errors.phone) {
+        setCurrentStep(1);
+      }
+
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/register", {
+        body: JSON.stringify(validation.values),
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const data = (await response.json()) as RegisterResponse;
+
+      if (!data.ok) {
+        if (data.field) {
+          setErrors((currentErrors) => ({
+            ...currentErrors,
+            [data.field as RegisterField]: data.message,
+          }));
+
+          if (["email", "phone", "username"].includes(data.field)) {
+            setCurrentStep(1);
+          }
+        }
+
+        setFormMessage(data.message);
+        return;
+      }
+
+      setSuccessUserCode(data.user.user_code);
+      setValues(initialValues);
+      setErrors({});
+    } catch {
+      setFormMessage("Registrazione non riuscita. Controlla la connessione e riprova.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoToLogin = () => {
+    router.push("/login");
   };
 
   return (
@@ -111,17 +245,42 @@ export function RegisterView() {
           </div>
 
           <form className="auth-form register-form" onSubmit={handleSubmit}>
-            {currentStep === 1 ? <RegisterDataStep /> : null}
-            {currentStep === 2 ? (
+            {formMessage ? (
+              <p className="auth-form-message auth-form-message-error" role="alert">
+                {formMessage}
+              </p>
+            ) : null}
+
+            {currentStep === 1 ? (
+              <RegisterDataStep
+                errors={errors}
+                onChange={updateValue}
+                values={values}
+              />
+            ) : (
               <RegisterSecurityStep
+                errors={errors}
                 isConfirmPasswordVisible={isConfirmPasswordVisible}
                 isPasswordVisible={isPasswordVisible}
-                onBack={() => setCurrentStep(1)}
+                isSubmitting={isSubmitting}
+                onBack={() => {
+                  setFormMessage("");
+                  setCurrentStep(1);
+                }}
+                onChange={updateValue}
                 onToggleConfirmPassword={() =>
                   setIsConfirmPasswordVisible((current) => !current)
                 }
                 onTogglePassword={() => setIsPasswordVisible((current) => !current)}
+                passwordRequirements={passwordRequirements}
+                values={values}
               />
+            )}
+
+            {currentStep === 1 ? (
+              <Button className="auth-submit-button register-submit-button" type="submit">
+                CONTINUA
+              </Button>
             ) : null}
 
             <div className="auth-login-panel">
@@ -141,11 +300,50 @@ export function RegisterView() {
           <p>I tuoi dati sono al sicuro con noi.</p>
         </div>
       </section>
+
+      {successUserCode ? (
+        <div className="auth-modal-backdrop" role="presentation">
+          <Card
+            aria-labelledby="register-success-title"
+            aria-modal="true"
+            className="auth-modal-card"
+            role="dialog"
+          >
+            <div className="auth-success-emblem" aria-hidden="true">
+              <svg className="auth-icon" viewBox="0 0 24 24">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            </div>
+            <div className="auth-modal-copy">
+              <p className="auth-kicker">Survivor Arena</p>
+              <h2 className="auth-modal-title" id="register-success-title">
+                Registrazione completata
+              </h2>
+              <p className="auth-modal-text">
+                Il tuo account &egrave; stato creato con successo.
+              </p>
+            </div>
+            <div className="auth-user-code">
+              <span>Codice utente</span>
+              <strong>{successUserCode}</strong>
+            </div>
+            <Button className="auth-submit-button" onClick={handleGoToLogin} type="button">
+              Vai al login
+            </Button>
+          </Card>
+        </div>
+      ) : null}
     </main>
   );
 }
 
-function RegisterDataStep() {
+type RegisterStepProps = {
+  errors: FieldErrors<RegisterField>;
+  onChange: (field: RegisterField) => (event: ChangeEvent<HTMLInputElement>) => void;
+  values: RegisterFormValues;
+};
+
+function RegisterDataStep({ errors, onChange, values }: RegisterStepProps) {
   return (
     <div className="auth-step-panel">
       <div className="ui-field">
@@ -161,14 +359,16 @@ function RegisterDataStep() {
           </span>
           <input
             autoComplete="username"
-            className="ui-input ui-input-with-icon"
+            className={getInputClassName(errors.username, values.username)}
             id="register-username"
             name="username"
+            onChange={onChange("username")}
             placeholder="Scegli il tuo username"
             type="text"
+            value={values.username}
           />
         </span>
-        <p className="ui-field-help">3-20 caratteri, senza spazi</p>
+        <FieldHelp error={errors.username} text="3-20 caratteri, senza spazi" />
       </div>
 
       <div className="ui-field">
@@ -184,13 +384,16 @@ function RegisterDataStep() {
           </span>
           <input
             autoComplete="email"
-            className="ui-input ui-input-with-icon"
+            className={getInputClassName(errors.email, values.email)}
             id="register-email"
             name="email"
+            onChange={onChange("email")}
             placeholder="Inserisci la tua email"
             type="email"
+            value={values.email}
           />
         </span>
+        <FieldHelp error={errors.email} />
       </div>
 
       <div className="ui-field">
@@ -205,37 +408,42 @@ function RegisterDataStep() {
           </span>
           <input
             autoComplete="tel"
-            className="ui-input ui-input-with-icon"
+            className={getInputClassName(errors.phone, values.phone)}
             id="register-phone"
             name="phone"
+            onChange={onChange("phone")}
             placeholder="Inserisci il numero"
             type="tel"
+            value={values.phone}
           />
         </span>
-        <p className="ui-field-help">Ti invieremo un codice di verifica</p>
+        <FieldHelp error={errors.phone} text="Ti invieremo un codice di verifica" />
       </div>
-
-      <Button className="auth-submit-button register-submit-button" type="submit">
-        CONTINUA
-      </Button>
     </div>
   );
 }
 
-type RegisterSecurityStepProps = {
+type RegisterSecurityStepProps = RegisterStepProps & {
   isConfirmPasswordVisible: boolean;
   isPasswordVisible: boolean;
+  isSubmitting: boolean;
   onBack: () => void;
   onToggleConfirmPassword: () => void;
   onTogglePassword: () => void;
+  passwordRequirements: ReturnType<typeof getPasswordRequirements>;
 };
 
 function RegisterSecurityStep({
+  errors,
   isConfirmPasswordVisible,
   isPasswordVisible,
+  isSubmitting,
   onBack,
+  onChange,
   onToggleConfirmPassword,
   onTogglePassword,
+  passwordRequirements,
+  values,
 }: RegisterSecurityStepProps) {
   return (
     <div className="auth-step-panel">
@@ -245,13 +453,17 @@ function RegisterSecurityStep({
         </label>
         <PasswordInput
           autoComplete="new-password"
+          error={errors.password}
           id="register-password"
           isVisible={isPasswordVisible}
           name="password"
+          onChange={onChange("password")}
           onToggle={onTogglePassword}
           placeholder="Crea una password"
+          value={values.password}
         />
-        <p className="ui-field-help">Minimo 8 caratteri con lettere e numeri</p>
+        <PasswordRequirements requirements={passwordRequirements} />
+        <FieldHelp error={errors.password} />
       </div>
 
       <div className="ui-field">
@@ -260,21 +472,30 @@ function RegisterSecurityStep({
         </label>
         <PasswordInput
           autoComplete="new-password"
+          error={errors.confirmPassword}
           id="register-confirm-password"
           isVisible={isConfirmPasswordVisible}
-          name="confirm-password"
+          name="confirmPassword"
+          onChange={onChange("confirmPassword")}
           onToggle={onToggleConfirmPassword}
           placeholder="Ripeti la password"
+          value={values.confirmPassword}
         />
+        <FieldHelp error={errors.confirmPassword} />
       </div>
 
-      <Button className="auth-submit-button register-submit-button" type="submit">
-        CREA ACCOUNT
+      <Button
+        className="auth-submit-button register-submit-button"
+        disabled={isSubmitting}
+        type="submit"
+      >
+        {isSubmitting ? "CREAZIONE..." : "CREA ACCOUNT"}
       </Button>
 
       <button
         aria-label="Torna indietro"
         className="auth-back-button"
+        disabled={isSubmitting}
         onClick={onBack}
         type="button"
       >
@@ -287,20 +508,26 @@ function RegisterSecurityStep({
 
 type PasswordInputProps = {
   autoComplete: string;
+  error?: string;
   id: string;
   isVisible: boolean;
   name: string;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onToggle: () => void;
   placeholder: string;
+  value: string;
 };
 
 function PasswordInput({
   autoComplete,
+  error,
   id,
   isVisible,
   name,
+  onChange,
   onToggle,
   placeholder,
+  value,
 }: PasswordInputProps) {
   return (
     <span className="ui-input-wrap">
@@ -312,11 +539,13 @@ function PasswordInput({
       </span>
       <input
         autoComplete={autoComplete}
-        className="ui-input ui-input-with-icon ui-input-with-action"
+        className={getInputClassName(error, value, "ui-input-with-action")}
         id={id}
         name={name}
+        onChange={onChange}
         placeholder={placeholder}
         type={isVisible ? "text" : "password"}
+        value={value}
       />
       <button
         aria-label={isVisible ? "Nascondi password" : "Mostra password"}
@@ -341,5 +570,58 @@ function PasswordInput({
         </svg>
       </button>
     </span>
+  );
+}
+
+function PasswordRequirements({
+  requirements,
+}: {
+  requirements: ReturnType<typeof getPasswordRequirements>;
+}) {
+  return (
+    <ul className="auth-password-requirements" aria-label="Requisiti password">
+      {requirements.map((requirement) => (
+        <li
+          className={cn(
+            "auth-password-requirement",
+            requirement.isMet && "auth-password-requirement-met",
+          )}
+          key={requirement.id}
+        >
+          <span aria-hidden="true">{requirement.isMet ? "✓" : "•"}</span>
+          {requirement.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function FieldHelp({ error, text }: { error?: string; text?: string }) {
+  if (error) {
+    return (
+      <p className="ui-field-help ui-field-error" role="alert">
+        {error}
+      </p>
+    );
+  }
+
+  return text ? <p className="ui-field-help">{text}</p> : null;
+}
+
+function getFieldError(field: RegisterField, values: RegisterFormValues) {
+  if (field === "username") return validateUsername(values.username);
+  if (field === "email") return validateEmail(values.email);
+  if (field === "phone") return validatePhone(values.phone);
+  if (field === "password") return validatePassword(values.password);
+
+  return validateConfirmPassword(values.password, values.confirmPassword);
+}
+
+function getInputClassName(error: string | undefined, value: string, extraClassName?: string) {
+  return cn(
+    "ui-input ui-input-with-icon",
+    extraClassName,
+    error && "ui-input-error",
+    value && !error && "ui-input-valid",
   );
 }
