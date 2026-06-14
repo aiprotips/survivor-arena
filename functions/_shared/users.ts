@@ -1,6 +1,6 @@
 /// <reference types="@cloudflare/workers-types" />
 
-import { createRandomToken, hashPassword } from "./crypto";
+import { hashPassword } from "./crypto";
 
 export type UserRecord = {
   created_at: string;
@@ -30,6 +30,17 @@ export type CreateUserInput = {
   phone: string;
   username: string;
 };
+
+const userCodeAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+function createUserCodeSuffix() {
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+
+  return Array.from(
+    bytes,
+    (byte) => userCodeAlphabet[byte % userCodeAlphabet.length],
+  ).join("");
+}
 
 export function toPublicUser(user: UserRecord): PublicUser {
   return {
@@ -71,7 +82,7 @@ export async function findUserByUniqueFields(
 
 async function createUniqueUserCode(db: D1Database) {
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    const code = `SA-${createRandomToken(6).slice(0, 8).toUpperCase()}`;
+    const code = `SA-${createUserCodeSuffix()}`;
     const existing = await db
       .prepare("SELECT id FROM users WHERE user_code = ? LIMIT 1")
       .bind(code)

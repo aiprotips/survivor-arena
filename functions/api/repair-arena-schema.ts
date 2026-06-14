@@ -195,6 +195,22 @@ function getStatements() {
     .filter(Boolean);
 }
 
+async function cleanupSmokeTestUsers(db: D1Database) {
+  const testUsersWhere = "SELECT id FROM users WHERE email LIKE 'fix-test-%@example.com'";
+
+  await db.prepare(`DELETE FROM life_selections WHERE life_id IN (SELECT id FROM tournament_lives WHERE user_id IN (${testUsersWhere}))`).run();
+  await db.prepare(`DELETE FROM tournament_lives WHERE user_id IN (${testUsersWhere})`).run();
+  await db.prepare(`DELETE FROM tournament_registrations WHERE user_id IN (${testUsersWhere})`).run();
+  await db.prepare(`DELETE FROM wallet_movements WHERE user_id IN (${testUsersWhere})`).run();
+  await db.prepare(`DELETE FROM user_wallets WHERE user_id IN (${testUsersWhere})`).run();
+  await db.prepare(`DELETE FROM user_sessions WHERE user_id IN (${testUsersWhere})`).run();
+  await db.prepare(`DELETE FROM arena_events WHERE user_id IN (${testUsersWhere})`).run();
+
+  const result = await db.prepare("DELETE FROM users WHERE email LIKE 'fix-test-%@example.com'").run();
+
+  return result.meta.changes ?? 0;
+}
+
 export const onRequestPost: PagesFunction<Env> = async ({ env }) => {
   if (!env.DB) {
     return missingDatabase();
@@ -205,6 +221,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ env }) => {
   for (const statement of statements) {
     await env.DB.prepare(statement).run();
   }
+
+  const cleanedTestUsers = await cleanupSmokeTestUsers(env.DB);
 
   const tables = await env.DB
     .prepare(
@@ -228,6 +246,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env }) => {
 
   return json({
     applied: statements.length,
+    cleanedTestUsers,
     ok: true,
     tables: tables.results?.map((table) => table.name) ?? [],
   });
