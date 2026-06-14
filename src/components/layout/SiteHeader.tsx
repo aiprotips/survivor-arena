@@ -1,11 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  BarChart3,
+  CircleHelp,
+  Home,
+  MessageCircle,
+  Trophy,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { BrandLogo } from "@/components/home/BrandLogo";
-import { ButtonLink } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { PremiumDivider } from "@/components/ui/PremiumDivider";
 import { cn } from "@/lib/cn";
 
 const navItems = ["Arene", "Classifiche", "Come Funziona", "Premi", "FAQ"];
+
+const mobileNavItems: Array<{
+  href: string;
+  icon: LucideIcon;
+  label: string;
+}> = [
+  {
+    href: "/",
+    icon: Home,
+    label: "Home",
+  },
+  {
+    href: "#",
+    icon: Trophy,
+    label: "Arene",
+  },
+  {
+    href: "#",
+    icon: BarChart3,
+    label: "Classifiche",
+  },
+  {
+    href: "#",
+    icon: CircleHelp,
+    label: "Come Funziona",
+  },
+];
+
+const legalItems = ["FAQ", "Privacy", "Termini", "Cookie"];
 
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -100,25 +138,42 @@ export function SiteHeader() {
 
               <div className="site-mobile-menu">
                 <nav aria-label="Navigazione mobile" className="site-mobile-links">
-                  {navItems.map((item) => (
-                    <a className="site-mobile-link" href="#" key={item} onClick={closeMenu}>
+                  {mobileNavItems.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <a
+                        className="site-mobile-link"
+                        href={item.href}
+                        key={item.label}
+                        onClick={closeMenu}
+                      >
+                        <Icon aria-hidden="true" className="site-mobile-link-icon" />
+                        <span>{item.label}</span>
+                      </a>
+                    );
+                  })}
+                </nav>
+
+                <PremiumDivider className="site-mobile-divider" />
+
+                <section aria-labelledby="mobile-contact-title" className="site-mobile-contact">
+                  <h2 className="site-mobile-contact-title" id="mobile-contact-title">
+                    Contattaci
+                  </h2>
+                  <Button className="site-mobile-contact-button" type="button" variant="secondary">
+                    <MessageCircle aria-hidden="true" className="site-mobile-contact-icon" />
+                    Contattaci
+                  </Button>
+                </section>
+
+                <nav aria-label="Link legali" className="site-mobile-legal">
+                  {legalItems.map((item) => (
+                    <a href="#" key={item} onClick={closeMenu}>
                       {item}
                     </a>
                   ))}
                 </nav>
-                <div className="site-mobile-actions">
-                  <ButtonLink
-                    className="site-mobile-button"
-                    href="/login"
-                    onClick={closeMenu}
-                    variant="secondary"
-                  >
-                    Accedi
-                  </ButtonLink>
-                  <ButtonLink className="site-mobile-button" href="/register" onClick={closeMenu}>
-                    Registrati
-                  </ButtonLink>
-                </div>
               </div>
             </div>
           </div>
