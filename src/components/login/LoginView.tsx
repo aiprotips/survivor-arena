@@ -30,10 +30,12 @@ export function LoginView() {
       <section className="auth-shell" aria-labelledby="login-title">
         <Card className="auth-card">
           <div className="auth-card-heading">
-            <span className="ui-badge ui-badge-gold">Survivor Arena</span>
+            <p className="auth-kicker">Benvenuto in</p>
             <h2 className="auth-title" id="login-title">
-              Accedi al tuo conto
+              Survivor <span className="auth-title-accent">Arena</span>
             </h2>
+            <p className="auth-subtitle">Accedi al tuo conto per continuare</p>
+            <span className="auth-heading-divider" aria-hidden="true" />
           </div>
 
           <form className="auth-form" onSubmit={handleSubmit}>
@@ -41,14 +43,22 @@ export function LoginView() {
               <label className="ui-field-label" htmlFor="login-identifier">
                 Email / Username
               </label>
-              <input
-                autoComplete="username"
-                className="ui-input"
-                id="login-identifier"
-                name="login"
-                placeholder="Inserisci email o username"
-                type="text"
-              />
+              <span className="ui-input-wrap">
+                <span className="ui-input-leading-icon" aria-hidden="true">
+                  <svg className="auth-icon" viewBox="0 0 24 24">
+                    <path d="M20 21a8 8 0 0 0-16 0" />
+                    <path d="M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
+                  </svg>
+                </span>
+                <input
+                  autoComplete="username"
+                  className="ui-input ui-input-with-icon"
+                  id="login-identifier"
+                  name="login"
+                  placeholder="Inserisci email o username"
+                  type="text"
+                />
+              </span>
             </div>
 
             <div className="ui-field">
@@ -56,9 +66,15 @@ export function LoginView() {
                 Password
               </label>
               <span className="ui-input-wrap">
+                <span className="ui-input-leading-icon" aria-hidden="true">
+                  <svg className="auth-icon" viewBox="0 0 24 24">
+                    <rect height="11" rx="2" width="16" x="4" y="11" />
+                    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                  </svg>
+                </span>
                 <input
                   autoComplete="current-password"
-                  className="ui-input ui-input-with-action"
+                  className="ui-input ui-input-with-icon ui-input-with-action"
                   id="login-password"
                   name="password"
                   placeholder="Inserisci la password"
@@ -94,16 +110,30 @@ export function LoginView() {
             </button>
 
             <Button className="auth-submit-button" type="submit">
-              Accedi
+              ACCEDI
             </Button>
+
+            <div className="auth-separator">
+              <span aria-hidden="true" />
+              <span>Oppure</span>
+              <span aria-hidden="true" />
+            </div>
+
+            <div className="auth-register-panel">
+              <p>Non hai un account?</p>
+              <Button className="auth-register-button" type="button" variant="secondary">
+                REGISTRATI
+              </Button>
+            </div>
           </form>
         </Card>
 
-        <div className="auth-register-panel">
-          <p>Non hai un account?</p>
-          <Button className="auth-register-button" type="button" variant="secondary">
-            Registrati
-          </Button>
+        <div className="auth-safe-note">
+          <svg aria-hidden="true" className="auth-safe-icon" viewBox="0 0 24 24">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+            <path d="m9 12 2 2 4-5" />
+          </svg>
+          <p>I tuoi dati sono al sicuro con noi.</p>
         </div>
       </section>
     </main>
