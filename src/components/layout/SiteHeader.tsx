@@ -137,26 +137,6 @@ export function SiteHeader() {
               </div>
 
               <div className="site-mobile-menu">
-                <nav aria-label="Navigazione mobile" className="site-mobile-links">
-                  {mobileNavItems.map((item) => {
-                    const Icon = item.icon;
-
-                    return (
-                      <a
-                        className="site-mobile-link"
-                        href={item.href}
-                        key={item.label}
-                        onClick={closeMenu}
-                      >
-                        <Icon aria-hidden="true" className="site-mobile-link-icon" />
-                        <span>{item.label}</span>
-                      </a>
-                    );
-                  })}
-                </nav>
-
-                <PremiumDivider className="site-mobile-divider" />
-
                 <div className="site-mobile-auth-actions">
                   <ButtonLink
                     className="site-mobile-auth-button"
@@ -175,6 +155,36 @@ export function SiteHeader() {
                   </ButtonLink>
                 </div>
 
+                <div className="site-mobile-main-menu">
+                  <nav aria-label="Navigazione mobile" className="site-mobile-links">
+                    {mobileNavItems.map((item) => {
+                      const Icon = item.icon;
+
+                      return (
+                        <a
+                          className="site-mobile-link"
+                          href={item.href}
+                          key={item.label}
+                          onClick={closeMenu}
+                        >
+                          <Icon aria-hidden="true" className="site-mobile-link-icon" />
+                          <span>{item.label}</span>
+                        </a>
+                      );
+                    })}
+                  </nav>
+
+                  <nav aria-label="Link legali" className="site-mobile-legal">
+                    {legalItems.map((item) => (
+                      <a href="#" key={item} onClick={closeMenu}>
+                        {item}
+                      </a>
+                    ))}
+                  </nav>
+                </div>
+
+                <PremiumDivider className="site-mobile-divider" />
+
                 <section aria-labelledby="mobile-contact-title" className="site-mobile-contact">
                   <h2 className="site-mobile-contact-title" id="mobile-contact-title">
                     Contattaci
@@ -184,14 +194,6 @@ export function SiteHeader() {
                     Contattaci
                   </Button>
                 </section>
-
-                <nav aria-label="Link legali" className="site-mobile-legal">
-                  {legalItems.map((item) => (
-                    <a href="#" key={item} onClick={closeMenu}>
-                      {item}
-                    </a>
-                  ))}
-                </nav>
               </div>
             </div>
           </div>
