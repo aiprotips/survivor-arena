@@ -277,7 +277,6 @@ a {
     z-index: 90;
     min-height: 100dvh;
     overflow-y: auto;
-    animation: site-mobile-overlay-reveal 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     background:
       radial-gradient(circle at 15% 12%, color-mix(in srgb, var(--color-blue) 8%, transparent), transparent 18rem),
       linear-gradient(180deg, color-mix(in srgb, var(--color-background) 96%, transparent), var(--color-background));
@@ -295,7 +294,7 @@ a {
     min-height: calc(100dvh - max(clamp(1.1rem, 4vw, 1.55rem), env(safe-area-inset-top)) - max(clamp(1.4rem, 5vw, 2rem), env(safe-area-inset-bottom)));
     grid-template-rows: auto minmax(0, 1fr);
     margin-inline: auto;
-    animation: site-mobile-shell-enter 360ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
+    animation: site-mobile-shell-enter 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
     gap: clamp(1rem, 4vw, 1.35rem);
   }
 
@@ -315,34 +314,23 @@ a {
     display: flex;
     min-height: 0;
     flex-direction: column;
-    animation: site-mobile-menu-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) 90ms both;
     gap: clamp(1.1rem, 4vw, 1.5rem);
     padding-block: clamp(0.7rem, 3vw, 1.05rem) 0;
   }
 
-  @keyframes site-mobile-overlay-reveal {
-    from {
-      clip-path: inset(0 0 100% 0);
-    }
-
-    to {
-      clip-path: inset(0 0 0 0);
-    }
-  }
-
   @keyframes site-mobile-shell-enter {
     from {
-      transform: translateY(-0.85rem);
+      transform: translateY(0.9rem) scale(0.988);
     }
 
     to {
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
 
-  @keyframes site-mobile-menu-enter {
+  @keyframes site-mobile-item-enter {
     from {
-      transform: translateY(-0.55rem);
+      transform: translateY(0.72rem);
     }
 
     to {
@@ -351,11 +339,42 @@ a {
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .site-mobile-overlay,
     .site-mobile-overlay-shell,
-    .site-mobile-menu {
+    .site-mobile-auth-actions,
+    .site-mobile-links,
+    .site-mobile-divider,
+    .site-mobile-secondary-links,
+    .site-mobile-contact {
       animation: none;
     }
+  }
+
+  .site-mobile-auth-actions,
+  .site-mobile-links,
+  .site-mobile-divider,
+  .site-mobile-secondary-links,
+  .site-mobile-contact {
+    animation: site-mobile-item-enter 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .site-mobile-auth-actions {
+    animation-delay: 70ms;
+  }
+
+  .site-mobile-links {
+    animation-delay: 115ms;
+  }
+
+  .site-mobile-divider {
+    animation-delay: 155ms;
+  }
+
+  .site-mobile-secondary-links {
+    animation-delay: 185ms;
+  }
+
+  .site-mobile-contact {
+    animation-delay: 215ms;
   }
 
   .site-mobile-links {
