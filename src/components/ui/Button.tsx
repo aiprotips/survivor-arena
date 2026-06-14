@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, PropsWithChildren } from "react";
 import { cn } from "@/lib/cn";
 
-type ButtonVariant = "primary" | "secondary";
+type ButtonVariant = "primary" | "secondary" | "gold";
 
 type ButtonProps = PropsWithChildren<
   ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -12,6 +12,7 @@ type ButtonProps = PropsWithChildren<
 const buttonVariants: Record<ButtonVariant, string> = {
   primary: "ui-button-primary",
   secondary: "ui-button-secondary",
+  gold: "ui-button-gold",
 };
 
 export function Button({

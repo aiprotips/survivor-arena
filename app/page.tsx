@@ -1,11 +1,15 @@
-import { FeatureGrid } from "@/components/home/FeatureGrid";
+import { CompetitionSection } from "@/components/home/CompetitionSection";
 import { Hero } from "@/components/home/Hero";
+import { StatsSection } from "@/components/home/StatsSection";
+import { TournamentsSection } from "@/components/home/TournamentsSection";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-arena-background text-arena-white">
+    <main className="home-page">
       <Hero />
-      <FeatureGrid />
+      <StatsSection />
+      <TournamentsSection />
+      <CompetitionSection />
     </main>
   );
 }

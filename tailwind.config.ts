@@ -10,15 +10,19 @@ const config = {
       colors: {
         arena: {
           background: "var(--color-background)",
+          surface: "var(--color-surface)",
           card: "var(--color-card)",
+          "card-strong": "var(--color-card-strong)",
+          blue: "var(--color-blue)",
+          "blue-soft": "var(--color-blue-soft)",
           gold: "var(--color-gold)",
-          yellow: "var(--color-yellow)",
+          "gold-strong": "var(--color-gold-strong)",
           white: "var(--color-white)",
           muted: "var(--color-muted)",
-          elimination: "var(--color-elimination)",
-          survival: "var(--color-survival)",
+          "muted-soft": "var(--color-muted-soft)",
           ink: "var(--color-ink)",
           border: "var(--color-border)",
+          "border-strong": "var(--color-border-strong)",
         },
       },
       fontFamily: {
@@ -28,11 +32,13 @@ const config = {
       borderRadius: {
         arena: "var(--radius-base)",
         "arena-card": "var(--radius-card)",
-        "arena-button": "var(--radius-button)",
+        "arena-panel": "var(--radius-panel)",
+        "arena-pill": "var(--radius-pill)",
       },
       boxShadow: {
         "arena-card": "var(--shadow-card)",
         "arena-glow": "var(--shadow-glow)",
+        "arena-gold-glow": "var(--shadow-gold-glow)",
         "arena-button": "var(--shadow-button)",
       },
       spacing: {

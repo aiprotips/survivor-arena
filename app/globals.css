@@ -3,61 +3,74 @@
 
 :root {
   /* Core palette */
-  --color-background: #121212;
-  --color-card: #1E1E1E;
-  --color-gold: #FFD700;
-  --color-yellow: #FFC107;
+  --color-background: #020815;
+  --color-surface: #061427;
+  --color-card: #081C34;
+  --color-card-strong: #0A2442;
+  --color-blue: #0B63F6;
+  --color-blue-soft: #4EA0FF;
+  --color-gold: #DDBB68;
+  --color-gold-strong: #F3C64F;
   --color-white: #FFFFFF;
-  --color-muted: #A0A0A0;
-  --color-elimination: #E53935;
-  --color-survival: #00C853;
-  --color-ink: #121212;
-  --color-border: color-mix(in srgb, var(--color-white) 12%, transparent);
+  --color-muted: #C2CBD8;
+  --color-muted-soft: #8796AA;
+  --color-ink: #020815;
+  --color-border: color-mix(in srgb, var(--color-blue-soft) 22%, transparent);
+  --color-border-strong: color-mix(in srgb, var(--color-gold) 34%, transparent);
 
   /* Typography */
   --font-arena: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  --font-display: var(--font-arena);
 
   /* Spacing */
-  --spacing-page-x: clamp(1rem, 5vw, 4.5rem);
-  --spacing-section-y: clamp(3rem, 9vw, 7rem);
+  --spacing-page-x: clamp(1rem, 4vw, 3rem);
+  --spacing-section-y: clamp(3rem, 8vw, 6rem);
   --spacing-stack: clamp(1rem, 3vw, 1.5rem);
 
   /* Shape */
-  --radius-base: 0.5rem;
-  --radius-card: 0.5rem;
-  --radius-button: 0.5rem;
+  --radius-base: 1.5rem;
+  --radius-card: 2rem;
+  --radius-panel: 2.5rem;
+  --radius-pill: 999px;
 
   /* Elevation and glow */
-  --shadow-card: 0 20px 60px color-mix(in srgb, var(--color-ink) 72%, transparent);
-  --shadow-glow: 0 0 32px color-mix(in srgb, var(--color-gold) 24%, transparent);
-  --shadow-button: 0 12px 34px color-mix(in srgb, var(--color-gold) 20%, transparent);
+  --shadow-card: 0 24px 70px color-mix(in srgb, var(--color-ink) 74%, transparent);
+  --shadow-glow: 0 0 44px color-mix(in srgb, var(--color-blue) 30%, transparent);
+  --shadow-gold-glow: 0 0 48px color-mix(in srgb, var(--color-gold) 25%, transparent);
+  --shadow-button: 0 16px 38px color-mix(in srgb, var(--color-blue) 28%, transparent);
 
   /* Component rhythm */
-  --button-height: 3.25rem;
-  --button-padding-x: 1.35rem;
-  --card-padding: clamp(1rem, 4vw, 1.5rem);
-  --layout-max-width: 72rem;
+  --button-height: 3.4rem;
+  --button-padding-x: 1.6rem;
+  --card-padding: clamp(1.1rem, 4vw, 1.6rem);
+  --layout-max-width: 78rem;
+  --hero-min-height: clamp(39rem, 82vh, 48rem);
 }
 
 @theme inline {
   --color-arena-background: var(--color-background);
+  --color-arena-surface: var(--color-surface);
   --color-arena-card: var(--color-card);
+  --color-arena-card-strong: var(--color-card-strong);
+  --color-arena-blue: var(--color-blue);
+  --color-arena-blue-soft: var(--color-blue-soft);
   --color-arena-gold: var(--color-gold);
-  --color-arena-yellow: var(--color-yellow);
+  --color-arena-gold-strong: var(--color-gold-strong);
   --color-arena-white: var(--color-white);
   --color-arena-muted: var(--color-muted);
-  --color-arena-elimination: var(--color-elimination);
-  --color-arena-survival: var(--color-survival);
+  --color-arena-muted-soft: var(--color-muted-soft);
   --color-arena-ink: var(--color-ink);
   --color-arena-border: var(--color-border);
+  --color-arena-border-strong: var(--color-border-strong);
   --font-sans: var(--font-arena);
   --font-display: var(--font-display);
   --radius-arena: var(--radius-base);
   --radius-arena-card: var(--radius-card);
-  --radius-arena-button: var(--radius-button);
+  --radius-arena-panel: var(--radius-panel);
+  --radius-arena-pill: var(--radius-pill);
   --shadow-arena-card: var(--shadow-card);
   --shadow-arena-glow: var(--shadow-glow);
+  --shadow-arena-gold-glow: var(--shadow-gold-glow);
   --shadow-arena-button: var(--shadow-button);
   --spacing-arena-page: var(--spacing-page-x);
   --spacing-arena-section: var(--spacing-section-y);
@@ -77,8 +90,8 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--color-gold) 7%, transparent) 0 1px, transparent 1px 48px),
-    linear-gradient(45deg, color-mix(in srgb, var(--color-white) 4%, transparent) 0 1px, transparent 1px 54px),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--color-blue) 18%, transparent), transparent 34rem),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--color-gold) 12%, transparent), transparent 30rem),
     var(--color-background);
   color: var(--color-white);
   font-family: var(--font-arena);
@@ -97,12 +110,21 @@ a {
 
 @layer base {
   ::selection {
-    background: var(--color-gold);
-    color: var(--color-ink);
+    background: var(--color-blue);
+    color: var(--color-white);
   }
 }
 
 @layer components {
+  .home-page {
+    min-height: 100vh;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--color-blue) 9%, transparent), transparent 22rem),
+      var(--color-background);
+    color: var(--color-white);
+  }
+
   .arena-shell {
     width: min(100%, var(--layout-max-width));
     margin-inline: auto;
@@ -114,13 +136,14 @@ a {
     min-height: var(--button-height);
     align-items: center;
     justify-content: center;
-    gap: 0.625rem;
-    border-radius: var(--radius-button);
+    border-radius: var(--radius-pill);
     border: 1px solid transparent;
     padding-inline: var(--button-padding-x);
-    font-weight: 900;
-    letter-spacing: 0;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
     line-height: 1;
+    text-transform: uppercase;
     transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
   }
 
@@ -129,74 +152,130 @@ a {
   }
 
   .ui-button:focus-visible {
-    outline: 2px solid var(--color-gold);
+    outline: 2px solid var(--color-blue-soft);
     outline-offset: 4px;
   }
 
   .ui-button-primary {
-    background: linear-gradient(180deg, var(--color-gold), var(--color-yellow));
-    color: var(--color-ink);
+    background: linear-gradient(180deg, var(--color-blue-soft), var(--color-blue));
+    color: var(--color-white);
     box-shadow: var(--shadow-button);
   }
 
   .ui-button-secondary {
-    background: color-mix(in srgb, var(--color-card) 84%, transparent);
+    background: color-mix(in srgb, var(--color-card) 74%, transparent);
     border-color: var(--color-border);
     color: var(--color-white);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-gold) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-white) 5%, transparent);
+  }
+
+  .ui-button-gold {
+    background: linear-gradient(180deg, var(--color-gold-strong), var(--color-gold));
+    color: var(--color-ink);
+    box-shadow: var(--shadow-gold-glow);
   }
 
   .ui-card {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-gold) 7%, transparent), transparent 34%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-blue-soft) 9%, transparent), transparent 52%),
       var(--color-card);
     box-shadow: var(--shadow-card);
   }
 
-  .arena-eyebrow {
+  .ui-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    border: 1px solid color-mix(in srgb, var(--color-gold) 36%, transparent);
-    border-radius: var(--radius-button);
-    background: color-mix(in srgb, var(--color-card) 78%, transparent);
-    color: var(--color-gold);
-    font-size: 0.75rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    padding: 0.5rem 0.7rem;
+    justify-content: center;
+    width: fit-content;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 68%, transparent);
+    color: var(--color-blue-soft);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    padding: 0.45rem 0.75rem;
     text-transform: uppercase;
   }
 
-  .arena-stage {
+  .ui-badge-gold {
+    border-color: var(--color-border-strong);
+    color: var(--color-gold);
+  }
+
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--color-white);
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .brand-emblem {
+    display: grid;
+    width: 2.8rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-base);
+    background: linear-gradient(145deg, color-mix(in srgb, var(--color-gold) 22%, transparent), color-mix(in srgb, var(--color-blue) 12%, transparent));
+    color: var(--color-gold);
+    box-shadow: var(--shadow-gold-glow);
+  }
+
+  .hero-panel {
     position: relative;
     overflow: hidden;
+    min-height: var(--hero-min-height);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-card);
+    border-radius: var(--radius-panel);
     background:
-      linear-gradient(145deg, color-mix(in srgb, var(--color-gold) 16%, transparent), transparent 32%),
-      linear-gradient(315deg, color-mix(in srgb, var(--color-elimination) 10%, transparent), transparent 38%),
-      var(--color-card);
-    box-shadow: var(--shadow-card), var(--shadow-glow);
+      linear-gradient(180deg, color-mix(in srgb, var(--color-background) 18%, transparent), var(--color-background)),
+      var(--color-surface);
+    box-shadow: var(--shadow-card);
   }
 
-  .arena-stage::before {
+  .hero-panel::before {
     content: "";
     position: absolute;
-    inset: 1rem;
-    border: 1px solid color-mix(in srgb, var(--color-gold) 24%, transparent);
-    border-radius: var(--radius-card);
-    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    inset: 0;
+    background:
+      radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--color-blue) 20%, transparent), transparent 28rem),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-background) 8%, transparent), var(--color-background) 98%);
+    pointer-events: none;
+    z-index: 1;
   }
 
-  .arena-stage::after {
-    content: "";
+  .hero-image {
     position: absolute;
-    inset: 22%;
-    border: 2px solid color-mix(in srgb, var(--color-gold) 42%, transparent);
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.74;
+  }
+
+  .section-heading {
+    max-width: 43rem;
+  }
+
+  .section-kicker {
+    color: var(--color-gold);
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .premium-image-frame {
+    content: "";
+    overflow: hidden;
     border-radius: var(--radius-card);
-    transform: rotate(45deg);
+    background: var(--color-card-strong);
   }
 }
