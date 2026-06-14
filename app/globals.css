@@ -45,7 +45,7 @@
   --card-padding: clamp(1.1rem, 4vw, 1.6rem);
   --layout-max-width: 78rem;
   --hero-desktop-aspect-ratio: 1280 / 682;
-  --hero-mobile-aspect-ratio: 9 / 16;
+  --hero-mobile-aspect-ratio: 4 / 5;
   --hero-image-fit: cover;
   --hero-image-position-mobile: center center;
   --hero-image-position-desktop: center center;
