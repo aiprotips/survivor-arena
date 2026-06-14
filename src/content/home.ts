@@ -24,26 +24,20 @@ export const homeStats = [
 export const tournaments = [
   {
     title: "Arena Champions",
-    cups: "25.000 coppe",
-    participants: "1.245 / 2.000",
+    cups: "25.000 Coppe",
     status: "In corso",
     image: "/assets/gold-trophy-arena.jpg",
-    buttonLabel: "Partecipa",
   },
   {
     title: "Survivor Cup",
-    cups: "15.000 coppe",
-    participants: "840 / 1.500",
+    cups: "15.000 Coppe",
     status: "In arrivo",
-    image: "/assets/arena-stadium.jpg",
-    buttonLabel: "Scopri di più",
+    image: "/assets/gold-trophy-arena.jpg",
   },
   {
     title: "Legends Arena",
-    cups: "10.000 coppe",
-    participants: "520 / 1.000",
+    cups: "10.000 Coppe",
     status: "In arrivo",
     image: "/assets/gold-trophy-arena.jpg",
-    buttonLabel: "Scopri di più",
   },
 ] as const;

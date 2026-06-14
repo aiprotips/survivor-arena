@@ -1,63 +1,42 @@
 import Image from "next/image";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { cn } from "@/lib/cn";
 
 type TournamentCardProps = {
   title: string;
   cups: string;
-  participants: string;
   status: string;
   image: string;
-  buttonLabel: string;
 };
 
 export function TournamentCard({
   title,
   cups,
-  participants,
   status,
   image,
-  buttonLabel,
 }: TournamentCardProps) {
+  const isLive = status.toLowerCase() === "in corso";
+
   return (
-    <Card className="overflow-hidden p-3">
-      <div className="premium-image-frame relative aspect-[16/10]">
+    <article className="tournament-card">
+      <div className="tournament-media">
         <Image
           alt=""
-          className="size-full object-cover opacity-80"
+          className="tournament-image"
           fill
           loading="lazy"
-          sizes="(min-width: 1024px) 33vw, 100vw"
+          sizes="(min-width: 1024px) 25vw, 72vw"
           src={image}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-arena-card via-arena-card/20 to-transparent" />
-        <Badge className="absolute left-4 top-4" tone="gold">
-          {status}
-        </Badge>
       </div>
-      <div className="space-y-5 p-4">
-        <div>
-          <h3 className="text-xl font-black text-arena-white">{title}</h3>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.08em] text-arena-muted-soft">
-                Coppe in palio
-              </p>
-              <p className="mt-1 text-lg font-black text-arena-gold">{cups}</p>
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.08em] text-arena-muted-soft">
-                Partecipanti
-              </p>
-              <p className="mt-1 text-lg font-black text-arena-white">{participants}</p>
-            </div>
-          </div>
-        </div>
-        <Button className="w-full" variant="secondary">
-          {buttonLabel}
-        </Button>
+      <div className="tournament-overlay" />
+      <span className={cn("tournament-status", isLive && "tournament-status-live")}>
+        {status}
+      </span>
+      <div className="tournament-copy">
+        <h3 className="tournament-card-title">{title}</h3>
+        <p className="tournament-card-label">Montepremi</p>
+        <p className="tournament-card-value">{cups}</p>
       </div>
-    </Card>
+    </article>
   );
 }
