@@ -401,7 +401,7 @@ a {
 
   .brand-emblem {
     display: grid;
-    width: clamp(2.8rem, 11vw, 3.2rem);
+    width: clamp(3rem, 11vw, 3.35rem);
     aspect-ratio: 1;
     place-items: center;
     border: 0;
@@ -411,13 +411,10 @@ a {
     filter: drop-shadow(var(--shadow-gold-glow));
   }
 
-  .brand-emblem-icon {
+  .brand-logo-image {
     width: 100%;
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 2.4;
+    height: 100%;
+    object-fit: contain;
   }
 
   .brand-text {
