@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/home/BrandLogo";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 
 const navItems = ["Arene", "Classifiche", "Come Funziona", "Premi", "FAQ"];
@@ -51,9 +51,9 @@ export function SiteHeader() {
           </nav>
 
           <div className="site-nav-actions">
-            <Button className="site-nav-button" variant="secondary">
+            <ButtonLink className="site-nav-button" href="/login" variant="secondary">
               Accedi
-            </Button>
+            </ButtonLink>
             <Button className="site-nav-button">Registrati</Button>
           </div>
 
@@ -105,9 +105,14 @@ export function SiteHeader() {
                   ))}
                 </nav>
                 <div className="site-mobile-actions">
-                  <Button className="site-mobile-button" variant="secondary">
+                  <ButtonLink
+                    className="site-mobile-button"
+                    href="/login"
+                    onClick={closeMenu}
+                    variant="secondary"
+                  >
                     Accedi
-                  </Button>
+                  </ButtonLink>
                   <Button className="site-mobile-button">Registrati</Button>
                 </div>
               </div>
