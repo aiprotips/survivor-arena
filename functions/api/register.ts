@@ -99,6 +99,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
       { status: 201 },
     );
   } catch (error) {
+    console.error(
+      "Registration failed",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     const message = error instanceof Error ? error.message : "";
     const lowerMessage = message.toLowerCase();
 
