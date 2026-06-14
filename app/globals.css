@@ -44,8 +44,11 @@
   --button-padding-x: 1.6rem;
   --card-padding: clamp(1.1rem, 4vw, 1.6rem);
   --layout-max-width: 78rem;
-  --hero-min-height: clamp(35rem, 72vw, 46rem);
-  --hero-mobile-height: clamp(42rem, 176vw, 46rem);
+  --hero-desktop-aspect-ratio: 1280 / 682;
+  --hero-mobile-aspect-ratio: 9 / 16;
+  --hero-image-fit: cover;
+  --hero-image-position-mobile: center center;
+  --hero-image-position-desktop: center center;
   --stat-icon-size: clamp(2.25rem, 9vw, 3rem);
 }
 
@@ -443,15 +446,26 @@ a {
     position: relative;
     overflow: hidden;
     isolation: isolate;
-    min-height: var(--hero-mobile-height);
+    aspect-ratio: var(--hero-mobile-aspect-ratio);
     background-color: var(--color-background);
-    background-image:
-      radial-gradient(circle at 50% 24%, color-mix(in srgb, var(--color-gold) 15%, transparent), transparent 14rem),
-      linear-gradient(180deg, color-mix(in srgb, var(--color-background) 14%, transparent), transparent 36%, var(--color-background) 100%),
-      url("/assets/hero-mobile.jpg");
-    background-position: center top, center, top center;
-    background-repeat: no-repeat;
-    background-size: auto, auto, 100% auto;
+  }
+
+  .hero-media {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero-image {
+    display: block;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    object-fit: var(--hero-image-fit);
+    object-position: var(--hero-image-position-mobile);
   }
 
   .hero-panel::before {
@@ -712,17 +726,14 @@ a {
     }
 
     .hero-panel {
-      aspect-ratio: 1280 / 682;
-      min-height: min(var(--hero-min-height), 70vw);
+      aspect-ratio: var(--hero-desktop-aspect-ratio);
       border-radius: var(--radius-panel);
       border: 1px solid var(--color-border);
       box-shadow: var(--shadow-card);
-      background-image:
-        radial-gradient(circle at 50% 24%, color-mix(in srgb, var(--color-gold) 15%, transparent), transparent 14rem),
-        linear-gradient(180deg, color-mix(in srgb, var(--color-background) 14%, transparent), transparent 36%, var(--color-background) 100%),
-        url("/assets/hero-desktop.jpg");
-      background-position: center, center, center;
-      background-size: auto, auto, cover;
+    }
+
+    .hero-image {
+      object-position: var(--hero-image-position-desktop);
     }
 
     .hero-actions {

@@ -1,3 +1,8 @@
+export const heroImages = {
+  desktop: "/assets/hero-desktop.jpg",
+  mobile: "/assets/hero-mobile.jpg",
+} as const;
+
 export const homeStats = [
   {
     icon: "trophy",
