@@ -157,6 +157,24 @@ export function SiteHeader() {
 
                 <PremiumDivider className="site-mobile-divider" />
 
+                <div className="site-mobile-auth-actions">
+                  <ButtonLink
+                    className="site-mobile-auth-button"
+                    href="/login"
+                    onClick={closeMenu}
+                    variant="secondary"
+                  >
+                    Accedi
+                  </ButtonLink>
+                  <ButtonLink
+                    className="site-mobile-auth-button"
+                    href="/register"
+                    onClick={closeMenu}
+                  >
+                    Registrati
+                  </ButtonLink>
+                </div>
+
                 <section aria-labelledby="mobile-contact-title" className="site-mobile-contact">
                   <h2 className="site-mobile-contact-title" id="mobile-contact-title">
                     Contattaci
