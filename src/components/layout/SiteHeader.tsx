@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/home/BrandLogo";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -11,6 +11,28 @@ export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const closeMenu = () => setIsMenuOpen(false);
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMenuOpen]);
 
   return (
     <header className="site-header">
@@ -38,9 +60,11 @@ export function SiteHeader() {
           <button
             aria-controls="mobile-navigation"
             aria-expanded={isMenuOpen}
+            aria-hidden={isMenuOpen}
             aria-label={isMenuOpen ? "Chiudi menu" : "Apri menu"}
             className={cn("site-menu-button", isMenuOpen && "site-menu-button-open")}
             onClick={() => setIsMenuOpen((current) => !current)}
+            tabIndex={isMenuOpen ? -1 : undefined}
             type="button"
           >
             <span aria-hidden="true" />
@@ -50,19 +74,43 @@ export function SiteHeader() {
         </div>
 
         {isMenuOpen ? (
-          <div className="site-mobile-menu site-mobile-menu-open" id="mobile-navigation">
-            <nav aria-label="Navigazione mobile" className="site-mobile-links">
-              {navItems.map((item) => (
-                <a className="site-mobile-link" href="#" key={item} onClick={closeMenu}>
-                  {item}
-                </a>
-              ))}
-            </nav>
-            <div className="site-mobile-actions">
-              <Button className="site-mobile-button" variant="secondary">
-                Accedi
-              </Button>
-              <Button className="site-mobile-button">Registrati</Button>
+          <div
+            aria-label="Menu principale"
+            aria-modal="true"
+            className="site-mobile-overlay"
+            id="mobile-navigation"
+            role="dialog"
+          >
+            <div className="site-mobile-overlay-shell">
+              <div className="site-mobile-overlay-top">
+                <BrandLogo />
+                <button
+                  aria-label="Chiudi menu"
+                  className="site-menu-button site-menu-button-open site-menu-close-button"
+                  onClick={closeMenu}
+                  type="button"
+                >
+                  <span aria-hidden="true" />
+                  <span aria-hidden="true" />
+                  <span aria-hidden="true" />
+                </button>
+              </div>
+
+              <div className="site-mobile-menu">
+                <nav aria-label="Navigazione mobile" className="site-mobile-links">
+                  {navItems.map((item) => (
+                    <a className="site-mobile-link" href="#" key={item} onClick={closeMenu}>
+                      {item}
+                    </a>
+                  ))}
+                </nav>
+                <div className="site-mobile-actions">
+                  <Button className="site-mobile-button" variant="secondary">
+                    Accedi
+                  </Button>
+                  <Button className="site-mobile-button">Registrati</Button>
+                </div>
+              </div>
             </div>
           </div>
         ) : null}
