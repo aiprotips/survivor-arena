@@ -1,22 +1,22 @@
 export const homeStats = [
   {
-    icon: "A",
-    label: "Arene attive",
+    icon: "trophy",
+    label: "Arene Attive",
     value: "12",
   },
   {
-    icon: "U",
-    label: "Utenti attivi",
+    icon: "users",
+    label: "Utenti Attivi",
     value: "8.732",
   },
   {
-    icon: "C",
-    label: "Coppe in palio",
-    value: "125.000 coppe",
+    icon: "prize",
+    label: "Coppe in Palio",
+    value: "125.000 Coppe",
   },
   {
-    icon: "V",
-    label: "Vincitori totali",
+    icon: "crown",
+    label: "Vincitori Totali",
     value: "342",
   },
 ] as const;

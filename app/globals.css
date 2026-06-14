@@ -44,8 +44,9 @@
   --button-padding-x: 1.6rem;
   --card-padding: clamp(1.1rem, 4vw, 1.6rem);
   --layout-max-width: 78rem;
-  --hero-min-height: clamp(39rem, 82vh, 48rem);
-  --hero-mobile-clearance: 4rem;
+  --hero-min-height: clamp(32rem, 72vw, 45rem);
+  --hero-mobile-height: clamp(25rem, 110vw, 30rem);
+  --stat-icon-size: clamp(2.25rem, 9vw, 3rem);
 }
 
 @theme inline {
@@ -136,10 +137,10 @@ a {
     position: sticky;
     top: 0;
     z-index: 50;
-    border-bottom: 1px solid color-mix(in srgb, var(--color-border) 58%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--color-background) 94%, transparent), color-mix(in srgb, var(--color-background) 76%, transparent));
-    padding-block: clamp(0.55rem, 2vw, 0.9rem);
+      linear-gradient(180deg, color-mix(in srgb, var(--color-background) 92%, transparent), color-mix(in srgb, var(--color-background) 70%, transparent));
+    padding-block: clamp(0.45rem, 1.6vw, 0.7rem);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
   }
@@ -150,10 +151,11 @@ a {
     justify-content: space-between;
     gap: 0.75rem;
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-pill);
-    background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+    border-radius: var(--radius-panel);
+    background: color-mix(in srgb, var(--color-surface) 78%, transparent);
     box-shadow: var(--shadow-card);
-    padding: 0.45rem;
+    min-height: 4rem;
+    padding: 0.45rem 0.5rem;
   }
 
   .site-header-brand {
@@ -162,6 +164,7 @@ a {
     flex: 0 1 auto;
     align-items: center;
     border-radius: var(--radius-pill);
+    padding-inline: 0.2rem;
   }
 
   .site-header-brand:focus-visible,
@@ -207,7 +210,7 @@ a {
 
   .site-menu-button {
     display: inline-grid;
-    width: 3.2rem;
+    width: 3.05rem;
     aspect-ratio: 1;
     flex: 0 0 auto;
     place-items: center;
@@ -394,16 +397,17 @@ a {
   .brand-mark {
     display: inline-flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.65rem;
     color: var(--color-white);
     font-weight: 900;
     letter-spacing: 0.08em;
+    min-width: 0;
     text-transform: uppercase;
   }
 
   .brand-emblem {
     display: grid;
-    width: 2.8rem;
+    width: clamp(2.3rem, 8vw, 2.75rem);
     aspect-ratio: 1;
     place-items: center;
     border: 1px solid var(--color-border-strong);
@@ -413,16 +417,41 @@ a {
     box-shadow: var(--shadow-gold-glow);
   }
 
+  .brand-emblem-icon {
+    width: 72%;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.4;
+  }
+
+  .brand-text {
+    display: grid;
+    gap: 0.18rem;
+    line-height: 1;
+    min-width: 0;
+  }
+
+  .brand-title {
+    color: var(--color-white);
+    font-size: clamp(0.75rem, 3.4vw, 0.92rem);
+  }
+
+  .brand-subtitle {
+    color: var(--color-blue-soft);
+    font-size: clamp(0.62rem, 2.7vw, 0.7rem);
+  }
+
   .hero-shell {
-    padding-top: clamp(1rem, 2vw, 1.5rem);
-    padding-bottom: var(--hero-mobile-clearance);
+    padding-top: clamp(0.75rem, 1.8vw, 1.25rem);
   }
 
   .hero-panel {
     position: relative;
     overflow: hidden;
     isolation: isolate;
-    min-height: clamp(23rem, 100vw, 30rem);
+    min-height: var(--hero-mobile-height);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-panel);
     background: var(--color-surface);
@@ -438,8 +467,8 @@ a {
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    object-position: top center;
+    object-fit: cover;
+    object-position: center;
   }
 
   .hero-actions {
@@ -455,6 +484,77 @@ a {
 
   .hero-action-button {
     width: 100%;
+  }
+
+  .stats-shell {
+    position: relative;
+    z-index: 20;
+    margin-top: clamp(0.75rem, 2vw, 1.25rem);
+    padding-bottom: var(--spacing-section-y);
+  }
+
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    padding: 0.65rem;
+  }
+
+  .stat-item {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.65rem;
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+    padding: clamp(0.7rem, 2.6vw, 1rem);
+  }
+
+  .stat-icon {
+    display: grid;
+    width: var(--stat-icon-size);
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card-strong) 78%, transparent);
+    color: var(--color-blue-soft);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-white) 4%, transparent);
+  }
+
+  .stat-icon-svg {
+    width: 58%;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.5;
+  }
+
+  .stat-icon-gold {
+    color: var(--color-gold);
+  }
+
+  .stat-copy {
+    min-width: 0;
+  }
+
+  .stat-label {
+    color: var(--color-muted-soft);
+    font-size: clamp(0.58rem, 2.3vw, 0.72rem);
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    line-height: 1.15;
+    text-transform: uppercase;
+  }
+
+  .stat-value {
+    color: var(--color-white);
+    font-size: clamp(1.05rem, 4.7vw, 1.55rem);
+    font-weight: 900;
+    line-height: 1.08;
+    margin-top: 0.2rem;
   }
 
   .section-heading {
@@ -479,17 +579,17 @@ a {
   @media (min-width: 48rem) {
     .hero-panel {
       aspect-ratio: 1280 / 682;
-      min-height: auto;
-    }
-
-    .hero-image {
-      object-fit: cover;
-      object-position: center;
+      min-height: min(var(--hero-min-height), 70vw);
     }
 
     .hero-actions {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       justify-content: center;
+    }
+
+    .stats-strip {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.65rem;
     }
 
     .site-mobile-menu {
@@ -503,7 +603,8 @@ a {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
       gap: 1rem;
-      padding: 0.55rem 0.55rem 0.55rem 0.85rem;
+      min-height: 4.45rem;
+      padding: 0.55rem 0.55rem 0.55rem 0.9rem;
     }
 
     .site-nav-links {
