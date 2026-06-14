@@ -409,6 +409,14 @@ a {
     text-transform: uppercase;
   }
 
+  .ui-field-help {
+    color: var(--color-muted-soft);
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.35;
+    padding-inline: 0.28rem;
+  }
+
   .ui-input-wrap {
     position: relative;
     display: block;
@@ -742,6 +750,136 @@ a {
     gap: clamp(0.82rem, 3vw, 1rem);
   }
 
+  .register-card {
+    gap: clamp(0.95rem, 3.4vw, 1.35rem);
+  }
+
+  .register-title {
+    display: grid;
+    gap: 0.18rem;
+    font-size: clamp(1.45rem, 6vw, 2.38rem);
+    text-transform: none;
+    white-space: normal;
+  }
+
+  .register-title .register-title-main {
+    color: var(--color-white);
+  }
+
+  .register-title .register-title-accent {
+    color: var(--color-blue-soft);
+  }
+
+  .auth-progress {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .auth-progress-step {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.62rem;
+    min-width: 0;
+    border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card-strong) 42%, transparent);
+    padding: 0.58rem 0.62rem;
+    transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  }
+
+  .auth-progress-step-active {
+    border-color: color-mix(in srgb, var(--color-blue-soft) 58%, transparent);
+    background: color-mix(in srgb, var(--color-blue) 8%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-white) 2%, transparent);
+  }
+
+  .auth-progress-step-complete {
+    border-color: color-mix(in srgb, var(--color-gold) 32%, transparent);
+    background: color-mix(in srgb, var(--color-gold) 6%, transparent);
+  }
+
+  .auth-progress-number {
+    display: grid;
+    width: 1.7rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 74%, transparent);
+    color: var(--color-white);
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .auth-progress-step-active .auth-progress-number {
+    background: linear-gradient(180deg, var(--color-blue-hover), var(--color-blue));
+    box-shadow: 0 0 16px color-mix(in srgb, var(--color-blue) 14%, transparent);
+  }
+
+  .auth-progress-step-complete .auth-progress-number {
+    background: linear-gradient(180deg, var(--color-gold-strong), var(--color-gold));
+    color: var(--color-ink);
+  }
+
+  .auth-progress-copy {
+    display: grid;
+    min-width: 0;
+    gap: 0.15rem;
+    line-height: 1;
+  }
+
+  .auth-progress-label {
+    color: var(--color-muted-soft);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .auth-progress-title {
+    overflow: hidden;
+    color: var(--color-white);
+    font-size: 0.76rem;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .auth-step-panel,
+  .register-form {
+    display: grid;
+    gap: clamp(0.78rem, 2.8vw, 0.95rem);
+  }
+
+  .register-submit-button {
+    margin-top: 0.18rem;
+  }
+
+  .auth-back-button {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    justify-content: center;
+    gap: 0.38rem;
+    justify-self: center;
+    border-radius: var(--radius-pill);
+    color: var(--color-blue-soft);
+    font-size: 0.82rem;
+    font-weight: 650;
+    line-height: 1;
+    padding: 0.45rem 0.65rem;
+    transition: background 180ms ease, color 180ms ease;
+  }
+
+  .auth-back-button:hover,
+  .auth-back-button:focus-visible {
+    background: color-mix(in srgb, var(--color-blue) 7%, transparent);
+    color: var(--color-white);
+    outline: none;
+  }
+
   .auth-forgot-link {
     width: fit-content;
     border-radius: var(--radius-pill);
@@ -801,6 +939,24 @@ a {
     font-size: 0.9rem;
     font-weight: 600;
     text-align: center;
+  }
+
+  .auth-login-panel {
+    display: grid;
+    gap: 0.55rem;
+    justify-items: center;
+    color: var(--color-white);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-top: 0.12rem;
+    text-align: center;
+  }
+
+  .auth-inline-link {
+    min-height: 2.55rem;
+    width: min(100%, 14rem);
+    color: var(--color-blue-soft);
+    font-size: 0.8rem;
   }
 
   .auth-register-panel p {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { BrandLogo } from "@/components/home/BrandLogo";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
 
@@ -122,9 +122,9 @@ export function LoginView() {
 
             <div className="auth-register-panel">
               <p>Non hai un account?</p>
-              <Button className="auth-register-button" type="button" variant="secondary">
+              <ButtonLink className="auth-register-button" href="/register" variant="secondary">
                 REGISTRATI
-              </Button>
+              </ButtonLink>
             </div>
           </form>
         </Card>
