@@ -34,7 +34,6 @@ type RegisterResponse =
   | {
       ok: true;
       user: {
-        user_code: string;
         username: string;
       };
     }
@@ -73,7 +72,7 @@ export function RegisterView() {
   const [errors, setErrors] = useState<FieldErrors<RegisterField>>({});
   const [formMessage, setFormMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successUserCode, setSuccessUserCode] = useState("");
+  const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
 
@@ -173,7 +172,7 @@ export function RegisterView() {
         return;
       }
 
-      setSuccessUserCode(data.user.user_code);
+      setIsRegistrationComplete(true);
       setValues(initialValues);
       setErrors({});
     } catch {
@@ -301,7 +300,7 @@ export function RegisterView() {
         </div>
       </section>
 
-      {successUserCode ? (
+      {isRegistrationComplete ? (
         <div className="auth-modal-backdrop" role="presentation">
           <Card
             aria-labelledby="register-success-title"
@@ -322,10 +321,6 @@ export function RegisterView() {
               <p className="auth-modal-text">
                 Il tuo account &egrave; stato creato con successo.
               </p>
-            </div>
-            <div className="auth-user-code">
-              <span>Codice utente</span>
-              <strong>{successUserCode}</strong>
             </div>
             <Button className="auth-submit-button" onClick={handleGoToLogin} type="button">
               Vai al login
