@@ -11,9 +11,11 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { BrandLogo } from "@/components/home/BrandLogo";
-import { Button, ButtonLink } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ui/Button";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
 import { cn } from "@/lib/cn";
+
+const contactEmailHref = "mailto:assistenza.arenasurvivor@gmail.com";
 
 const navItems = [
   ["Arene", "/arene"],
@@ -201,10 +203,15 @@ export function SiteHeader() {
                 </nav>
 
                 <section aria-label="Contattaci" className="site-mobile-contact">
-                  <Button className="site-mobile-contact-button" type="button" variant="secondary">
+                  <ButtonLink
+                    className="site-mobile-contact-button"
+                    href={contactEmailHref}
+                    onClick={closeMenu}
+                    variant="secondary"
+                  >
                     <MessageCircle aria-hidden="true" className="site-mobile-contact-icon" />
                     Contattaci
-                  </Button>
+                  </ButtonLink>
                 </section>
               </div>
             </div>
