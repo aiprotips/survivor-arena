@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ClipboardList,
   Crown,
+  ImageIcon,
   Plus,
   Search,
   Shield,
@@ -101,6 +102,38 @@ type EventLog = {
   username: string | null;
 };
 
+type Team = {
+  created_at: string;
+  created_by: string | null;
+  id: string;
+  logo_url: string | null;
+  name: string;
+  normalized_name: string;
+  updated_at: string;
+};
+
+type TeamsResponse =
+  | {
+      ok: true;
+      teams: Team[];
+    }
+  | {
+      message: string;
+      ok: false;
+    };
+
+type TeamResponse =
+  | {
+      ok: true;
+      team: Team;
+    }
+  | {
+      message: string;
+      ok: false;
+    };
+
+type AdminPanelKey = "create" | "manage" | "teams" | "participants" | "events";
+
 type TournamentForm = {
   description: string;
   entryCost: string;
@@ -148,7 +181,7 @@ const resultOptions: MatchResult[] = [
 
 const adminTabs: Array<{
   icon: LucideIcon;
-  key: "create" | "manage" | "participants" | "events";
+  key: AdminPanelKey;
   label: string;
 }> = [
   {
@@ -160,6 +193,11 @@ const adminTabs: Array<{
     icon: Swords,
     key: "manage",
     label: "Gestisci",
+  },
+  {
+    icon: ImageIcon,
+    key: "teams",
+    label: "Squadre",
   },
   {
     icon: Users,
@@ -216,12 +254,13 @@ export function AdminArenaPanel() {
   const router = useRouter();
   const [user, setUser] = useState<AdminUser | null>(null);
   const [tournaments, setTournaments] = useState<ArenaTournament[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTournamentId, setSelectedTournamentId] = useState("");
   const [events, setEvents] = useState<EventLog[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantQuery, setParticipantQuery] = useState("");
   const [eventQuery, setEventQuery] = useState("");
-  const [activePanel, setActivePanel] = useState<"create" | "manage" | "participants" | "events">("create");
+  const [activePanel, setActivePanel] = useState<AdminPanelKey>("create");
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -258,6 +297,14 @@ export function AdminArenaPanel() {
         setSelectedTournamentId(tournamentsResponse.data.tournaments[0]?.id || "");
       } else {
         setMessage(tournamentsResponse.data.message);
+      }
+
+      const teamsResponse = await fetchJson<TeamsResponse>("/api/admin/teams");
+
+      if (teamsResponse.data.ok) {
+        setTeams(teamsResponse.data.teams);
+      } else {
+        setMessage(teamsResponse.data.message);
       }
 
       const eventsResponse = await fetchJson<
@@ -342,11 +389,39 @@ export function AdminArenaPanel() {
     }
   }
 
+  async function loadTeams() {
+    const { data } = await fetchJson<TeamsResponse>("/api/admin/teams");
+
+    if (data.ok) {
+      setTeams(data.teams);
+    } else {
+      setMessage(data.message);
+    }
+  }
+
+  async function mutateTeam(url: string, init?: RequestInit) {
+    setMessage("");
+    const { data, response } = await fetchJson<TeamResponse | { ok: true } | { message: string; ok: false }>(url, init);
+
+    if (!data.ok) {
+      setMessage(data.message);
+      return null;
+    }
+
+    await loadTeams();
+
+    if (response.status === 201 || "team" in data) {
+      return "team" in data ? data.team : null;
+    }
+
+    return null;
+  }
+
   async function mutateTournament(
     url: string,
     init?: RequestInit,
     options: {
-      keepPanel?: typeof activePanel;
+      keepPanel?: AdminPanelKey;
     } = {},
   ) {
     setMessage("");
@@ -429,6 +504,9 @@ export function AdminArenaPanel() {
                 if (key === "participants") {
                   void loadParticipants();
                 }
+                if (key === "teams") {
+                  void loadTeams();
+                }
                 if (key === "events") {
                   void loadEvents();
                 }
@@ -472,7 +550,15 @@ export function AdminArenaPanel() {
               <TournamentManager
                 key={`${selectedTournament?.id ?? "empty"}-${getCurrentRound(selectedTournament)?.id ?? "none"}-${getCurrentRound(selectedTournament)?.updated_at ?? "fresh"}`}
                 onMutate={mutateTournament}
+                teams={teams}
                 tournament={selectedTournament}
+              />
+            ) : null}
+
+            {activePanel === "teams" ? (
+              <TeamsPanel
+                onMutate={mutateTeam}
+                teams={teams}
               />
             ) : null}
 
@@ -680,14 +766,16 @@ function CreateTournamentWizard({
 
 function TournamentManager({
   onMutate,
+  teams,
   tournament,
 }: {
-  onMutate: (url: string, init?: RequestInit, options?: { keepPanel?: "create" | "manage" | "participants" | "events" }) => Promise<ArenaTournament | null>;
+  onMutate: (url: string, init?: RequestInit, options?: { keepPanel?: AdminPanelKey }) => Promise<ArenaTournament | null>;
+  teams: Team[];
   tournament: ArenaTournament | null;
 }) {
   const [matchForm, setMatchForm] = useState({
-    awayTeam: "",
-    homeTeam: "",
+    awayTeamId: "",
+    homeTeamId: "",
     isLocked: false,
     isSelectable: true,
   });
@@ -785,8 +873,8 @@ function TournamentManager({
               ).then((updated) => {
                 if (updated) {
                   setMatchForm({
-                    awayTeam: "",
-                    homeTeam: "",
+                    awayTeamId: "",
+                    homeTeamId: "",
                     isLocked: false,
                     isSelectable: true,
                   });
@@ -795,10 +883,18 @@ function TournamentManager({
             }}
           >
             <AdminField label="Squadra casa">
-              <input className="ui-input" onChange={(event) => setMatchForm((current) => ({ ...current, homeTeam: event.target.value }))} value={matchForm.homeTeam} />
+              <TeamSelect
+                onChange={(value) => setMatchForm((current) => ({ ...current, homeTeamId: value }))}
+                teams={teams}
+                value={matchForm.homeTeamId}
+              />
             </AdminField>
             <AdminField label="Squadra trasferta">
-              <input className="ui-input" onChange={(event) => setMatchForm((current) => ({ ...current, awayTeam: event.target.value }))} value={matchForm.awayTeam} />
+              <TeamSelect
+                onChange={(value) => setMatchForm((current) => ({ ...current, awayTeamId: value }))}
+                teams={teams}
+                value={matchForm.awayTeamId}
+              />
             </AdminField>
             <label className="admin-check">
               <input
@@ -823,7 +919,7 @@ function TournamentManager({
 
           <div className="admin-match-list">
             {currentRound.matches.map((match) => (
-              <MatchEditor key={`${match.id}-${match.updated_at}`} match={match} onMutate={onMutate} />
+              <MatchEditor key={`${match.id}-${match.updated_at}`} match={match} onMutate={onMutate} teams={teams} />
             ))}
           </div>
 
@@ -932,13 +1028,15 @@ function TournamentManager({
 function MatchEditor({
   match,
   onMutate,
+  teams,
 }: {
   match: ArenaMatch;
-  onMutate: (url: string, init?: RequestInit, options?: { keepPanel?: "create" | "manage" | "participants" | "events" }) => Promise<ArenaTournament | null>;
+  onMutate: (url: string, init?: RequestInit, options?: { keepPanel?: AdminPanelKey }) => Promise<ArenaTournament | null>;
+  teams: Team[];
 }) {
   const [draft, setDraft] = useState({
-    awayTeam: match.away_team,
-    homeTeam: match.home_team,
+    awayTeamId: match.away_team_id ?? "",
+    homeTeamId: match.home_team_id ?? "",
     isLocked: match.is_locked === 1,
     isSelectable: match.is_selectable === 1,
   });
@@ -946,8 +1044,18 @@ function MatchEditor({
   return (
     <article className="admin-match-row">
       <div className="admin-match-fields">
-        <input className="ui-input" onChange={(event) => setDraft((current) => ({ ...current, homeTeam: event.target.value }))} value={draft.homeTeam} />
-        <input className="ui-input" onChange={(event) => setDraft((current) => ({ ...current, awayTeam: event.target.value }))} value={draft.awayTeam} />
+        <TeamSelect
+          legacyLabel={match.home_team}
+          onChange={(value) => setDraft((current) => ({ ...current, homeTeamId: value }))}
+          teams={teams}
+          value={draft.homeTeamId}
+        />
+        <TeamSelect
+          legacyLabel={match.away_team}
+          onChange={(value) => setDraft((current) => ({ ...current, awayTeamId: value }))}
+          teams={teams}
+          value={draft.awayTeamId}
+        />
       </div>
       <div className="admin-match-flags">
         <label>
@@ -992,6 +1100,247 @@ function MatchEditor({
         </Button>
       </div>
     </article>
+  );
+}
+
+function TeamSelect({
+  legacyLabel,
+  onChange,
+  teams,
+  value,
+}: {
+  legacyLabel?: string;
+  onChange: (value: string) => void;
+  teams: Team[];
+  value: string;
+}) {
+  return (
+    <select
+      className="admin-select"
+      disabled={teams.length === 0}
+      onChange={(event) => onChange(event.target.value)}
+      value={value}
+    >
+      <option value="">
+        {legacyLabel ? `Seleziona squadra per ${legacyLabel}` : "Seleziona squadra"}
+      </option>
+      {teams.map((team) => (
+        <option key={team.id} value={team.id}>
+          {team.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function TeamsPanel({
+  onMutate,
+  teams,
+}: {
+  onMutate: (url: string, init?: RequestInit) => Promise<Team | null>;
+  teams: Team[];
+}) {
+  const [draft, setDraft] = useState({
+    logoUrl: "",
+    name: "",
+  });
+  const [localMessage, setLocalMessage] = useState("");
+
+  function handleLogoFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setLocalMessage("Seleziona un file immagine.");
+      return;
+    }
+
+    if (file.size > 160_000) {
+      setLocalMessage("Logo troppo pesante. Usa un file sotto 160 KB oppure un URL immagine.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setDraft((current) => ({
+        ...current,
+        logoUrl: typeof reader.result === "string" ? reader.result : "",
+      }));
+      setLocalMessage("");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function createTeamFromDraft() {
+    const team = await onMutate("/api/admin/teams", {
+      body: JSON.stringify({
+        logoUrl: draft.logoUrl,
+        name: draft.name,
+      }),
+      method: "POST",
+    });
+
+    if (team) {
+      setDraft({
+        logoUrl: "",
+        name: "",
+      });
+      setLocalMessage("");
+    }
+  }
+
+  return (
+    <div className="admin-stack">
+      <Card className="admin-card">
+        <div className="admin-card-heading">
+          <p className="user-page-kicker">Catalogo squadre</p>
+          <h2>Aggiungi squadra</h2>
+          <p>Le squadre salvate qui saranno disponibili nella configurazione dei match.</p>
+        </div>
+
+        {localMessage ? (
+          <div className="auth-form-message auth-form-message-error" role="alert">
+            {localMessage}
+          </div>
+        ) : null}
+
+        <form
+          className="admin-form-grid admin-team-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void createTeamFromDraft();
+          }}
+        >
+          <AdminField label="Nome squadra">
+            <input
+              className="ui-input"
+              onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+              placeholder="Juventus"
+              value={draft.name}
+            />
+          </AdminField>
+          <AdminField label="Logo squadra">
+            <input
+              className="ui-input"
+              onChange={(event) => setDraft((current) => ({ ...current, logoUrl: event.target.value }))}
+              placeholder="URL immagine oppure carica un file"
+              value={draft.logoUrl.startsWith("data:image/") ? "Logo caricato da file" : draft.logoUrl}
+            />
+          </AdminField>
+          <AdminField label="Carica scudetto">
+            <input accept="image/*" className="ui-input" onChange={handleLogoFile} type="file" />
+          </AdminField>
+          <div className="admin-team-preview">
+            <TeamLogo logoUrl={draft.logoUrl} name={draft.name || "Team"} />
+            <div>
+              <span>Anteprima</span>
+              <strong>{draft.name || "Nome squadra"}</strong>
+            </div>
+          </div>
+          <Button className="admin-wide-button" type="submit">
+            Aggiungi squadra
+          </Button>
+        </form>
+      </Card>
+
+      <Card className="admin-card">
+        <div className="admin-card-heading">
+          <p className="user-page-kicker">Squadre salvate</p>
+          <h2>Catalogo</h2>
+        </div>
+        <div className="admin-team-list">
+          {teams.length > 0 ? (
+            teams.map((team) => (
+              <TeamEditor key={team.id} onMutate={onMutate} team={team} />
+            ))
+          ) : (
+            <p className="admin-muted">Nessuna squadra salvata.</p>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function TeamEditor({
+  onMutate,
+  team,
+}: {
+  onMutate: (url: string, init?: RequestInit) => Promise<Team | null>;
+  team: Team;
+}) {
+  const [draft, setDraft] = useState({
+    logoUrl: team.logo_url ?? "",
+    name: team.name,
+  });
+
+  return (
+    <article className="admin-team-row">
+      <div className="admin-team-identity">
+        <TeamLogo logoUrl={team.logo_url} name={team.name} />
+        <div>
+          <strong>{team.name}</strong>
+          <span>ID interno: {team.id}</span>
+        </div>
+      </div>
+      <div className="admin-team-edit-grid">
+        <input
+          className="ui-input"
+          onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+          value={draft.name}
+        />
+        <input
+          className="ui-input"
+          onChange={(event) => setDraft((current) => ({ ...current, logoUrl: event.target.value }))}
+          placeholder="Logo URL"
+          value={draft.logoUrl.startsWith("data:image/") ? "Logo caricato da file" : draft.logoUrl}
+        />
+      </div>
+      <div className="admin-actions-row admin-row-actions">
+        <Button
+          onClick={() =>
+            onMutate(`/api/admin/teams/${team.id}`, {
+              body: JSON.stringify(draft),
+              method: "PATCH",
+            })
+          }
+          type="button"
+        >
+          Salva
+        </Button>
+        <Button
+          onClick={() =>
+            onMutate(`/api/admin/teams/${team.id}`, {
+              method: "DELETE",
+            })
+          }
+          type="button"
+          variant="secondary"
+        >
+          Rimuovi
+        </Button>
+      </div>
+    </article>
+  );
+}
+
+function TeamLogo({
+  logoUrl,
+  name,
+}: {
+  logoUrl: string | null;
+  name: string;
+}) {
+  return logoUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img alt={`Logo ${name}`} className="admin-team-logo" src={logoUrl} />
+  ) : (
+    <span className="admin-team-logo admin-team-logo-placeholder">
+      {name.slice(0, 2).toUpperCase()}
+    </span>
   );
 }
 

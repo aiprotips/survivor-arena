@@ -151,9 +151,17 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
       return;
     }
 
+    const selectedTeamId =
+      selectedTeam.toLowerCase() === match.home_team.toLowerCase()
+        ? match.home_team_id
+        : selectedTeam.toLowerCase() === match.away_team.toLowerCase()
+          ? match.away_team_id
+          : null;
+
     await mutate(`/api/arena/lives/${selectedLife.id}/choice`, {
       body: JSON.stringify({
         matchId: match.id,
+        selectedTeamId,
         selectedTeam,
       }),
       method: "POST",
@@ -282,13 +290,23 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
                         <div className="arena-team-actions">
                           <TeamButton
                             disabled={!match.is_selectable || !!match.is_locked}
-                            isSelected={selection?.selected_team.toLowerCase() === match.home_team.toLowerCase()}
+                            isSelected={
+                              selection?.selected_team_id
+                                ? selection.selected_team_id === match.home_team_id
+                                : selection?.selected_team.toLowerCase() === match.home_team.toLowerCase()
+                            }
+                            logoUrl={match.home_team_logo_url}
                             onClick={() => chooseTeam(match, match.home_team)}
                             team={match.home_team}
                           />
                           <TeamButton
                             disabled={!match.is_selectable || !!match.is_locked}
-                            isSelected={selection?.selected_team.toLowerCase() === match.away_team.toLowerCase()}
+                            isSelected={
+                              selection?.selected_team_id
+                                ? selection.selected_team_id === match.away_team_id
+                                : selection?.selected_team.toLowerCase() === match.away_team.toLowerCase()
+                            }
+                            logoUrl={match.away_team_logo_url}
                             onClick={() => chooseTeam(match, match.away_team)}
                             team={match.away_team}
                           />
@@ -380,11 +398,13 @@ function SummaryMetric({
 function TeamButton({
   disabled,
   isSelected,
+  logoUrl,
   onClick,
   team,
 }: {
   disabled: boolean;
   isSelected: boolean;
+  logoUrl: string | null;
   onClick: () => void;
   team: string;
 }) {
@@ -395,6 +415,10 @@ function TeamButton({
       onClick={onClick}
       type="button"
     >
+      {logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img alt="" src={logoUrl} />
+      ) : null}
       <span>{team}</span>
       {isSelected ? <em aria-label="Squadra scelta" /> : null}
     </button>

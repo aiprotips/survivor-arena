@@ -31,6 +31,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const tournament = await chooseLifeTeam(context.env.DB, {
       lifeId: getParam(context.params.id),
       matchId: String(body.matchId ?? ""),
+      selectedTeamId: typeof body.selectedTeamId === "string" ? body.selectedTeamId : null,
       selectedTeam: String(body.selectedTeam ?? ""),
       userId: auth.user.id,
     });

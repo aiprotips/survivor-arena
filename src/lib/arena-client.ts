@@ -7,7 +7,11 @@ export type MatchResult =
   | "CANCELLED";
 
 export type ArenaMatch = {
+  away_team_id: string | null;
+  away_team_logo_url: string | null;
   away_team: string;
+  home_team_id: string | null;
+  home_team_logo_url: string | null;
   home_team: string;
   id: string;
   is_locked: number;
@@ -71,6 +75,7 @@ export type ArenaSelection = {
   life_id: string;
   match_id: string;
   round_id: string;
+  selected_team_id: string | null;
   selected_side: "HOME" | "AWAY";
   selected_team: string;
   status: "PENDING" | "SURVIVED" | "ELIMINATED" | "VOID";
@@ -87,6 +92,7 @@ export type ArenaLife = {
 export type PublicChoice = {
   email: string;
   life_number: number;
+  selected_team_id: string | null;
   selected_team: string;
   status: string;
   username: string;

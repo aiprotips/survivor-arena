@@ -2904,6 +2904,98 @@ a {
     font-weight: 650;
   }
 
+  .admin-team-form {
+    align-items: end;
+  }
+
+  .admin-team-preview,
+  .admin-team-row,
+  .admin-team-identity {
+    display: flex;
+    align-items: center;
+  }
+
+  .admin-team-preview {
+    gap: 0.72rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-surface) 64%, transparent);
+    padding: 0.72rem;
+  }
+
+  .admin-team-preview span,
+  .admin-team-identity span {
+    color: var(--color-muted-soft);
+    font-size: 0.68rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .admin-team-preview strong,
+  .admin-team-identity strong {
+    display: block;
+    color: var(--color-white);
+    font-size: 0.92rem;
+    font-weight: 700;
+  }
+
+  .admin-team-list {
+    display: grid;
+    gap: 0.76rem;
+  }
+
+  .admin-team-row {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-surface) 58%, transparent);
+    padding: 0.82rem;
+  }
+
+  .admin-team-identity {
+    min-width: min(100%, 17rem);
+    gap: 0.72rem;
+  }
+
+  .admin-team-identity span {
+    display: block;
+    max-width: 13rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: none;
+  }
+
+  .admin-team-logo {
+    width: 2.55rem;
+    aspect-ratio: 1;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 28%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 72%, transparent);
+    object-fit: contain;
+    padding: 0.24rem;
+  }
+
+  .admin-team-logo-placeholder {
+    display: grid;
+    place-items: center;
+    color: var(--color-gold);
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  .admin-team-edit-grid {
+    display: grid;
+    flex: 1 1 22rem;
+    min-width: min(100%, 22rem);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
   .admin-select {
     width: 100%;
     min-height: 2.7rem;
@@ -3288,6 +3380,20 @@ a {
     font-size: 0.82rem;
     font-weight: 650;
     padding-inline: 0.75rem;
+  }
+
+  .arena-team-button img {
+    width: 1.35rem;
+    aspect-ratio: 1;
+    flex: 0 0 auto;
+    object-fit: contain;
+  }
+
+  .arena-team-button span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .arena-team-button:disabled {

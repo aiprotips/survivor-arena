@@ -16,6 +16,7 @@ const stamp = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7
 const nodeBin = process.execPath;
 const wranglerBin = "node_modules/wrangler/bin/wrangler.js";
 const testResults = [];
+const teamCache = new Map();
 
 function currentRound(tournament) {
   return tournament.rounds.find((round) => round.round_number === tournament.current_round_number);
@@ -204,6 +205,33 @@ async function createTournament(admin, name, overrides = {}) {
   return response.data.tournament;
 }
 
+async function ensureTeam(admin, name) {
+  if (teamCache.has(name)) {
+    return teamCache.get(name);
+  }
+
+  const teams = await admin.request("/api/admin/teams");
+  expectStatus(teams, 200, "admin teams list");
+  const existing = teams.data.teams.find((team) => team.name.toLowerCase() === name.toLowerCase());
+
+  if (existing) {
+    teamCache.set(name, existing);
+    return existing;
+  }
+
+  const created = await admin.request("/api/admin/teams", {
+    body: {
+      logoUrl: `https://example.com/${encodeURIComponent(name.toLowerCase())}.png`,
+      name,
+    },
+    method: "POST",
+  });
+  expectStatus(created, 201, `create team ${name}`);
+  teamCache.set(name, created.data.team);
+
+  return created.data.team;
+}
+
 async function configureRound(admin, tournament, matches = [["Juventus", "Inter"]]) {
   let round = currentRound(tournament);
   const deadline = await admin.request(`/api/admin/tournaments/${tournament.id}/round`, {
@@ -219,10 +247,12 @@ async function configureRound(admin, tournament, matches = [["Juventus", "Inter"
   round = currentRound(tournament);
 
   for (const [homeTeam, awayTeam] of matches) {
+    const home = await ensureTeam(admin, homeTeam);
+    const away = await ensureTeam(admin, awayTeam);
     const added = await admin.request("/api/admin/matches", {
       body: {
-        awayTeam,
-        homeTeam,
+        awayTeamId: away.id,
+        homeTeamId: home.id,
         isLocked: false,
         isSelectable: true,
         roundId: round.id,
@@ -231,6 +261,9 @@ async function configureRound(admin, tournament, matches = [["Juventus", "Inter"
     });
 
     expectStatus(added, 201, `add match ${homeTeam} vs ${awayTeam}`);
+    const createdMatch = currentRound(added.data.tournament).matches.at(-1);
+    assert(createdMatch?.home_team_id === home.id, "home team id not saved on match", createdMatch);
+    assert(createdMatch?.away_team_id === away.id, "away team id not saved on match", createdMatch);
     tournament = added.data.tournament;
     round = currentRound(tournament);
   }
@@ -495,10 +528,11 @@ async function main() {
     expectStatus(publishWithoutRound, 409, "publish without deadline/match");
 
     const round = currentRound(gameTournament);
+    const romaTeam = await ensureTeam(admin, "Roma");
     const invalidMatch = await admin.request("/api/admin/matches", {
       body: {
-        awayTeam: "Roma",
-        homeTeam: "Roma",
+        awayTeamId: romaTeam.id,
+        homeTeamId: romaTeam.id,
         roundId: round.id,
       },
       method: "POST",
@@ -509,8 +543,8 @@ async function main() {
     const match = currentRound(gameTournament).matches[0];
     const disabled = await admin.request(`/api/admin/matches/${match.id}`, {
       body: {
-        awayTeam: match.away_team,
-        homeTeam: match.home_team,
+        awayTeamId: match.away_team_id,
+        homeTeamId: match.home_team_id,
         isLocked: false,
         isSelectable: false,
       },
@@ -524,8 +558,8 @@ async function main() {
 
     const enabled = await admin.request(`/api/admin/matches/${match.id}`, {
       body: {
-        awayTeam: match.away_team,
-        homeTeam: match.home_team,
+        awayTeamId: match.away_team_id,
+        homeTeamId: match.home_team_id,
         isLocked: false,
         isSelectable: true,
       },

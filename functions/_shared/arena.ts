@@ -42,8 +42,12 @@ export type RoundRow = {
 };
 
 export type MatchRow = {
+  away_team_id: string | null;
+  away_team_logo_url: string | null;
   away_team: string;
   created_at: string;
+  home_team_id: string | null;
+  home_team_logo_url: string | null;
   home_team: string;
   id: string;
   is_locked: number;
@@ -51,6 +55,16 @@ export type MatchRow = {
   result: MatchResult;
   round_id: string;
   tournament_id: string;
+  updated_at: string;
+};
+
+export type TeamRow = {
+  created_at: string;
+  created_by: string | null;
+  id: string;
+  logo_url: string | null;
+  name: string;
+  normalized_name: string;
   updated_at: string;
 };
 
@@ -85,6 +99,7 @@ export type SelectionRow = {
   life_id: string;
   match_id: string;
   round_id: string;
+  selected_team_id: string | null;
   selected_side: SelectionSide;
   selected_team: string;
   status: "PENDING" | "SURVIVED" | "ELIMINATED" | "VOID";
@@ -150,6 +165,22 @@ function toOptionalString(value: unknown) {
   return text ? text : null;
 }
 
+function normalizeTeamName(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function isValidLogoValue(value: string | null) {
+  return (
+    !value ||
+    ((value.startsWith("https://") || value.startsWith("http://") || value.startsWith("data:image/")) &&
+      value.length <= 250_000)
+  );
+}
+
+function teamUsageKey(teamId: string | null, teamName: string) {
+  return teamId ? `id:${teamId}` : `name:${teamName.trim().toLowerCase()}`;
+}
+
 function toInteger(value: unknown, fallback = 0) {
   if (typeof value === "number" && Number.isFinite(value)) {
     return Math.trunc(value);
@@ -193,6 +224,12 @@ export function getArenaError(error: unknown, fallback = "Operazione non riuscit
     message: fallback,
     status: 500,
   };
+}
+
+function isMissingSchemaField(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return message.includes("no such column") || message.includes("no such table");
 }
 
 export function parseTournamentInput(body: Record<string, unknown>): TournamentInput {
@@ -351,6 +388,190 @@ export async function logArenaEvent(
     .run();
 }
 
+export async function listTeams(db: D1Database) {
+  let rows;
+
+  try {
+    rows = await db
+      .prepare(
+        `SELECT id, name, normalized_name, logo_url, created_by, created_at, updated_at
+         FROM teams
+         ORDER BY name ASC`,
+      )
+      .all<TeamRow>();
+  } catch (error) {
+    if (isMissingSchemaField(error)) {
+      return [];
+    }
+
+    throw error;
+  }
+
+  return rows.results ?? [];
+}
+
+export async function getTeam(db: D1Database, teamId: string) {
+  return db
+    .prepare(
+      `SELECT id, name, normalized_name, logo_url, created_by, created_at, updated_at
+       FROM teams
+       WHERE id = ?1
+       LIMIT 1`,
+    )
+    .bind(teamId)
+    .first<TeamRow>();
+}
+
+async function getTeamByNormalizedName(db: D1Database, normalizedName: string) {
+  return db
+    .prepare(
+      `SELECT id, name, normalized_name, logo_url, created_by, created_at, updated_at
+       FROM teams
+       WHERE normalized_name = ?1
+       LIMIT 1`,
+    )
+    .bind(normalizedName)
+    .first<TeamRow>();
+}
+
+export async function createTeam(
+  db: D1Database,
+  input: {
+    adminId: string;
+    logoUrl: string | null;
+    name: string;
+  },
+) {
+  const name = input.name.trim().replace(/\s+/g, " ");
+  const normalizedName = normalizeTeamName(name);
+  const logoUrl = input.logoUrl?.trim() || null;
+
+  assertArena(name.length >= 2, "Inserisci un nome squadra valido.");
+  assertArena(isValidLogoValue(logoUrl), "Logo non valido. Usa un URL immagine o un file immagine leggero.");
+
+  const existing = await getTeamByNormalizedName(db, normalizedName);
+  assertArena(!existing, "Squadra già esistente.", 409);
+
+  const now = nowIso();
+  const teamId = crypto.randomUUID();
+
+  await db
+    .prepare(
+      `INSERT INTO teams (id, name, normalized_name, logo_url, created_by, created_at, updated_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)`,
+    )
+    .bind(teamId, name, normalizedName, logoUrl, input.adminId, now)
+    .run();
+
+  await logArenaEvent(db, {
+    eventType: "team_created",
+    message: `Squadra creata: ${name}.`,
+    userId: input.adminId,
+  });
+
+  const team = await getTeam(db, teamId);
+  assertArena(team, "Squadra creata ma non riletta.", 500);
+
+  return team;
+}
+
+export async function updateTeam(
+  db: D1Database,
+  input: {
+    adminId: string;
+    logoUrl: string | null;
+    name: string;
+    teamId: string;
+  },
+) {
+  const team = await getTeam(db, input.teamId);
+  assertArena(team, "Squadra non trovata.", 404);
+
+  const name = input.name.trim().replace(/\s+/g, " ");
+  const normalizedName = normalizeTeamName(name);
+  const logoUrl = input.logoUrl?.trim() || null;
+
+  assertArena(name.length >= 2, "Inserisci un nome squadra valido.");
+  assertArena(isValidLogoValue(logoUrl), "Logo non valido. Usa un URL immagine o un file immagine leggero.");
+
+  const existing = await getTeamByNormalizedName(db, normalizedName);
+  assertArena(!existing || existing.id === input.teamId, "Squadra già esistente.", 409);
+
+  await db
+    .prepare(
+      `UPDATE teams
+       SET name = ?1,
+           normalized_name = ?2,
+           logo_url = ?3,
+           updated_at = ?4
+       WHERE id = ?5`,
+    )
+    .bind(name, normalizedName, logoUrl, nowIso(), input.teamId)
+    .run();
+
+  await db
+    .prepare(
+      `UPDATE tournament_matches
+       SET home_team = ?1,
+           updated_at = ?2
+       WHERE home_team_id = ?3`,
+    )
+    .bind(name, nowIso(), input.teamId)
+    .run();
+  await db
+    .prepare(
+      `UPDATE tournament_matches
+       SET away_team = ?1,
+           updated_at = ?2
+       WHERE away_team_id = ?3`,
+    )
+    .bind(name, nowIso(), input.teamId)
+    .run();
+  await db
+    .prepare("UPDATE life_selections SET selected_team = ?1, updated_at = ?2 WHERE selected_team_id = ?3")
+    .bind(name, nowIso(), input.teamId)
+    .run();
+
+  await logArenaEvent(db, {
+    eventType: "team_updated",
+    message: `Squadra aggiornata: ${name}.`,
+    userId: input.adminId,
+  });
+
+  const updated = await getTeam(db, input.teamId);
+  assertArena(updated, "Squadra aggiornata ma non riletta.", 500);
+
+  return updated;
+}
+
+export async function deleteTeam(db: D1Database, teamId: string, adminId: string) {
+  const team = await getTeam(db, teamId);
+  assertArena(team, "Squadra non trovata.", 404);
+
+  const usage = await db
+    .prepare(
+      `SELECT
+         (SELECT COUNT(*) FROM tournament_matches WHERE home_team_id = ?1 OR away_team_id = ?1) AS match_count,
+         (SELECT COUNT(*) FROM life_selections WHERE selected_team_id = ?1) AS selection_count`,
+    )
+    .bind(teamId)
+    .first<{ match_count: number; selection_count: number }>();
+
+  assertArena(
+    !usage || (usage.match_count === 0 && usage.selection_count === 0),
+    "Non puoi eliminare una squadra già usata in match o scelte.",
+    409,
+  );
+
+  await db.prepare("DELETE FROM teams WHERE id = ?1").bind(teamId).run();
+
+  await logArenaEvent(db, {
+    eventType: "team_deleted",
+    message: `Squadra eliminata: ${team.name}.`,
+    userId: adminId,
+  });
+}
+
 export async function createTournament(
   db: D1Database,
   input: TournamentInput,
@@ -438,15 +659,57 @@ async function listRounds(db: D1Database, tournamentId: string) {
 }
 
 async function listMatches(db: D1Database, roundId: string) {
-  const rows = await db
-    .prepare(
-      `SELECT id, tournament_id, round_id, home_team, away_team, is_selectable, is_locked, result, created_at, updated_at
-       FROM tournament_matches
-       WHERE round_id = ?1
-       ORDER BY created_at ASC`,
-    )
-    .bind(roundId)
-    .all<MatchRow>();
+  let rows;
+
+  try {
+    rows = await db
+      .prepare(
+        `SELECT
+           m.id,
+           m.tournament_id,
+           m.round_id,
+           m.home_team_id,
+           m.away_team_id,
+           m.home_team,
+           m.away_team,
+           home.logo_url AS home_team_logo_url,
+           away.logo_url AS away_team_logo_url,
+           m.is_selectable,
+           m.is_locked,
+           m.result,
+           m.created_at,
+           m.updated_at
+         FROM tournament_matches m
+         LEFT JOIN teams home ON home.id = m.home_team_id
+         LEFT JOIN teams away ON away.id = m.away_team_id
+         WHERE m.round_id = ?1
+         ORDER BY m.created_at ASC`,
+      )
+      .bind(roundId)
+      .all<MatchRow>();
+  } catch (error) {
+    if (!isMissingSchemaField(error)) {
+      throw error;
+    }
+
+    const legacyRows = await db
+      .prepare(
+        `SELECT id, tournament_id, round_id, home_team, away_team, is_selectable, is_locked, result, created_at, updated_at
+         FROM tournament_matches
+         WHERE round_id = ?1
+         ORDER BY created_at ASC`,
+      )
+      .bind(roundId)
+      .all<Omit<MatchRow, "away_team_id" | "away_team_logo_url" | "home_team_id" | "home_team_logo_url">>();
+
+    return (legacyRows.results ?? []).map((match) => ({
+      ...match,
+      away_team_id: null,
+      away_team_logo_url: null,
+      home_team_id: null,
+      home_team_logo_url: null,
+    }));
+  }
 
   return rows.results ?? [];
 }
@@ -589,12 +852,25 @@ export async function getRound(db: D1Database, roundId: string) {
     .first<RoundRow>();
 }
 
+async function resolveMatchTeams(db: D1Database, homeTeamId: string, awayTeamId: string) {
+  const homeTeam = await getTeam(db, homeTeamId);
+  const awayTeam = await getTeam(db, awayTeamId);
+
+  assertArena(homeTeam && awayTeam, "Seleziona entrambe le squadre dal catalogo.", 400);
+  assertArena(homeTeam.id !== awayTeam.id, "Le squadre devono essere diverse.");
+
+  return {
+    awayTeam,
+    homeTeam,
+  };
+}
+
 export async function addMatch(
   db: D1Database,
   input: {
     adminId: string;
-    awayTeam: string;
-    homeTeam: string;
+    awayTeamId: string;
+    homeTeamId: string;
     isLocked: boolean;
     isSelectable: boolean;
     roundId: string;
@@ -604,25 +880,25 @@ export async function addMatch(
   assertArena(round, "Round non trovato.", 404);
   assertArena(round.status !== "CALCULATED", "Round già calcolato.", 409);
 
-  const homeTeam = input.homeTeam.trim();
-  const awayTeam = input.awayTeam.trim();
-  assertArena(homeTeam.length >= 2 && awayTeam.length >= 2, "Inserisci entrambe le squadre.");
-  assertArena(homeTeam.toLowerCase() !== awayTeam.toLowerCase(), "Le squadre devono essere diverse.");
+  const { awayTeam, homeTeam } = await resolveMatchTeams(db, input.homeTeamId, input.awayTeamId);
 
   const now = nowIso();
   const matchId = crypto.randomUUID();
   await db
     .prepare(
       `INSERT INTO tournament_matches (
-        id, tournament_id, round_id, home_team, away_team, is_selectable, is_locked, result, created_at, updated_at
-      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'PENDING', ?8, ?8)`,
+        id, tournament_id, round_id, home_team_id, away_team_id, home_team, away_team,
+        is_selectable, is_locked, result, created_at, updated_at
+      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'PENDING', ?10, ?10)`,
     )
     .bind(
       matchId,
       round.tournament_id,
       round.id,
-      homeTeam,
-      awayTeam,
+      homeTeam.id,
+      awayTeam.id,
+      homeTeam.name,
+      awayTeam.name,
       input.isSelectable ? 1 : 0,
       input.isLocked ? 1 : 0,
       now,
@@ -632,7 +908,7 @@ export async function addMatch(
   await logArenaEvent(db, {
     eventType: "match_created",
     matchId,
-    message: `${homeTeam} vs ${awayTeam} aggiunto.`,
+    message: `${homeTeam.name} vs ${awayTeam.name} aggiunto.`,
     roundId: round.id,
     tournamentId: round.tournament_id,
     userId: input.adminId,
@@ -645,8 +921,8 @@ export async function updateMatch(
   db: D1Database,
   input: {
     adminId: string;
-    awayTeam: string;
-    homeTeam: string;
+    awayTeamId: string;
+    homeTeamId: string;
     isLocked: boolean;
     isSelectable: boolean;
     matchId: string;
@@ -659,24 +935,25 @@ export async function updateMatch(
   assertArena(round, "Round non trovato.", 404);
   assertArena(round.status !== "CALCULATED", "Round già calcolato.", 409);
 
-  const homeTeam = input.homeTeam.trim();
-  const awayTeam = input.awayTeam.trim();
-  assertArena(homeTeam.length >= 2 && awayTeam.length >= 2, "Inserisci entrambe le squadre.");
-  assertArena(homeTeam.toLowerCase() !== awayTeam.toLowerCase(), "Le squadre devono essere diverse.");
+  const { awayTeam, homeTeam } = await resolveMatchTeams(db, input.homeTeamId, input.awayTeamId);
 
   await db
     .prepare(
       `UPDATE tournament_matches
-       SET home_team = ?1,
-           away_team = ?2,
-           is_selectable = ?3,
-           is_locked = ?4,
-           updated_at = ?5
-       WHERE id = ?6`,
+       SET home_team_id = ?1,
+           away_team_id = ?2,
+           home_team = ?3,
+           away_team = ?4,
+           is_selectable = ?5,
+           is_locked = ?6,
+           updated_at = ?7
+       WHERE id = ?8`,
     )
     .bind(
-      homeTeam,
-      awayTeam,
+      homeTeam.id,
+      awayTeam.id,
+      homeTeam.name,
+      awayTeam.name,
       input.isSelectable ? 1 : 0,
       input.isLocked ? 1 : 0,
       nowIso(),
@@ -687,7 +964,7 @@ export async function updateMatch(
   await logArenaEvent(db, {
     eventType: "match_updated",
     matchId: input.matchId,
-    message: `${homeTeam} vs ${awayTeam} modificato.`,
+    message: `${homeTeam.name} vs ${awayTeam.name} modificato.`,
     roundId: match.round_id,
     tournamentId: match.tournament_id,
     userId: input.adminId,
@@ -719,15 +996,57 @@ export async function deleteMatch(db: D1Database, matchId: string, adminId: stri
 }
 
 export async function getMatch(db: D1Database, matchId: string) {
-  return db
-    .prepare(
-      `SELECT id, tournament_id, round_id, home_team, away_team, is_selectable, is_locked, result, created_at, updated_at
-       FROM tournament_matches
-       WHERE id = ?1
-       LIMIT 1`,
-    )
-    .bind(matchId)
-    .first<MatchRow>();
+  try {
+    return await db
+      .prepare(
+        `SELECT
+           m.id,
+           m.tournament_id,
+           m.round_id,
+           m.home_team_id,
+           m.away_team_id,
+           m.home_team,
+           m.away_team,
+           home.logo_url AS home_team_logo_url,
+           away.logo_url AS away_team_logo_url,
+           m.is_selectable,
+           m.is_locked,
+           m.result,
+           m.created_at,
+           m.updated_at
+         FROM tournament_matches m
+         LEFT JOIN teams home ON home.id = m.home_team_id
+         LEFT JOIN teams away ON away.id = m.away_team_id
+         WHERE m.id = ?1
+         LIMIT 1`,
+      )
+      .bind(matchId)
+      .first<MatchRow>();
+  } catch (error) {
+    if (!isMissingSchemaField(error)) {
+      throw error;
+    }
+
+    const match = await db
+      .prepare(
+        `SELECT id, tournament_id, round_id, home_team, away_team, is_selectable, is_locked, result, created_at, updated_at
+         FROM tournament_matches
+         WHERE id = ?1
+         LIMIT 1`,
+      )
+      .bind(matchId)
+      .first<Omit<MatchRow, "away_team_id" | "away_team_logo_url" | "home_team_id" | "home_team_logo_url">>();
+
+    return match
+      ? {
+          ...match,
+          away_team_id: null,
+          away_team_logo_url: null,
+          home_team_id: null,
+          home_team_logo_url: null,
+        }
+      : null;
+  }
 }
 
 export async function publishTournament(db: D1Database, tournamentId: string, adminId: string) {
@@ -949,15 +1268,38 @@ async function listSelectionsForLives(db: D1Database, lifeIds: string[]) {
   }
 
   const placeholders = lifeIds.map((_, index) => `?${index + 1}`).join(", ");
-  const rows = await db
-    .prepare(
-      `SELECT id, life_id, tournament_id, round_id, match_id, selected_team, selected_side, cycle_number, status, created_at, updated_at
-       FROM life_selections
-       WHERE life_id IN (${placeholders})
-       ORDER BY created_at ASC`,
-    )
-    .bind(...lifeIds)
-    .all<SelectionRow>();
+  let rows;
+
+  try {
+    rows = await db
+      .prepare(
+        `SELECT id, life_id, tournament_id, round_id, match_id, selected_team_id, selected_team, selected_side, cycle_number, status, created_at, updated_at
+         FROM life_selections
+         WHERE life_id IN (${placeholders})
+         ORDER BY created_at ASC`,
+      )
+      .bind(...lifeIds)
+      .all<SelectionRow>();
+  } catch (error) {
+    if (!isMissingSchemaField(error)) {
+      throw error;
+    }
+
+    const legacyRows = await db
+      .prepare(
+        `SELECT id, life_id, tournament_id, round_id, match_id, selected_team, selected_side, cycle_number, status, created_at, updated_at
+         FROM life_selections
+         WHERE life_id IN (${placeholders})
+         ORDER BY created_at ASC`,
+      )
+      .bind(...lifeIds)
+      .all<Omit<SelectionRow, "selected_team_id">>();
+
+    return (legacyRows.results ?? []).map((selection) => ({
+      ...selection,
+      selected_team_id: null,
+    }));
+  }
 
   return rows.results ?? [];
 }
@@ -992,30 +1334,70 @@ export async function getUserTournamentDetails(
 }
 
 export async function listPublicChoices(db: D1Database, roundId: string) {
-  const rows = await db
-    .prepare(
-      `SELECT
-        u.username,
-        u.email,
-        l.life_number,
-        s.selected_team,
-        s.status,
-        s.updated_at
-       FROM life_selections s
-       INNER JOIN tournament_lives l ON l.id = s.life_id
-       INNER JOIN users u ON u.id = l.user_id
-       WHERE s.round_id = ?1
-       ORDER BY u.username ASC, l.life_number ASC`,
-    )
-    .bind(roundId)
-    .all<{
-      email: string;
-      life_number: number;
-      selected_team: string;
-      status: string;
-      updated_at: string;
-      username: string;
-    }>();
+  let rows;
+
+  try {
+    rows = await db
+      .prepare(
+        `SELECT
+          u.username,
+          u.email,
+          l.life_number,
+          s.selected_team_id,
+          s.selected_team,
+          s.status,
+          s.updated_at
+         FROM life_selections s
+         INNER JOIN tournament_lives l ON l.id = s.life_id
+         INNER JOIN users u ON u.id = l.user_id
+         WHERE s.round_id = ?1
+         ORDER BY u.username ASC, l.life_number ASC`,
+      )
+      .bind(roundId)
+      .all<{
+        email: string;
+        life_number: number;
+        selected_team_id: string | null;
+        selected_team: string;
+        status: string;
+        updated_at: string;
+        username: string;
+      }>();
+  } catch (error) {
+    if (!isMissingSchemaField(error)) {
+      throw error;
+    }
+
+    const legacyRows = await db
+      .prepare(
+        `SELECT
+          u.username,
+          u.email,
+          l.life_number,
+          s.selected_team,
+          s.status,
+          s.updated_at
+         FROM life_selections s
+         INNER JOIN tournament_lives l ON l.id = s.life_id
+         INNER JOIN users u ON u.id = l.user_id
+         WHERE s.round_id = ?1
+         ORDER BY u.username ASC, l.life_number ASC`,
+      )
+      .bind(roundId)
+      .all<{
+        email: string;
+        life_number: number;
+        selected_team: string;
+        status: string;
+        updated_at: string;
+        username: string;
+      }>();
+
+    return (legacyRows.results ?? []).map((selection) => ({
+      ...selection,
+      selected_team_id: null,
+    }));
+  }
 
   return rows.results ?? [];
 }
@@ -1234,6 +1616,7 @@ export async function chooseLifeTeam(
   input: {
     lifeId: string;
     matchId: string;
+    selectedTeamId?: string | null;
     selectedTeam: string;
     userId: string;
   },
@@ -1254,45 +1637,75 @@ export async function chooseLifeTeam(
   assertArena(match && match.round_id === round.id, "Incontro non valido per questo round.", 400);
   assertArena(match.is_selectable === 1 && match.is_locked === 0, "Questo incontro non è selezionabile.", 409);
 
-  const selectedTeam = input.selectedTeam.trim();
-  const selectedSide: SelectionSide =
-    selectedTeam.toLowerCase() === match.home_team.toLowerCase()
-      ? "HOME"
-      : selectedTeam.toLowerCase() === match.away_team.toLowerCase()
-        ? "AWAY"
-        : ("" as SelectionSide);
+  const requestedTeamId = input.selectedTeamId?.trim() || null;
+  const requestedTeamName = input.selectedTeam.trim();
+  const selectedById =
+    requestedTeamId && requestedTeamId === match.home_team_id
+      ? {
+          id: match.home_team_id,
+          name: match.home_team,
+          side: "HOME" as SelectionSide,
+        }
+      : requestedTeamId && requestedTeamId === match.away_team_id
+        ? {
+            id: match.away_team_id,
+            name: match.away_team,
+            side: "AWAY" as SelectionSide,
+          }
+        : null;
+  const selectedByName =
+    requestedTeamName.toLowerCase() === match.home_team.toLowerCase()
+      ? {
+          id: match.home_team_id,
+          name: match.home_team,
+          side: "HOME" as SelectionSide,
+        }
+      : requestedTeamName.toLowerCase() === match.away_team.toLowerCase()
+        ? {
+            id: match.away_team_id,
+            name: match.away_team,
+            side: "AWAY" as SelectionSide,
+          }
+        : null;
+  const selectedTeam = selectedById ?? selectedByName;
+  const selectedTeamName = selectedTeam?.name ?? "";
+  const selectedTeamId = selectedTeam?.id ?? null;
+  const selectedSide = selectedTeam?.side ?? ("" as SelectionSide);
   assertArena(selectedSide, "La squadra scelta non appartiene all'incontro.", 400);
 
   const roundMatches = await listMatches(db, round.id);
   const availableTeamsInRound = roundMatches
     .filter((item) => item.is_selectable === 1 && item.is_locked === 0)
-    .flatMap((item) => [item.home_team, item.away_team]);
+    .flatMap((item) => [
+      {
+        id: item.home_team_id,
+        key: teamUsageKey(item.home_team_id, item.home_team),
+        name: item.home_team,
+      },
+      {
+        id: item.away_team_id,
+        key: teamUsageKey(item.away_team_id, item.away_team),
+        name: item.away_team,
+      },
+    ]);
   assertArena(availableTeamsInRound.length > 0, "Non ci sono squadre selezionabili.", 409);
 
-  const existingSelection = await db
-    .prepare(
-      `SELECT id, life_id, tournament_id, round_id, match_id, selected_team, selected_side, cycle_number, status, created_at, updated_at
-       FROM life_selections
-       WHERE life_id = ?1 AND round_id = ?2
-       LIMIT 1`,
-    )
-    .bind(life.id, round.id)
-    .first<SelectionRow>();
+  const existingSelection = await getLifeSelectionForRound(db, life.id, round.id);
 
   let cycleNumber = life.current_cycle;
-  let usedTeams = await getUsedTeamsForCycle(db, life.id, cycleNumber, round.id);
+  let usedTeamKeys = await getUsedTeamsForCycle(db, life.id, cycleNumber, round.id);
   let unusedTeams = availableTeamsInRound.filter(
     (team, index, teams) =>
-      teams.findIndex((candidate) => candidate.toLowerCase() === team.toLowerCase()) === index &&
-      !usedTeams.some((usedTeam) => usedTeam.toLowerCase() === team.toLowerCase()),
+      teams.findIndex((candidate) => candidate.key === team.key) === index &&
+      !usedTeamKeys.includes(team.key),
   );
 
   if (unusedTeams.length === 0) {
     cycleNumber += 1;
-    usedTeams = [];
+    usedTeamKeys = [];
     unusedTeams = availableTeamsInRound.filter(
       (team, index, teams) =>
-        teams.findIndex((candidate) => candidate.toLowerCase() === team.toLowerCase()) === index,
+        teams.findIndex((candidate) => candidate.key === team.key) === index,
     );
 
     await db
@@ -1302,7 +1715,7 @@ export async function chooseLifeTeam(
   }
 
   assertArena(
-    !usedTeams.some((team) => team.toLowerCase() === selectedTeam.toLowerCase()),
+    !usedTeamKeys.includes(teamUsageKey(selectedTeamId, selectedTeamName)),
     "Questa vita ha già usato questa squadra nel ciclo corrente.",
     409,
   );
@@ -1310,42 +1723,91 @@ export async function chooseLifeTeam(
   const now = nowIso();
   const eventType = existingSelection ? "choice_updated" : "choice";
   const message = existingSelection
-    ? `Scelta modificata: vita ${life.life_number} su ${selectedTeam}.`
-    : `Scelta effettuata: vita ${life.life_number} su ${selectedTeam}.`;
+    ? `Scelta modificata: vita ${life.life_number} su ${selectedTeamName}.`
+    : `Scelta effettuata: vita ${life.life_number} su ${selectedTeamName}.`;
 
   if (existingSelection) {
-    await db
-      .prepare(
-        `UPDATE life_selections
-         SET match_id = ?1,
-             selected_team = ?2,
-             selected_side = ?3,
-             cycle_number = ?4,
-             updated_at = ?5
-         WHERE id = ?6`,
-      )
-      .bind(match.id, selectedTeam, selectedSide, cycleNumber, now, existingSelection.id)
-      .run();
+    try {
+      await db
+        .prepare(
+          `UPDATE life_selections
+           SET match_id = ?1,
+               selected_team_id = ?2,
+               selected_team = ?3,
+               selected_side = ?4,
+               cycle_number = ?5,
+               updated_at = ?6
+           WHERE id = ?7`,
+        )
+        .bind(match.id, selectedTeamId, selectedTeamName, selectedSide, cycleNumber, now, existingSelection.id)
+        .run();
+    } catch (error) {
+      if (!isMissingSchemaField(error)) {
+        throw error;
+      }
+
+      await db
+        .prepare(
+          `UPDATE life_selections
+           SET match_id = ?1,
+               selected_team = ?2,
+               selected_side = ?3,
+               cycle_number = ?4,
+               updated_at = ?5
+           WHERE id = ?6`,
+        )
+        .bind(match.id, selectedTeamName, selectedSide, cycleNumber, now, existingSelection.id)
+        .run();
+    }
   } else {
-    await db
-      .prepare(
-        `INSERT INTO life_selections (
-          id, life_id, tournament_id, round_id, match_id, selected_team,
-          selected_side, cycle_number, status, created_at, updated_at
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'PENDING', ?9, ?9)`,
-      )
-      .bind(
-        crypto.randomUUID(),
-        life.id,
-        life.tournament_id,
-        round.id,
-        match.id,
-        selectedTeam,
-        selectedSide,
-        cycleNumber,
-        now,
-      )
-      .run();
+    const selectionId = crypto.randomUUID();
+
+    try {
+      await db
+        .prepare(
+          `INSERT INTO life_selections (
+            id, life_id, tournament_id, round_id, match_id, selected_team_id, selected_team,
+            selected_side, cycle_number, status, created_at, updated_at
+          ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'PENDING', ?10, ?10)`,
+        )
+        .bind(
+          selectionId,
+          life.id,
+          life.tournament_id,
+          round.id,
+          match.id,
+          selectedTeamId,
+          selectedTeamName,
+          selectedSide,
+          cycleNumber,
+          now,
+        )
+        .run();
+    } catch (error) {
+      if (!isMissingSchemaField(error)) {
+        throw error;
+      }
+
+      await db
+        .prepare(
+          `INSERT INTO life_selections (
+            id, life_id, tournament_id, round_id, match_id, selected_team,
+            selected_side, cycle_number, status, created_at, updated_at
+          ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'PENDING', ?9, ?9)`,
+        )
+        .bind(
+          selectionId,
+          life.id,
+          life.tournament_id,
+          round.id,
+          match.id,
+          selectedTeamName,
+          selectedSide,
+          cycleNumber,
+          now,
+        )
+        .run();
+    }
   }
 
   await logArenaEvent(db, {
@@ -1374,22 +1836,76 @@ async function getUserLife(db: D1Database, lifeId: string, userId: string) {
     .first<LifeRow>();
 }
 
+async function getLifeSelectionForRound(db: D1Database, lifeId: string, roundId: string) {
+  try {
+    return await db
+      .prepare(
+        `SELECT id, life_id, tournament_id, round_id, match_id, selected_team_id, selected_team, selected_side, cycle_number, status, created_at, updated_at
+         FROM life_selections
+         WHERE life_id = ?1 AND round_id = ?2
+         LIMIT 1`,
+      )
+      .bind(lifeId, roundId)
+      .first<SelectionRow>();
+  } catch (error) {
+    if (!isMissingSchemaField(error)) {
+      throw error;
+    }
+
+    const selection = await db
+      .prepare(
+        `SELECT id, life_id, tournament_id, round_id, match_id, selected_team, selected_side, cycle_number, status, created_at, updated_at
+         FROM life_selections
+         WHERE life_id = ?1 AND round_id = ?2
+         LIMIT 1`,
+      )
+      .bind(lifeId, roundId)
+      .first<Omit<SelectionRow, "selected_team_id">>();
+
+    return selection
+      ? {
+          ...selection,
+          selected_team_id: null,
+        }
+      : null;
+  }
+}
+
 async function getUsedTeamsForCycle(
   db: D1Database,
   lifeId: string,
   cycleNumber: number,
   excludeRoundId: string,
 ) {
-  const rows = await db
-    .prepare(
-      `SELECT selected_team
-       FROM life_selections
-       WHERE life_id = ?1 AND cycle_number = ?2 AND round_id != ?3 AND status != 'VOID'`,
-    )
-    .bind(lifeId, cycleNumber, excludeRoundId)
-    .all<{ selected_team: string }>();
+  let rows;
 
-  return (rows.results ?? []).map((row) => row.selected_team);
+  try {
+    rows = await db
+      .prepare(
+        `SELECT selected_team_id, selected_team
+         FROM life_selections
+         WHERE life_id = ?1 AND cycle_number = ?2 AND round_id != ?3 AND status != 'VOID'`,
+      )
+      .bind(lifeId, cycleNumber, excludeRoundId)
+      .all<{ selected_team_id: string | null; selected_team: string }>();
+  } catch (error) {
+    if (!isMissingSchemaField(error)) {
+      throw error;
+    }
+
+    const legacyRows = await db
+      .prepare(
+        `SELECT selected_team
+         FROM life_selections
+         WHERE life_id = ?1 AND cycle_number = ?2 AND round_id != ?3 AND status != 'VOID'`,
+      )
+      .bind(lifeId, cycleNumber, excludeRoundId)
+      .all<{ selected_team: string }>();
+
+    return (legacyRows.results ?? []).map((row) => teamUsageKey(null, row.selected_team));
+  }
+
+  return (rows.results ?? []).map((row) => teamUsageKey(row.selected_team_id, row.selected_team));
 }
 
 export async function calculateRound(
@@ -1431,15 +1947,7 @@ export async function calculateRound(
   const livesBeforeCalculation = aliveRows.results ?? [];
 
   for (const life of livesBeforeCalculation) {
-    const selection = await db
-      .prepare(
-        `SELECT id, life_id, tournament_id, round_id, match_id, selected_team, selected_side, cycle_number, status, created_at, updated_at
-         FROM life_selections
-         WHERE life_id = ?1 AND round_id = ?2
-         LIMIT 1`,
-      )
-      .bind(life.id, round.id)
-      .first<SelectionRow>();
+    const selection = await getLifeSelectionForRound(db, life.id, round.id);
 
     const selectedMatch = selection
       ? matches.find((match) => match.id === selection.match_id)

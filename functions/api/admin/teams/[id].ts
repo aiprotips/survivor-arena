@@ -1,7 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
 import { requireAdmin } from "../../../_shared/access";
-import { deleteMatch, getArenaError, updateMatch } from "../../../_shared/arena";
+import { deleteTeam, getArenaError, updateTeam } from "../../../_shared/arena";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../../_shared/http";
 
 type Env = {
@@ -28,16 +28,14 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const tournament = await updateMatch(context.env.DB, {
+    const team = await updateTeam(context.env.DB, {
       adminId: auth.user.id,
-      awayTeamId: String(body.awayTeamId ?? body.away_team_id ?? ""),
-      homeTeamId: String(body.homeTeamId ?? body.home_team_id ?? ""),
-      isLocked: body.isLocked === true,
-      isSelectable: body.isSelectable !== false,
-      matchId: getParam(context.params.id),
+      logoUrl: typeof body.logoUrl === "string" ? body.logoUrl : null,
+      name: String(body.name ?? ""),
+      teamId: getParam(context.params.id),
     });
 
-    return json({ ok: true, tournament });
+    return json({ ok: true, team });
   } catch (error) {
     const arenaError = getArenaError(error);
 
@@ -56,13 +54,9 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const tournament = await deleteMatch(
-      context.env.DB,
-      getParam(context.params.id),
-      auth.user.id,
-    );
+    await deleteTeam(context.env.DB, getParam(context.params.id), auth.user.id);
 
-    return json({ ok: true, tournament });
+    return json({ ok: true });
   } catch (error) {
     const arenaError = getArenaError(error);
 
