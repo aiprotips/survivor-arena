@@ -3,10 +3,10 @@ import { PublicInfoPage } from "@/components/public/PublicInfoPage";
 import { publicPages } from "@/content/public-pages";
 
 export const metadata: Metadata = {
-  title: "Premi | Survivor Arena",
-  description: "Coppe, premi e ricompense di Survivor Arena.",
+  title: "FAQ | Survivor Arena",
+  description: "Domande frequenti su Survivor Arena.",
 };
 
-export default function PremiPage() {
-  return <PublicInfoPage content={publicPages.premi} />;
+export default function FaqPage() {
+  return <PublicInfoPage content={publicPages.faq} />;
 }

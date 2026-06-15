@@ -18,6 +18,7 @@ pnpm-debug.log*
 
 # env
 .env*
+.dev.vars
 
 # system
 .DS_Store

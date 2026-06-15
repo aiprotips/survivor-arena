@@ -6,7 +6,7 @@ export function TournamentsSection() {
     <section className="arena-shell tournaments-shell">
       <div className="tournaments-heading">
         <h2 className="tournaments-title">Tornei in evidenza</h2>
-        <a className="tournaments-link" href="#">
+        <a className="tournaments-link" href="/arene">
           Vedi tutti <span aria-hidden="true">→</span>
         </a>
       </div>

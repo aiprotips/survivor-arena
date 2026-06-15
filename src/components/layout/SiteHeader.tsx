@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   BarChart3,
@@ -14,7 +15,13 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
 import { cn } from "@/lib/cn";
 
-const navItems = ["Arene", "Classifiche", "Come Funziona", "Premi", "FAQ"];
+const navItems = [
+  ["Arene", "/arene"],
+  ["Classifiche", "/classifiche"],
+  ["Come Funziona", "/come-funziona"],
+  ["Premi", "/premi"],
+  ["FAQ", "/faq"],
+] as const;
 
 const mobileNavItems: Array<{
   href: string;
@@ -27,23 +34,28 @@ const mobileNavItems: Array<{
     label: "Home",
   },
   {
-    href: "#",
+    href: "/arene",
     icon: Trophy,
     label: "Arene",
   },
   {
-    href: "#",
+    href: "/classifiche",
     icon: BarChart3,
     label: "Classifiche",
   },
   {
-    href: "#",
+    href: "/come-funziona",
     icon: CircleHelp,
     label: "Come Funziona",
   },
 ];
 
-const secondaryNavItems = ["FAQ", "Privacy", "Termini e Condizioni", "Cookie"];
+const secondaryNavItems = [
+  ["FAQ", "/faq"],
+  ["Privacy", "/privacy"],
+  ["Termini e Condizioni", "/termini"],
+  ["Cookie", "/cookie"],
+] as const;
 
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -76,14 +88,14 @@ export function SiteHeader() {
     <header className="site-header">
       <div className="arena-shell">
         <div className="site-nav-panel">
-          <a className="site-header-brand" href="#" onClick={closeMenu}>
+          <Link className="site-header-brand" href="/" onClick={closeMenu}>
             <BrandLogo />
-          </a>
+          </Link>
 
           <nav aria-label="Navigazione principale" className="site-nav-links">
-            {navItems.map((item) => (
-              <a className="site-nav-link" href="#" key={item}>
-                {item}
+            {navItems.map(([label, href]) => (
+              <a className="site-nav-link" href={href} key={label}>
+                {label}
               </a>
             ))}
           </nav>
@@ -176,14 +188,14 @@ export function SiteHeader() {
                 <PremiumDivider className="site-mobile-divider" />
 
                 <nav aria-label="Menu secondario" className="site-mobile-secondary-links">
-                  {secondaryNavItems.map((item) => (
+                  {secondaryNavItems.map(([label, href]) => (
                     <a
                       className="site-mobile-secondary-link"
-                      href="#"
-                      key={item}
+                      href={href}
+                      key={label}
                       onClick={closeMenu}
                     >
-                      {item}
+                      {label}
                     </a>
                   ))}
                 </nav>

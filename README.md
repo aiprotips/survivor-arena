@@ -34,6 +34,41 @@ Il progetto usa il database D1 esistente `survivor-arena-db` tramite binding `DB
 - Remote D1 ping: `npm run db:ping`
 - Local D1 ping: `npm run db:ping:local`
 
+## Telegram bot
+
+Il bot Telegram ufficiale viene usato per:
+
+- OTP registrazione
+- recupero password
+
+Il token del bot non deve mai essere scritto nel repository. Configurarlo come secret Cloudflare:
+
+```bash
+wrangler secret put TELEGRAM_BOT_TOKEN
+wrangler secret put TELEGRAM_WEBHOOK_SECRET
+```
+
+Variabili non segrete configurate in `wrangler.toml`:
+
+- `TELEGRAM_BOT_USERNAME=survivalarena_bot`
+- `PUBLIC_SITE_URL=https://survivor-arena.pages.dev`
+
+Webhook Telegram da configurare dopo il deploy:
+
+```bash
+curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
+  -d "url=https://survivor-arena.pages.dev/api/telegram/webhook" \
+  -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
+```
+
+Nota: un bot Telegram può scrivere a un utente solo dopo che l'utente ha avviato il bot.
+
+Per i test locali senza inviare messaggi reali:
+
+```bash
+TELEGRAM_TEST_MODE=1 TELEGRAM_DEBUG_CODES=1 npm run cloudflare:dev
+```
+
 ## Design system
 
 Il sistema grafico e i design token sono centralizzati in:
