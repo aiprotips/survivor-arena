@@ -50,7 +50,7 @@ export const publicPages = {
         title: "Perché Telegram?",
       },
     ],
-    ctaHref: "/register",
+    ctaHref: "/login",
     ctaLabel: "Crea account",
     eyebrow: "Supporto",
     intro: "Le risposte essenziali per iniziare a capire Survivor Arena.",

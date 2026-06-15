@@ -16,7 +16,7 @@ export function Hero() {
           />
         </picture>
         <div className="hero-actions">
-          <ButtonLink className="hero-action-button" href="/register">
+          <ButtonLink className="hero-action-button" href="/login">
             ENTRA NELL&apos;ARENA
           </ButtonLink>
           <ButtonLink className="hero-action-button" href="/come-funziona" variant="secondary">

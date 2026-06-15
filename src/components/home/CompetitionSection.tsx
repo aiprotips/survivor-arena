@@ -19,7 +19,7 @@ export function CompetitionSection() {
               resta in gara chi sa scegliere meglio degli altri.
             </p>
           </div>
-          <ButtonLink className="w-full sm:w-fit" href="/register" variant="gold">
+          <ButtonLink className="w-full sm:w-fit" href="/login" variant="gold">
             ENTRA NELL&apos;ARENA
           </ButtonLink>
         </div>
