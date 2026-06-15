@@ -32,6 +32,23 @@ type ApiResponse =
       ok: false;
     };
 
+async function readApiResponse(response: Response): Promise<ApiResponse> {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return response.json() as Promise<ApiResponse>;
+  }
+
+  const text = (await response.text()).trim();
+
+  return {
+    message: response.status >= 500
+      ? "Servizio temporaneamente non disponibile. Riprova tra poco."
+      : text || "Richiesta non riuscita. Controlla i dati e riprova.",
+    ok: false,
+  };
+}
+
 export function ForgotPasswordView() {
   const router = useRouter();
   const [step, setStep] = useState<ResetStep>("request");
@@ -66,7 +83,7 @@ export function ForgotPasswordView() {
         },
         method: "POST",
       });
-      const data = (await response.json()) as ApiResponse;
+      const data = await readApiResponse(response);
 
       if (!data.ok) {
         setMessage(data.message);
@@ -85,7 +102,7 @@ export function ForgotPasswordView() {
       setStep("confirm");
       setMessage("Codice inviato su Telegram.");
     } catch {
-      setMessage("Richiesta non riuscita. Riprova tra poco.");
+      setMessage("Connessione non riuscita. Controlla la rete e riprova.");
     } finally {
       setIsSubmitting(false);
     }
@@ -124,7 +141,7 @@ export function ForgotPasswordView() {
         },
         method: "POST",
       });
-      const data = (await response.json()) as ApiResponse;
+      const data = await readApiResponse(response);
 
       if (!data.ok) {
         setMessage(data.message);
@@ -134,7 +151,7 @@ export function ForgotPasswordView() {
       setStep("done");
       setMessage("");
     } catch {
-      setMessage("Reset non riuscito. Riprova tra poco.");
+      setMessage("Connessione non riuscita. Controlla la rete e riprova.");
     } finally {
       setIsSubmitting(false);
     }

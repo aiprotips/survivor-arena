@@ -15,6 +15,7 @@ import {
 
 const registrationTtlMinutes = 15;
 const passwordResetTtlMinutes = 10;
+let accountFlowSchemaReady: Promise<void> | null = null;
 
 export type TelegramLinkPurpose = "account" | "password_reset" | "verify";
 
@@ -49,6 +50,145 @@ export type TelegramLinkRow = {
   verification_code_sent_at: string | null;
 };
 
+async function runSchemaStatement(db: D1Database, sql: string) {
+  try {
+    await db.prepare(sql).run();
+  } catch (error) {
+    const message = error instanceof Error ? error.message.toLowerCase() : "";
+
+    if (message.includes("duplicate column name")) {
+      return;
+    }
+
+    throw error;
+  }
+}
+
+async function applyAccountFlowSchema(db: D1Database) {
+  await runSchemaStatement(
+    db,
+    `CREATE TABLE IF NOT EXISTS telegram_links (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL UNIQUE,
+      telegram_chat_id TEXT NOT NULL UNIQUE,
+      telegram_username TEXT,
+      telegram_first_name TEXT,
+      telegram_last_name TEXT,
+      linked_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    )`,
+  );
+  await runSchemaStatement(db, "CREATE INDEX IF NOT EXISTS idx_telegram_links_user ON telegram_links (user_id)");
+  await runSchemaStatement(db, "CREATE INDEX IF NOT EXISTS idx_telegram_links_chat ON telegram_links (telegram_chat_id)");
+
+  await runSchemaStatement(
+    db,
+    `CREATE TABLE IF NOT EXISTS telegram_link_requests (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      link_code_hash TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      consumed_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    )`,
+  );
+  await runSchemaStatement(
+    db,
+    "CREATE INDEX IF NOT EXISTS idx_telegram_link_requests_user ON telegram_link_requests (user_id, expires_at)",
+  );
+  await runSchemaStatement(
+    db,
+    "CREATE INDEX IF NOT EXISTS idx_telegram_link_requests_code ON telegram_link_requests (link_code_hash)",
+  );
+
+  await runSchemaStatement(
+    db,
+    `CREATE TABLE IF NOT EXISTS pending_registrations (
+      id TEXT PRIMARY KEY NOT NULL,
+      username TEXT NOT NULL COLLATE NOCASE,
+      email TEXT NOT NULL COLLATE NOCASE,
+      phone TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      link_code_hash TEXT NOT NULL UNIQUE,
+      otp_code_hash TEXT,
+      telegram_chat_id TEXT,
+      telegram_username TEXT,
+      telegram_first_name TEXT,
+      telegram_last_name TEXT,
+      otp_sent_at TEXT,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      consumed_at TEXT
+    )`,
+  );
+  await runSchemaStatement(
+    db,
+    "CREATE INDEX IF NOT EXISTS idx_pending_registrations_link_code ON pending_registrations (link_code_hash)",
+  );
+  await runSchemaStatement(
+    db,
+    "CREATE INDEX IF NOT EXISTS idx_pending_registrations_expires_at ON pending_registrations (expires_at)",
+  );
+
+  await runSchemaStatement(
+    db,
+    `CREATE TABLE IF NOT EXISTS password_reset_codes (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      consumed_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    )`,
+  );
+  await runSchemaStatement(
+    db,
+    "CREATE INDEX IF NOT EXISTS idx_password_reset_codes_user ON password_reset_codes (user_id, expires_at)",
+  );
+  await runSchemaStatement(
+    db,
+    "CREATE INDEX IF NOT EXISTS idx_password_reset_codes_hash ON password_reset_codes (code_hash)",
+  );
+
+  await runSchemaStatement(db, "ALTER TABLE telegram_links ADD COLUMN phone_verified_at TEXT");
+  await runSchemaStatement(db, "ALTER TABLE telegram_links ADD COLUMN verification_code_hash TEXT");
+  await runSchemaStatement(db, "ALTER TABLE telegram_links ADD COLUMN verification_code_sent_at TEXT");
+  await runSchemaStatement(db, "ALTER TABLE telegram_link_requests ADD COLUMN purpose TEXT DEFAULT 'account'");
+  await runSchemaStatement(
+    db,
+    "CREATE INDEX IF NOT EXISTS idx_telegram_links_verified ON telegram_links (user_id, phone_verified_at)",
+  );
+
+  await runSchemaStatement(
+    db,
+    `CREATE TABLE IF NOT EXISTS d1_migrations (
+      id INTEGER PRIMARY KEY,
+      name TEXT UNIQUE,
+      applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+  );
+  await runSchemaStatement(
+    db,
+    "INSERT OR IGNORE INTO d1_migrations (name) VALUES ('0004_create_telegram_account_flows.sql')",
+  );
+  await runSchemaStatement(
+    db,
+    "INSERT OR IGNORE INTO d1_migrations (name) VALUES ('0005_first_login_telegram_verification.sql')",
+  );
+}
+
+export async function ensureAccountFlowSchema(db: D1Database) {
+  accountFlowSchemaReady ??= applyAccountFlowSchema(db).catch((error) => {
+    accountFlowSchemaReady = null;
+    throw error;
+  });
+
+  await accountFlowSchemaReady;
+}
+
 function minutesFromNow(minutes: number) {
   return new Date(Date.now() + minutes * 60_000).toISOString();
 }
@@ -58,6 +198,8 @@ export function isExpired(value: string) {
 }
 
 export async function cleanupExpiredAccountFlows(db: D1Database) {
+  await ensureAccountFlowSchema(db);
+
   const now = new Date().toISOString();
 
   await db
@@ -139,6 +281,8 @@ export async function createPendingRegistration(
 }
 
 export async function findPendingRegistrationById(db: D1Database, registrationId: string) {
+  await ensureAccountFlowSchema(db);
+
   return db
     .prepare(
       `SELECT id, username, email, phone, password_hash, otp_code_hash, telegram_chat_id,
@@ -153,6 +297,8 @@ export async function findPendingRegistrationById(db: D1Database, registrationId
 }
 
 export async function findPendingRegistrationByLinkCode(db: D1Database, linkCode: string) {
+  await ensureAccountFlowSchema(db);
+
   return db
     .prepare(
       `SELECT id, username, email, phone, password_hash, otp_code_hash, telegram_chat_id,
@@ -173,6 +319,8 @@ export async function attachTelegramToPendingRegistration(
     registrationId: string;
   },
 ) {
+  await ensureAccountFlowSchema(db);
+
   const now = new Date().toISOString();
 
   await db
@@ -306,6 +454,8 @@ export async function confirmPendingRegistration(
 }
 
 export async function getTelegramLinkForUser(db: D1Database, userId: string) {
+  await ensureAccountFlowSchema(db);
+
   return db
     .prepare(
       `SELECT telegram_chat_id, phone_verified_at, verification_code_hash, verification_code_sent_at
@@ -352,6 +502,8 @@ export async function createTelegramLinkRequest(
 }
 
 export async function findTelegramLinkRequestByCode(db: D1Database, linkCode: string) {
+  await ensureAccountFlowSchema(db);
+
   return db
     .prepare(
       `SELECT id, user_id, expires_at, COALESCE(purpose, 'account') AS purpose
@@ -375,6 +527,8 @@ export async function attachTelegramToUser(
     userId: string;
   },
 ) {
+  await ensureAccountFlowSchema(db);
+
   const existingTelegramLink = await db
     .prepare(
       `SELECT user_id
