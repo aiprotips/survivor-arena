@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import { PublicInfoPage } from "@/components/public/PublicInfoPage";
-import { publicPages } from "@/content/public-pages";
+import { HowItWorksPage } from "@/components/public/HowItWorksPage";
 
 export const metadata: Metadata = {
   title: "Come Funziona | Survivor Arena",
-  description: "Scopri le regole base di Survivor Arena.",
+  description: "Scopri in pochi passaggi come funziona Survivor Arena.",
 };
 
 export default function ComeFunzionaPage() {
-  return <PublicInfoPage content={publicPages.howItWorks} />;
+  return <HowItWorksPage />;
 }

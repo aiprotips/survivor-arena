@@ -232,6 +232,572 @@ a {
     line-height: 1.65;
   }
 
+  .how-page {
+    min-height: 100vh;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 0, color-mix(in srgb, var(--color-blue) 9%, transparent), transparent 30rem),
+      radial-gradient(circle at 82% 14rem, color-mix(in srgb, var(--color-gold) 6%, transparent), transparent 22rem),
+      var(--color-background);
+    color: var(--color-text-primary);
+    padding-bottom: var(--spacing-section-y);
+  }
+
+  .how-hero {
+    display: grid;
+    gap: clamp(1.35rem, 4vw, 2.4rem);
+    align-items: center;
+    padding-block: clamp(3.2rem, 8vw, 6rem) clamp(1.7rem, 5vw, 3rem);
+  }
+
+  .how-hero-copy {
+    display: grid;
+    gap: 1rem;
+    max-width: 43rem;
+  }
+
+  .how-hero-copy h1 {
+    margin: 0;
+    color: var(--color-white);
+    font-size: clamp(2.65rem, 12vw, 5.8rem);
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 0.94;
+    text-transform: uppercase;
+  }
+
+  .how-hero-copy h1 span,
+  .how-hero-copy h1 strong {
+    display: block;
+  }
+
+  .how-hero-copy h1 strong {
+    color: var(--color-blue-soft);
+    font-weight: inherit;
+  }
+
+  .how-hero-copy > p:not(.user-page-kicker) {
+    max-width: 38rem;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: clamp(1rem, 2.6vw, 1.12rem);
+    font-weight: 500;
+    line-height: 1.7;
+  }
+
+  .how-hero-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.35rem;
+  }
+
+  .how-arena-visual {
+    position: relative;
+    isolation: isolate;
+    min-height: clamp(23rem, 78vw, 35rem);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-panel);
+    background:
+      radial-gradient(circle at 50% 16%, color-mix(in srgb, var(--color-blue-soft) 22%, transparent), transparent 10rem),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-card-strong) 92%, transparent), var(--color-card));
+    box-shadow: var(--shadow-card), var(--shadow-glow);
+  }
+
+  .how-arena-visual::before,
+  .how-arena-visual::after {
+    content: "";
+    position: absolute;
+    inset-inline: 8%;
+    z-index: -1;
+    border: 1px solid color-mix(in srgb, var(--color-blue-soft) 18%, transparent);
+    border-radius: 50%;
+  }
+
+  .how-arena-visual::before {
+    top: 20%;
+    height: 18rem;
+    transform: perspective(24rem) rotateX(58deg);
+  }
+
+  .how-arena-visual::after {
+    bottom: -8rem;
+    height: 16rem;
+    border-color: color-mix(in srgb, var(--color-gold) 18%, transparent);
+    transform: perspective(22rem) rotateX(62deg);
+  }
+
+  .how-arena-lights {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--color-white) 34%, transparent), transparent 1.1rem),
+      radial-gradient(circle at 36% 11%, color-mix(in srgb, var(--color-white) 26%, transparent), transparent 1rem),
+      radial-gradient(circle at 64% 11%, color-mix(in srgb, var(--color-white) 26%, transparent), transparent 1rem),
+      radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--color-white) 34%, transparent), transparent 1.1rem),
+      linear-gradient(180deg, transparent 46%, color-mix(in srgb, var(--color-background) 48%, transparent));
+    opacity: 0.8;
+  }
+
+  .how-trophy-mark {
+    position: absolute;
+    top: clamp(1.4rem, 6vw, 2.6rem);
+    left: 50%;
+    display: grid;
+    width: clamp(7.8rem, 36vw, 11.5rem);
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 28%, transparent);
+    border-radius: 42%;
+    background:
+      radial-gradient(circle, color-mix(in srgb, var(--color-gold) 14%, transparent), transparent 68%),
+      color-mix(in srgb, var(--color-card) 56%, transparent);
+    color: var(--color-gold-strong);
+    box-shadow: var(--shadow-gold-glow);
+    transform: translateX(-50%);
+  }
+
+  .how-trophy-mark svg:first-child {
+    position: absolute;
+    top: -1.1rem;
+    width: 2.6rem;
+    height: 2.6rem;
+    fill: color-mix(in srgb, var(--color-gold) 18%, transparent);
+  }
+
+  .how-trophy-mark svg:last-child {
+    width: 4.2rem;
+    height: 4.2rem;
+  }
+
+  .how-choice-board {
+    position: absolute;
+    inset-inline: clamp(1rem, 6vw, 2.2rem);
+    bottom: clamp(1rem, 5vw, 2rem);
+    display: grid;
+    gap: 0.62rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-card) 82%, transparent);
+    padding: clamp(0.9rem, 4vw, 1.2rem);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .how-choice-topline,
+  .how-life-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .how-choice-topline {
+    color: var(--color-gold);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .how-life-row {
+    min-height: 2.85rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 74%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-surface) 62%, transparent);
+    color: var(--color-muted);
+    padding-inline: 0.9rem;
+  }
+
+  .how-life-row span {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.42rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  .how-life-row svg {
+    width: 1rem;
+    height: 1rem;
+    color: var(--color-gold);
+    fill: color-mix(in srgb, var(--color-gold) 14%, transparent);
+  }
+
+  .how-life-row strong {
+    color: var(--color-white);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .how-life-row-active {
+    border-color: color-mix(in srgb, var(--color-blue-soft) 42%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-blue) 12%, transparent);
+  }
+
+  .how-quick-strip {
+    display: grid;
+    gap: 0.7rem;
+    padding-bottom: clamp(2rem, 6vw, 3.6rem);
+  }
+
+  .how-quick-strip article {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.1rem 0.75rem;
+    align-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 68%, transparent);
+    padding: 0.82rem 1rem;
+  }
+
+  .how-quick-strip svg {
+    grid-row: span 2;
+    width: 1.18rem;
+    height: 1.18rem;
+    color: var(--color-gold);
+  }
+
+  .how-quick-strip span {
+    color: var(--color-muted-soft);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .how-quick-strip strong {
+    color: var(--color-white);
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .how-section,
+  .how-demo-section,
+  .how-highlight-section {
+    padding-block: clamp(1.8rem, 5vw, 3.2rem);
+  }
+
+  .how-section-heading {
+    display: grid;
+    justify-items: center;
+    gap: 0.8rem;
+    max-width: 42rem;
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .how-section-heading h2,
+  .how-demo-copy h2,
+  .how-final-cta h2 {
+    margin: 0;
+    color: var(--color-white);
+    font-size: clamp(2rem, 8vw, 3.9rem);
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+
+  .how-step-grid,
+  .how-highlight-grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: clamp(1.3rem, 4vw, 2.2rem);
+  }
+
+  .how-step-card,
+  .how-demo-card,
+  .how-highlight-card,
+  .how-final-cta {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--color-blue) 4%, transparent), transparent 58%),
+      color-mix(in srgb, var(--color-card) 90%, transparent);
+    box-shadow: var(--shadow-card);
+  }
+
+  .how-step-card {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+    padding: clamp(1rem, 4vw, 1.25rem);
+  }
+
+  .how-step-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .how-step-number {
+    color: var(--color-gold);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+  }
+
+  .how-step-icon,
+  .how-highlight-card span {
+    display: grid;
+    width: 2.9rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 24%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-gold) 7%, transparent);
+    color: var(--color-gold-strong);
+  }
+
+  .how-step-icon svg,
+  .how-highlight-card span svg {
+    width: 1.22rem;
+    height: 1.22rem;
+  }
+
+  .how-step-card h3,
+  .how-highlight-card h3 {
+    margin: 0;
+    color: var(--color-white);
+    font-size: 1.35rem;
+    font-weight: 750;
+    line-height: 1.05;
+  }
+
+  .how-step-card p,
+  .how-highlight-card p,
+  .how-demo-copy p,
+  .how-final-cta p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.94rem;
+    font-weight: 500;
+    line-height: 1.62;
+  }
+
+  .how-step-visual {
+    display: grid;
+    min-height: 9.5rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
+    border-radius: var(--radius-base);
+    background:
+      radial-gradient(circle at 50% 0, color-mix(in srgb, var(--color-blue-soft) 15%, transparent), transparent 8rem),
+      color-mix(in srgb, var(--color-surface) 64%, transparent);
+    padding: 1rem;
+  }
+
+  .how-entry-visual {
+    align-content: end;
+    gap: 0.5rem;
+  }
+
+  .how-entry-visual div {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--color-white);
+    font-weight: 700;
+  }
+
+  .how-entry-visual svg {
+    width: 1.65rem;
+    height: 1.65rem;
+    color: var(--color-gold-strong);
+  }
+
+  .how-entry-visual strong {
+    color: var(--color-gold-strong);
+    font-size: 1.6rem;
+    line-height: 1;
+  }
+
+  .how-entry-visual p {
+    color: var(--color-muted);
+    font-size: 0.84rem;
+  }
+
+  .how-choice-visual {
+    align-content: center;
+    gap: 1rem;
+  }
+
+  .how-choice-visual > span {
+    color: var(--color-gold);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .how-choice-visual div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .how-choice-visual div span {
+    display: inline-flex;
+    min-height: 3.2rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-white);
+    font-weight: 800;
+  }
+
+  .how-choice-visual div .is-selected {
+    border-color: color-mix(in srgb, var(--color-blue-soft) 60%, transparent);
+    background: linear-gradient(180deg, var(--color-button-blue-hover), var(--color-button-blue));
+    box-shadow: var(--shadow-button);
+  }
+
+  .how-survive-visual {
+    align-content: center;
+    gap: 0.8rem;
+  }
+
+  .how-survive-visual span {
+    display: inline-flex;
+    min-height: 3rem;
+    align-items: center;
+    gap: 0.6rem;
+    border: 1px solid color-mix(in srgb, var(--color-success) 22%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-success) 7%, transparent);
+    color: var(--color-white);
+    font-weight: 700;
+    padding-inline: 0.9rem;
+  }
+
+  .how-survive-visual svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    color: var(--color-success);
+  }
+
+  .how-demo-card {
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1rem, 4vw, 1.4rem);
+  }
+
+  .how-demo-copy {
+    display: grid;
+    align-content: center;
+    gap: 0.8rem;
+  }
+
+  .how-round-preview {
+    display: grid;
+    gap: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 18%, transparent);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-surface) 60%, transparent);
+    padding: clamp(0.85rem, 3vw, 1rem);
+  }
+
+  .how-round-header,
+  .how-round-row {
+    display: grid;
+    grid-template-columns: minmax(0, 0.78fr) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .how-round-header {
+    color: var(--color-gold);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .how-round-header strong {
+    grid-column: 2 / 4;
+    color: var(--color-white);
+    text-align: right;
+  }
+
+  .how-round-row {
+    min-height: 3.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 58%, transparent);
+    padding-inline: 0.85rem;
+  }
+
+  .how-round-row span {
+    color: var(--color-muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+
+  .how-round-row strong {
+    min-width: 0;
+    color: var(--color-white);
+    font-size: 0.86rem;
+    font-weight: 750;
+  }
+
+  .how-round-row em {
+    border-radius: var(--radius-pill);
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 800;
+    line-height: 1;
+    padding: 0.42rem 0.55rem;
+    white-space: nowrap;
+  }
+
+  .how-round-success {
+    background: color-mix(in srgb, var(--color-success) 10%, transparent);
+    color: var(--color-success);
+  }
+
+  .how-round-danger {
+    background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+    color: var(--color-danger);
+  }
+
+  .how-highlight-card {
+    display: grid;
+    gap: 0.78rem;
+    align-content: start;
+    padding: clamp(1rem, 4vw, 1.25rem);
+  }
+
+  .how-final-cta {
+    display: grid;
+    gap: 1.2rem;
+    margin-top: clamp(2rem, 6vw, 3.2rem);
+    padding: clamp(1.25rem, 5vw, 2rem);
+  }
+
+  .how-final-cta div {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .how-final-cta .ui-button {
+    gap: 0.55rem;
+  }
+
+  .how-final-cta svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
   .arena-shell {
     width: min(100%, var(--layout-max-width));
     margin-inline: auto;
@@ -4214,6 +4780,36 @@ a {
   @media (min-width: 48rem) {
     .public-card-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .how-hero {
+      grid-template-columns: minmax(0, 0.98fr) minmax(20rem, 0.82fr);
+    }
+
+    .how-hero-actions {
+      flex-direction: row;
+      align-items: center;
+    }
+
+    .how-quick-strip,
+    .how-step-grid,
+    .how-highlight-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .how-demo-card {
+      grid-template-columns: minmax(0, 0.85fr) minmax(22rem, 1fr);
+      align-items: center;
+      padding: clamp(1.25rem, 3vw, 2rem);
+    }
+
+    .how-final-cta {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
+
+    .how-final-cta .ui-button {
+      width: auto;
     }
 
     .admin-logout-button {
