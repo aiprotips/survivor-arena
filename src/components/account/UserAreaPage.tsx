@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -23,8 +24,9 @@ import { PlaceholderCard } from "@/components/account/PlaceholderCard";
 import { StatCard } from "@/components/account/StatCard";
 import { UserLayout } from "@/components/account/UserLayout";
 import type { AccountUser, UserAreaPageKey } from "@/components/account/types";
-import { ButtonLink } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
+import { getPasswordRequirements } from "@/lib/auth-validation";
 import { formatCups } from "@/lib/arena-client";
 
 type UserAreaPageProps = {
@@ -455,28 +457,137 @@ function PremiPage() {
 }
 
 function ProfiloPage({ user }: { user: AccountUser }) {
-  const profileItems = [
-    ["Username", user.username],
-    ["Email", user.email],
-    ["Telefono", user.phone],
-    ["Codice utente", user.user_code],
-  ];
+  const [profile, setProfile] = useState(user);
+  const [form, setForm] = useState({
+    email: user.email,
+    phone: user.phone,
+    username: user.username,
+  });
+  const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function updateProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/account/profile", {
+        body: JSON.stringify(form),
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "PATCH",
+      });
+      const data = (await response.json()) as
+        | {
+            ok: true;
+            user: AccountUser;
+          }
+        | {
+            message: string;
+            ok: false;
+          };
+
+      if (!data.ok) {
+        setMessage(data.message);
+        return;
+      }
+
+      setProfile({
+        ...profile,
+        ...data.user,
+      });
+      setForm({
+        email: data.user.email,
+        phone: data.user.phone,
+        username: data.user.username,
+      });
+      setMessage("Profilo aggiornato correttamente.");
+    } catch {
+      setMessage("Aggiornamento profilo non riuscito. Riprova tra poco.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <>
       <PageIntro
         eyebrow="Account"
-        subtitle="Dati principali del tuo profilo. La modifica arriverà in una fase successiva."
+        subtitle="Gestisci i dati principali del tuo account Survivor Arena."
         title="Profilo"
       />
 
-      <section className="user-detail-card" aria-label="Dati profilo">
-        {profileItems.map(([label, value]) => (
-          <div className="user-detail-row" key={label}>
-            <span>{label}</span>
-            <strong>{value}</strong>
+      <section className="user-detail-card user-form-card" aria-label="Dati profilo">
+        {message ? (
+          <p
+            className={`auth-form-message ${
+              message.includes("correttamente")
+                ? "auth-form-message-success"
+                : "auth-form-message-error"
+            }`}
+            role="alert"
+          >
+            {message}
+          </p>
+        ) : null}
+
+        <form className="user-account-form" onSubmit={updateProfile}>
+          <div className="ui-field">
+            <label className="ui-field-label" htmlFor="profile-username">
+              Username
+            </label>
+            <input
+              className="ui-input"
+              id="profile-username"
+              onChange={(event) =>
+                setForm((current) => ({ ...current, username: event.target.value }))
+              }
+              value={form.username}
+            />
           </div>
-        ))}
+
+          <div className="ui-field">
+            <label className="ui-field-label" htmlFor="profile-email">
+              Email
+            </label>
+            <input
+              className="ui-input"
+              id="profile-email"
+              onChange={(event) =>
+                setForm((current) => ({ ...current, email: event.target.value }))
+              }
+              type="email"
+              value={form.email}
+            />
+          </div>
+
+          <div className="ui-field">
+            <label className="ui-field-label" htmlFor="profile-phone">
+              Telefono
+            </label>
+            <input
+              className="ui-input"
+              id="profile-phone"
+              onChange={(event) =>
+                setForm((current) => ({ ...current, phone: event.target.value }))
+              }
+              type="tel"
+              value={form.phone}
+            />
+          </div>
+
+          <div className="user-detail-row user-code-row">
+            <span>Codice utente</span>
+            <strong>{profile.user_code}</strong>
+          </div>
+
+          <Button className="user-form-button" disabled={isSubmitting} type="submit">
+            {isSubmitting ? "SALVATAGGIO..." : "SALVA MODIFICHE"}
+          </Button>
+        </form>
       </section>
     </>
   );
@@ -570,16 +681,29 @@ function MovimentiPage() {
 }
 
 function ImpostazioniPage() {
+  const [passwordForm, setPasswordForm] = useState({
+    confirmPassword: "",
+    currentPassword: "",
+    password: "",
+  });
+  const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [telegramState, setTelegramState] = useState<{
+    botUsername: string;
+    isLinked: boolean;
+    startUrl: string;
+  }>({
+    botUsername: "survivalarena_bot",
+    isLinked: false,
+    startUrl: "",
+  });
+  const [telegramMessage, setTelegramMessage] = useState("");
+  const requirements = getPasswordRequirements(passwordForm.password);
   const settings = [
     {
       icon: ShieldCheck,
-      text: "Gestione sicurezza account in preparazione.",
+      text: "Proteggi il tuo account e mantieni aggiornate le credenziali.",
       title: "Sicurezza account",
-    },
-    {
-      icon: KeyRound,
-      text: "Cambio password non ancora attivo.",
-      title: "Cambia password",
     },
     {
       icon: Bell,
@@ -592,6 +716,114 @@ function ImpostazioniPage() {
       title: "Preferenze",
     },
   ];
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadTelegramStatus() {
+      const response = await fetch("/api/account/telegram-link", {
+        credentials: "include",
+      });
+      const data = (await response.json()) as
+        | {
+            isLinked: boolean;
+            ok: true;
+          }
+        | {
+            ok: false;
+          };
+
+      if (isMounted && data.ok) {
+        setTelegramState((current) => ({
+          ...current,
+          isLinked: data.isLinked,
+        }));
+      }
+    }
+
+    loadTelegramStatus().catch(() => undefined);
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  async function createTelegramLink() {
+    setTelegramMessage("");
+
+    try {
+      const response = await fetch("/api/account/telegram-link", {
+        credentials: "include",
+        method: "POST",
+      });
+      const data = (await response.json()) as
+        | {
+            ok: true;
+            telegramBotUsername: string;
+            telegramStartUrl: string;
+          }
+        | {
+            message: string;
+            ok: false;
+          };
+
+      if (!data.ok) {
+        setTelegramMessage(data.message);
+        return;
+      }
+
+      setTelegramState({
+        botUsername: data.telegramBotUsername,
+        isLinked: false,
+        startUrl: data.telegramStartUrl,
+      });
+      setTelegramMessage("Apri il bot e premi Avvia per completare il collegamento.");
+    } catch {
+      setTelegramMessage("Collegamento Telegram non disponibile. Riprova tra poco.");
+    }
+  }
+
+  async function updatePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/account/password", {
+        body: JSON.stringify(passwordForm),
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "PATCH",
+      });
+      const data = (await response.json()) as
+        | {
+            message: string;
+            ok: true;
+          }
+        | {
+            message: string;
+            ok: false;
+          };
+
+      if (!data.ok) {
+        setMessage(data.message);
+        return;
+      }
+
+      setPasswordForm({
+        confirmPassword: "",
+        currentPassword: "",
+        password: "",
+      });
+      setMessage(data.message);
+    } catch {
+      setMessage("Cambio password non riuscito. Riprova tra poco.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <>
@@ -614,6 +846,138 @@ function ImpostazioniPage() {
             </PlaceholderCard>
           );
         })}
+      </section>
+
+      <section className="user-detail-card user-form-card" aria-label="Telegram sicurezza">
+        <div className="user-form-heading">
+          <ShieldCheck aria-hidden="true" className="user-setting-icon" />
+          <div>
+            <p className="user-page-kicker">Telegram</p>
+            <h2>Sicurezza account</h2>
+          </div>
+        </div>
+
+        <p className="user-form-copy">
+          {telegramState.isLinked
+            ? "Telegram è collegato. Puoi usarlo per recuperare la password."
+            : "Collega Telegram per OTP e recupero password senza SMS."}
+        </p>
+
+        {telegramMessage ? (
+          <p className="auth-form-message auth-form-message-success" role="alert">
+            {telegramMessage}
+          </p>
+        ) : null}
+
+        <div className="user-telegram-actions">
+          <Button onClick={createTelegramLink} type="button" variant="secondary">
+            {telegramState.isLinked ? "Rigenera collegamento" : "Collega Telegram"}
+          </Button>
+          {telegramState.startUrl ? (
+            <ButtonLink href={telegramState.startUrl} rel="noreferrer" target="_blank">
+              Apri @{telegramState.botUsername}
+            </ButtonLink>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="user-detail-card user-form-card" aria-label="Cambio password">
+        <div className="user-form-heading">
+          <KeyRound aria-hidden="true" className="user-setting-icon" />
+          <div>
+            <p className="user-page-kicker">Sicurezza</p>
+            <h2>Cambia password</h2>
+          </div>
+        </div>
+
+        {message ? (
+          <p
+            className={`auth-form-message ${
+              message.includes("correttamente")
+                ? "auth-form-message-success"
+                : "auth-form-message-error"
+            }`}
+            role="alert"
+          >
+            {message}
+          </p>
+        ) : null}
+
+        <form className="user-account-form" onSubmit={updatePassword}>
+          <div className="ui-field">
+            <label className="ui-field-label" htmlFor="settings-current-password">
+              Password attuale
+            </label>
+            <input
+              autoComplete="current-password"
+              className="ui-input"
+              id="settings-current-password"
+              onChange={(event) =>
+                setPasswordForm((current) => ({
+                  ...current,
+                  currentPassword: event.target.value,
+                }))
+              }
+              type="password"
+              value={passwordForm.currentPassword}
+            />
+          </div>
+
+          <div className="ui-field">
+            <label className="ui-field-label" htmlFor="settings-new-password">
+              Nuova password
+            </label>
+            <input
+              autoComplete="new-password"
+              className="ui-input"
+              id="settings-new-password"
+              onChange={(event) =>
+                setPasswordForm((current) => ({
+                  ...current,
+                  password: event.target.value,
+                }))
+              }
+              type="password"
+              value={passwordForm.password}
+            />
+            <ul className="auth-password-requirements" aria-label="Requisiti password">
+              {requirements.map((requirement) => (
+                <li
+                  className={`auth-password-requirement ${
+                    requirement.isMet ? "auth-password-requirement-met" : ""
+                  }`}
+                  key={requirement.id}
+                >
+                  <span aria-hidden="true">{requirement.isMet ? "✓" : "•"}</span>
+                  {requirement.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="ui-field">
+            <label className="ui-field-label" htmlFor="settings-confirm-password">
+              Conferma password
+            </label>
+            <input
+              autoComplete="new-password"
+              className="ui-input"
+              id="settings-confirm-password"
+              onChange={(event) =>
+                setPasswordForm((current) => ({
+                  ...current,
+                  confirmPassword: event.target.value,
+                }))
+              }
+              type="password"
+              value={passwordForm.confirmPassword}
+            />
+          </div>
+
+          <Button className="user-form-button" disabled={isSubmitting} type="submit">
+            {isSubmitting ? "AGGIORNAMENTO..." : "AGGIORNA PASSWORD"}
+          </Button>
+        </form>
       </section>
     </>
   );

@@ -151,6 +151,87 @@ a {
     color: var(--color-text-primary);
   }
 
+  .public-page {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 50% 0, color-mix(in srgb, var(--color-blue) 8%, transparent), transparent 28rem),
+      var(--color-background);
+    color: var(--color-text-primary);
+    padding-bottom: var(--spacing-section-y);
+  }
+
+  .public-hero {
+    display: grid;
+    justify-items: center;
+    gap: 1rem;
+    padding-block: clamp(4rem, 10vw, 7rem) clamp(2rem, 6vw, 4rem);
+    text-align: center;
+  }
+
+  .public-hero h1 {
+    max-width: 12ch;
+    margin: 0;
+    color: var(--color-white);
+    font-size: clamp(2.6rem, 10vw, 5.4rem);
+    font-weight: 800;
+    line-height: 0.95;
+    text-transform: uppercase;
+  }
+
+  .public-hero p:not(.user-page-kicker) {
+    max-width: 42rem;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: clamp(1rem, 2.5vw, 1.15rem);
+    font-weight: 500;
+    line-height: 1.7;
+  }
+
+  .public-page-cta {
+    margin-top: 0.4rem;
+  }
+
+  .public-card-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .public-info-card {
+    display: grid;
+    gap: 0.8rem;
+    align-content: start;
+  }
+
+  .public-card-icon {
+    display: grid;
+    width: 3rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 26%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-gold) 8%, transparent);
+    color: var(--color-gold-strong);
+  }
+
+  .public-card-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .public-info-card h2 {
+    margin: 0;
+    color: var(--color-white);
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  .public-info-card p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
   .arena-shell {
     width: min(100%, var(--layout-max-width));
     margin-inline: auto;
@@ -915,7 +996,7 @@ a {
 
   .auth-progress {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.55rem;
   }
 
@@ -1076,6 +1157,44 @@ a {
   .auth-form-message-error {
     border-color: color-mix(in srgb, var(--color-danger) 28%, transparent);
     background: color-mix(in srgb, var(--color-danger) 7%, var(--color-card));
+  }
+
+  .auth-form-message-success {
+    border-color: color-mix(in srgb, var(--color-success) 28%, transparent);
+    background: color-mix(in srgb, var(--color-success) 7%, var(--color-card));
+    color: color-mix(in srgb, var(--color-success) 72%, var(--color-white));
+  }
+
+  .auth-telegram-panel,
+  .auth-complete-panel {
+    display: grid;
+    gap: 0.85rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-card-strong) 44%, transparent);
+    padding: clamp(0.95rem, 3vw, 1.15rem);
+    text-align: center;
+  }
+
+  .auth-telegram-panel h3 {
+    margin: 0;
+    color: var(--color-white);
+    font-size: clamp(1.05rem, 4vw, 1.35rem);
+    font-weight: 700;
+    line-height: 1.15;
+  }
+
+  .auth-telegram-panel p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.84rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .auth-telegram-button {
+    justify-self: center;
+    width: min(100%, 18rem);
   }
 
   .auth-submit-button,
@@ -1855,6 +1974,53 @@ a {
 
   .user-detail-row + .user-detail-row {
     border-top: 1px solid var(--color-border);
+  }
+
+  .user-form-card {
+    gap: 1rem;
+    padding: var(--card-padding);
+  }
+
+  .user-account-form {
+    display: grid;
+    gap: 0.95rem;
+  }
+
+  .user-form-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .user-form-heading h2 {
+    margin: 0;
+    color: var(--color-white);
+    font-size: clamp(1.2rem, 4vw, 1.55rem);
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .user-form-copy {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.55;
+  }
+
+  .user-code-row {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-surface) 58%, transparent);
+  }
+
+  .user-telegram-actions {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .user-form-button {
+    width: 100%;
   }
 
   .user-ranking-list {
@@ -3981,6 +4147,10 @@ a {
   }
 
   @media (min-width: 48rem) {
+    .public-card-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     .admin-logout-button {
       display: inline-flex;
       align-items: center;

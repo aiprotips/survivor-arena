@@ -210,9 +210,9 @@ export function LoginView() {
               <FieldError error={errors.password} />
             </div>
 
-            <button className="auth-forgot-link" type="button">
+            <Link className="auth-forgot-link" href="/forgot-password">
               Hai dimenticato la password?
-            </button>
+            </Link>
 
             <Button className="auth-submit-button" disabled={isSubmitting} type="submit">
               {isSubmitting ? "ACCESSO..." : "ACCEDI"}

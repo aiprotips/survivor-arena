@@ -31,6 +31,13 @@ export type CreateUserInput = {
   username: string;
 };
 
+export type CreateUserWithHashInput = {
+  email: string;
+  passwordHash: string;
+  phone: string;
+  username: string;
+};
+
 const userCodeAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 function createUserCodeSuffix() {
@@ -97,6 +104,18 @@ async function createUniqueUserCode(db: D1Database) {
 }
 
 export async function createUser(db: D1Database, input: CreateUserInput) {
+  return createUserWithPasswordHash(db, {
+    email: input.email,
+    passwordHash: await hashPassword(input.password),
+    phone: input.phone,
+    username: input.username,
+  });
+}
+
+export async function createUserWithPasswordHash(
+  db: D1Database,
+  input: CreateUserWithHashInput,
+) {
   const now = new Date().toISOString();
   const user: Omit<UserRecord, "last_login_at" | "password_hash" | "role"> & {
     password_hash: string;
@@ -105,7 +124,7 @@ export async function createUser(db: D1Database, input: CreateUserInput) {
     created_at: now,
     email: input.email,
     id: crypto.randomUUID(),
-    password_hash: await hashPassword(input.password),
+    password_hash: input.passwordHash,
     phone: input.phone,
     role: "user",
     updated_at: now,
@@ -144,6 +163,75 @@ export async function createUser(db: D1Database, input: CreateUserInput) {
     user_code: user.user_code,
     username: user.username,
   } satisfies UserRecord;
+}
+
+export async function findUserById(db: D1Database, userId: string) {
+  return db
+    .prepare(
+      `SELECT id, user_code, username, email, phone, password_hash, role, created_at, updated_at, last_login_at
+       FROM users
+       WHERE id = ?1
+       LIMIT 1`,
+    )
+    .bind(userId)
+    .first<UserRecord>();
+}
+
+export async function findUserByResetIdentifier(db: D1Database, identifier: string) {
+  return db
+    .prepare(
+      `SELECT id, user_code, username, email, phone, password_hash, role, created_at, updated_at, last_login_at
+       FROM users
+       WHERE email = ?1 OR username = ?1 OR phone = ?1
+       LIMIT 1`,
+    )
+    .bind(identifier)
+    .first<UserRecord>();
+}
+
+export async function updateUserProfile(
+  db: D1Database,
+  input: {
+    email: string;
+    phone: string;
+    userId: string;
+    username: string;
+  },
+) {
+  const now = new Date().toISOString();
+
+  await db
+    .prepare(
+      `UPDATE users
+       SET username = ?1, email = ?2, phone = ?3, updated_at = ?4
+       WHERE id = ?5`,
+    )
+    .bind(input.username, input.email, input.phone, now, input.userId)
+    .run();
+
+  return findUserById(db, input.userId);
+}
+
+export async function updateUserPassword(
+  db: D1Database,
+  input: {
+    password: string;
+    userId: string;
+  },
+) {
+  const now = new Date().toISOString();
+
+  await db
+    .prepare("UPDATE users SET password_hash = ?1, updated_at = ?2 WHERE id = ?3")
+    .bind(await hashPassword(input.password), now, input.userId)
+    .run();
+}
+
+export async function deleteUserSessions(db: D1Database, userId: string) {
+  await db
+    .prepare("DELETE FROM user_sessions WHERE user_id = ?1")
+    .bind(userId)
+    .run();
 }
 
 export async function updateLastLogin(db: D1Database, userId: string) {

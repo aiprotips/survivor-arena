@@ -149,8 +149,43 @@ async function register(client, username, email, phone) {
   });
 
   expectStatus(response, 201, `register ${username}`);
+  assert(response.data.registrationId, "missing pending registration id", response.data);
+  assert(response.data.telegramStartUrl, "missing telegram start url", response.data);
 
-  return response.data.user;
+  const startUrl = new URL(response.data.telegramStartUrl);
+  const linkCode = startUrl.searchParams.get("start");
+  assert(linkCode, "missing telegram link code", response.data);
+
+  const telegram = await client.request("/api/telegram/webhook", {
+    body: {
+      message: {
+        chat: {
+          id: Number(`30${Math.floor(10000000 + Math.random() * 89999999)}`),
+        },
+        from: {
+          first_name: username,
+          id: Number(`40${Math.floor(10000000 + Math.random() * 89999999)}`),
+          username: username.slice(0, 24),
+        },
+        text: `/start ${linkCode}`,
+      },
+    },
+    method: "POST",
+  });
+  expectStatus(telegram, 200, `telegram start ${username}`);
+  assert(telegram.data.debugOtp, "telegram debug OTP missing. Start local dev with TELEGRAM_TEST_MODE=1 and TELEGRAM_DEBUG_CODES=1.", telegram.data);
+
+  const confirmed = await client.request("/api/register-confirm", {
+    body: {
+      otpCode: telegram.data.debugOtp,
+      registrationId: response.data.registrationId,
+    },
+    method: "POST",
+  });
+
+  expectStatus(confirmed, 201, `confirm register ${username}`);
+
+  return confirmed.data.user;
 }
 
 async function login(client, identifier, expectedRedirect = "/dashboard") {
@@ -616,6 +651,22 @@ function cleanupStressData() {
   `);
   runLocalSql(`
     DELETE FROM user_wallets
+    WHERE user_id IN (SELECT id FROM users WHERE email LIKE '${sql(emailPattern)}');
+  `);
+  runLocalSql(`
+    DELETE FROM telegram_links
+    WHERE user_id IN (SELECT id FROM users WHERE email LIKE '${sql(emailPattern)}');
+  `);
+  runLocalSql(`
+    DELETE FROM pending_registrations
+    WHERE email LIKE '${sql(emailPattern)}';
+  `);
+  runLocalSql(`
+    DELETE FROM telegram_link_requests
+    WHERE user_id IN (SELECT id FROM users WHERE email LIKE '${sql(emailPattern)}');
+  `);
+  runLocalSql(`
+    DELETE FROM password_reset_codes
     WHERE user_id IN (SELECT id FROM users WHERE email LIKE '${sql(emailPattern)}');
   `);
   runLocalSql(`DELETE FROM users WHERE email LIKE '${sql(emailPattern)}';`);

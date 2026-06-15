@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ui/Button";
 import { heroImages } from "@/content/home";
 
 export function Hero() {
@@ -16,10 +16,12 @@ export function Hero() {
           />
         </picture>
         <div className="hero-actions">
-          <Button className="hero-action-button">ENTRA NELL&apos;ARENA</Button>
-          <Button className="hero-action-button" variant="secondary">
+          <ButtonLink className="hero-action-button" href="/register">
+            ENTRA NELL&apos;ARENA
+          </ButtonLink>
+          <ButtonLink className="hero-action-button" href="/come-funziona" variant="secondary">
             SCOPRI COME FUNZIONA
-          </Button>
+          </ButtonLink>
         </div>
       </div>
     </section>

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
 export function CompetitionSection() {
@@ -19,9 +19,9 @@ export function CompetitionSection() {
               resta in gara chi sa scegliere meglio degli altri.
             </p>
           </div>
-          <Button className="w-full sm:w-fit" variant="gold">
+          <ButtonLink className="w-full sm:w-fit" href="/register" variant="gold">
             ENTRA NELL&apos;ARENA
-          </Button>
+          </ButtonLink>
         </div>
         <div className="premium-image-frame relative min-h-80">
           <Image

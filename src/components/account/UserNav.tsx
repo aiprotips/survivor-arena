@@ -27,7 +27,7 @@ export const mainUserNavItems: Array<{
     label: "Classifiche",
   },
   {
-    href: "/premi",
+    href: "/premi-utente",
     icon: Gem,
     label: "Premi",
   },

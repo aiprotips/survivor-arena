@@ -15,7 +15,7 @@ const protectedPaths = new Set([
   "/dashboard",
   "/impostazioni",
   "/movimenti",
-  "/premi",
+  "/premi-utente",
   "/profilo",
 ]);
 
