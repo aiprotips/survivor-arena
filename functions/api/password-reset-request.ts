@@ -7,7 +7,12 @@ import {
   getTelegramLinkForUser,
 } from "../_shared/account-flows";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../_shared/http";
-import { createTelegramStartUrl, sendTelegramMessage, type TelegramEnv } from "../_shared/telegram";
+import {
+  createTelegramStartUrl,
+  getTelegramBotUsername,
+  sendTelegramMessage,
+  type TelegramEnv,
+} from "../_shared/telegram";
 import { findUserByUsernameAndPhone, toPublicUser } from "../_shared/users";
 
 type Env = TelegramEnv & {
@@ -73,7 +78,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
         message: "Telegram non è ancora collegato. Apri il bot, premi Avvia e riceverai il codice di recupero.",
         ok: true,
         requiresTelegramStart: true,
-        telegramBotUsername: env.TELEGRAM_BOT_USERNAME || "survivalarena_bot",
+        telegramBotUsername: getTelegramBotUsername(env),
         telegramStartUrl: createTelegramStartUrl(env, linkCode),
       },
       { status: 200 },
@@ -101,7 +106,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
         message: "Non riesco a inviare il codice nella chat esistente. Apri Telegram dal pulsante e riceverai un nuovo codice.",
         ok: true,
         requiresTelegramStart: true,
-        telegramBotUsername: env.TELEGRAM_BOT_USERNAME || "survivalarena_bot",
+        telegramBotUsername: getTelegramBotUsername(env),
         telegramStartUrl: createTelegramStartUrl(env, linkCode),
       },
       { status: 200 },

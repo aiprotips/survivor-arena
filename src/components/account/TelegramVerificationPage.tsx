@@ -48,7 +48,7 @@ export function TelegramVerificationPage() {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [startUrl, setStartUrl] = useState("");
-  const [botUsername, setBotUsername] = useState("survivalarena_bot");
+  const [botUsername, setBotUsername] = useState("SurvivorArena_bot");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLinked, setIsLinked] = useState(false);
 

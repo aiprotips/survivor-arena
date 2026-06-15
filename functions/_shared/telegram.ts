@@ -28,10 +28,16 @@ export type TelegramWebhookUpdate = {
   };
 };
 
-export const defaultTelegramBotUsername = "survivalarena_bot";
+export const defaultTelegramBotUsername = "SurvivorArena_bot";
 
 export function getTelegramBotUsername(env: TelegramEnv) {
-  return env.TELEGRAM_BOT_USERNAME || defaultTelegramBotUsername;
+  const username = (env.TELEGRAM_BOT_USERNAME || defaultTelegramBotUsername).trim();
+
+  if (username.toLowerCase() === "survivalarena_bot") {
+    return defaultTelegramBotUsername;
+  }
+
+  return username;
 }
 
 export function createTelegramStartUrl(env: TelegramEnv, linkCode: string) {

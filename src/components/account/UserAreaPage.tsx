@@ -693,7 +693,7 @@ function ImpostazioniPage() {
     isLinked: boolean;
     startUrl: string;
   }>({
-    botUsername: "survivalarena_bot",
+    botUsername: "SurvivorArena_bot",
     isLinked: false,
     startUrl: "",
   });

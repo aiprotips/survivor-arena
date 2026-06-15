@@ -50,7 +50,7 @@ wrangler secret put TELEGRAM_WEBHOOK_SECRET
 
 Variabili non segrete configurate in `wrangler.toml`:
 
-- `TELEGRAM_BOT_USERNAME=survivalarena_bot`
+- `TELEGRAM_BOT_USERNAME=SurvivorArena_bot`
 - `PUBLIC_SITE_URL=https://survivor-arena.pages.dev`
 
 Webhook Telegram da configurare dopo il deploy:

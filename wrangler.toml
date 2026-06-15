@@ -4,7 +4,7 @@ pages_build_output_dir = "out"
 
 [vars]
 PUBLIC_SITE_URL = "https://survivor-arena.pages.dev"
-TELEGRAM_BOT_USERNAME = "survivalarena_bot"
+TELEGRAM_BOT_USERNAME = "SurvivorArena_bot"
 
 [[d1_databases]]
 binding = "DB"

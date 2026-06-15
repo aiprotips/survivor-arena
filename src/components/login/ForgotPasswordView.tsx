@@ -59,7 +59,7 @@ export function ForgotPasswordView() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [telegramStartUrl, setTelegramStartUrl] = useState("");
-  const [telegramBotUsername, setTelegramBotUsername] = useState("survivalarena_bot");
+  const [telegramBotUsername, setTelegramBotUsername] = useState("SurvivorArena_bot");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const requirements = useMemo(() => getPasswordRequirements(password), [password]);
 
@@ -92,7 +92,7 @@ export function ForgotPasswordView() {
 
       if (data.requiresTelegramStart && data.telegramStartUrl) {
         setTelegramStartUrl(data.telegramStartUrl);
-        setTelegramBotUsername(data.telegramBotUsername || "survivalarena_bot");
+        setTelegramBotUsername(data.telegramBotUsername || "SurvivorArena_bot");
         setStep("confirm");
         setMessage(data.message || "Apri Telegram per ricevere il codice di recupero.");
         window.open(data.telegramStartUrl, "_blank", "noopener,noreferrer");

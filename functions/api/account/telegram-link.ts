@@ -7,7 +7,11 @@ import {
 } from "../../_shared/account-flows";
 import { requireUser } from "../../_shared/access";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../_shared/http";
-import { createTelegramStartUrl, type TelegramEnv } from "../../_shared/telegram";
+import {
+  createTelegramStartUrl,
+  getTelegramBotUsername,
+  type TelegramEnv,
+} from "../../_shared/telegram";
 
 type Env = TelegramEnv & {
   DB: D1Database;
@@ -51,7 +55,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   return json({
     ok: true,
     purpose,
-    telegramBotUsername: env.TELEGRAM_BOT_USERNAME || "survivalarena_bot",
+    telegramBotUsername: getTelegramBotUsername(env),
     telegramStartUrl: createTelegramStartUrl(env, linkCode),
   });
 };

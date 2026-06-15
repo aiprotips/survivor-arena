@@ -41,7 +41,7 @@ export function UserHeader({ balance, onLogout, onMenuOpen, user }: UserHeaderPr
           <a
             aria-label="Apri il bot Telegram Survivor Arena"
             className="user-telegram-link"
-            href="https://t.me/survivalarena_bot"
+            href="https://t.me/SurvivorArena_bot"
             rel="noreferrer"
             target="_blank"
           >
