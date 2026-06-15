@@ -65,7 +65,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
 
   const telegramLink = await getTelegramLinkForUser(env.DB, user.id);
 
-  if (!telegramLink) {
+  if (!telegramLink || !env.TELEGRAM_BOT_TOKEN) {
     const linkCode = await createTelegramLinkRequest(env.DB, user.id, "password_reset");
 
     return json(
@@ -94,12 +94,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
       message: "Codice inviato su Telegram.",
     });
   } catch {
+    const linkCode = await createTelegramLinkRequest(env.DB, user.id, "password_reset");
+
     return json(
       {
-        message: "Invio Telegram non riuscito. Riprova tra poco.",
-        ok: false,
+        message: "Non riesco a inviare il codice nella chat esistente. Apri Telegram dal pulsante e riceverai un nuovo codice.",
+        ok: true,
+        requiresTelegramStart: true,
+        telegramBotUsername: env.TELEGRAM_BOT_USERNAME || "survivalarena_bot",
+        telegramStartUrl: createTelegramStartUrl(env, linkCode),
       },
-      { status: 500 },
+      { status: 200 },
     );
   }
 };

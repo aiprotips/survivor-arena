@@ -177,11 +177,12 @@ async function verifyTelegram(client, label) {
   });
 
   expectStatus(telegram, 200, `telegram start ${label}`);
-  assert(telegram.data.debugOtp, "telegram debug OTP missing. Start local dev with TELEGRAM_TEST_MODE=1 and TELEGRAM_DEBUG_CODES=1.", telegram.data);
+  const otpCode = String(telegram.data.text || "").match(/\b\d{6}\b/)?.[0];
+  assert(otpCode, "telegram OTP missing from webhook response.", telegram.data);
 
   const verified = await client.request("/api/account/telegram-verify", {
     body: {
-      code: telegram.data.debugOtp,
+      code: otpCode,
     },
     method: "POST",
   });

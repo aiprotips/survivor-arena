@@ -13,7 +13,6 @@ import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../_
 import {
   createOtpCode,
   getSiteUrl,
-  sendTelegramMessage,
   verifyTelegramWebhookSecret,
   type TelegramEnv,
   type TelegramWebhookUpdate,
@@ -28,6 +27,24 @@ function getStartCode(text: string) {
   const match = text.trim().match(/^\/start(?:@[\w_]+)?(?:\s+(.+))?$/i);
 
   return match?.[1]?.trim() ?? "";
+}
+
+function telegramMessageResponse(
+  chatId: string,
+  text: string,
+  replyMarkup?: unknown,
+) {
+  return new Response(JSON.stringify({
+    chat_id: chatId,
+    disable_web_page_preview: true,
+    method: "sendMessage",
+    reply_markup: replyMarkup,
+    text,
+  }), {
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+    },
+  });
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
@@ -53,9 +70,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   if (!linkCode) {
     const siteUrl = getSiteUrl(request, env);
 
-    await sendTelegramMessage(env, {
+    return telegramMessageResponse(
       chatId,
-      replyMarkup: {
+      "Ciao, questa è Survivor Arena. Cosa devi fare?\n\n- Verificare il telefono al primo login\n- Recuperare la password\n\nApri il percorso dal sito: ti riporterà qui con il link corretto.",
+      {
         inline_keyboard: [
           [
             {
@@ -71,10 +89,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
           ],
         ],
       },
-      text: "Ciao, questa è Survivor Arena. Cosa devi fare?\n\n- Verificare il telefono al primo login\n- Recuperare la password\n\nApri il percorso dal sito: ti riporterà qui con il link corretto.",
-    });
-
-    return json({ ok: true });
+    );
   }
 
   const pending = await findPendingRegistrationByLinkCode(env.DB, linkCode);
@@ -96,46 +111,32 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
         const user = await findUserById(env.DB, linkRequest.user_id);
 
         if (!user) {
-          await sendTelegramMessage(env, {
+          return telegramMessageResponse(
             chatId,
-            text: "Account non trovato. Torna su Survivor Arena e ripeti la richiesta.",
-          });
-
-          return json({ ok: true });
+            "Account non trovato. Torna su Survivor Arena e ripeti la richiesta.",
+          );
         }
 
         const code = await createPasswordResetCode(env.DB, toPublicUser(user));
 
-        await sendTelegramMessage(env, {
+        return telegramMessageResponse(
           chatId,
-          text: `Codice recupero password Survivor Arena: ${code}\n\nInseriscilo sul sito per creare una nuova password. Il codice scade tra 10 minuti.`,
-        });
-
-        return json({
-          debugCode: env.TELEGRAM_DEBUG_CODES === "1" ? code : undefined,
-          ok: true,
-        });
+          `Codice recupero password Survivor Arena: ${code}\n\nInseriscilo sul sito per creare una nuova password. Il codice scade tra 10 minuti.`,
+        );
       }
 
       const code = await createPhoneVerificationCode(env.DB, linkRequest.user_id);
 
-      await sendTelegramMessage(env, {
+      return telegramMessageResponse(
         chatId,
-        text: `Codice verifica Survivor Arena: ${code}\n\nInseriscilo nella pagina di verifica account. Il codice scade tra 15 minuti.`,
-      });
-
-      return json({
-        debugOtp: env.TELEGRAM_DEBUG_CODES === "1" ? code : undefined,
-        ok: true,
-      });
+        `Codice verifica Survivor Arena: ${code}\n\nInseriscilo nella pagina di verifica account. Il codice scade tra 15 minuti.`,
+      );
     }
 
-    await sendTelegramMessage(env, {
+    return telegramMessageResponse(
       chatId,
-      text: "Questo link non è valido o è scaduto. Torna su Survivor Arena e richiedi un nuovo codice.",
-    });
-
-    return json({ ok: true });
+      "Questo link non è valido o è scaduto. Torna su Survivor Arena e richiedi un nuovo codice.",
+    );
   }
 
   const otpCode = createOtpCode();
@@ -149,15 +150,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     username: message?.from?.username,
   });
 
-  await sendTelegramMessage(env, {
+  return telegramMessageResponse(
     chatId,
-    text: `Codice Survivor Arena: ${otpCode}\n\nInseriscilo nella pagina di registrazione. Il codice scade tra 15 minuti.`,
-  });
-
-  return json({
-    debugOtp: env.TELEGRAM_DEBUG_CODES === "1" ? otpCode : undefined,
-    ok: true,
-  });
+    `Codice Survivor Arena: ${otpCode}\n\nInseriscilo nella pagina di registrazione. Il codice scade tra 15 minuti.`,
+  );
 };
 
 export const onRequestGet = methodNotAllowed;
