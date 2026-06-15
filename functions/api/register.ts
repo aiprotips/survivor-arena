@@ -5,14 +5,11 @@ import {
   validateRegistrationValues,
   type RegisterField,
 } from "../../src/lib/auth-validation";
-import { createPendingRegistration } from "../_shared/account-flows";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../_shared/http";
-import { createTelegramStartUrl, getSiteUrl, type TelegramEnv } from "../_shared/telegram";
-import { findUserByUniqueFields } from "../_shared/users";
+import { createUser, findUserByUniqueFields, toPublicUser } from "../_shared/users";
 
-type Env = TelegramEnv & {
+type Env = {
   DB: D1Database;
-  TELEGRAM_DEBUG_CODES?: string;
 };
 
 const duplicateMessages: Record<"email" | "phone" | "username", string> = {
@@ -92,17 +89,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   }
 
   try {
-    const pending = await createPendingRegistration(env.DB, validation.values);
-    const siteUrl = getSiteUrl(request, env);
+    const user = await createUser(env.DB, validation.values);
 
     return json(
       {
         ok: true,
-        expiresAt: pending.pending.expires_at,
-        registrationId: pending.pending.id,
-        telegramBotUsername: env.TELEGRAM_BOT_USERNAME || "survivalarena_bot",
-        telegramStartUrl: createTelegramStartUrl(env, pending.linkCode),
-        verificationUrl: `${siteUrl}/register/`,
+        user: toPublicUser(user),
       },
       { status: 201 },
     );

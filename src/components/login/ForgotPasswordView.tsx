@@ -8,6 +8,7 @@ import { BrandLogo } from "@/components/home/BrandLogo";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
+import { TelegramIcon } from "@/components/ui/TelegramIcon";
 import {
   getPasswordRequirements,
   validateConfirmPassword,
@@ -21,6 +22,9 @@ type ApiResponse =
   | {
       message?: string;
       ok: true;
+      requiresTelegramStart?: boolean;
+      telegramBotUsername?: string;
+      telegramStartUrl?: string;
     }
   | {
       field?: string;
@@ -31,11 +35,14 @@ type ApiResponse =
 export function ForgotPasswordView() {
   const router = useRouter();
   const [step, setStep] = useState<ResetStep>("request");
-  const [identifier, setIdentifier] = useState("");
+  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [telegramStartUrl, setTelegramStartUrl] = useState("");
+  const [telegramBotUsername, setTelegramBotUsername] = useState("survivalarena_bot");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const requirements = useMemo(() => getPasswordRequirements(password), [password]);
 
@@ -43,8 +50,8 @@ export function ForgotPasswordView() {
     event.preventDefault();
     setMessage("");
 
-    if (!identifier.trim()) {
-      setMessage("Inserisci email, username o telefono.");
+    if (!username.trim() || !phone.trim()) {
+      setMessage("Inserisci username e numero di telefono associato.");
       return;
     }
 
@@ -52,7 +59,7 @@ export function ForgotPasswordView() {
 
     try {
       const response = await fetch("/api/password-reset-request", {
-        body: JSON.stringify({ identifier }),
+        body: JSON.stringify({ phone, username }),
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -63,6 +70,15 @@ export function ForgotPasswordView() {
 
       if (!data.ok) {
         setMessage(data.message);
+        return;
+      }
+
+      if (data.requiresTelegramStart && data.telegramStartUrl) {
+        setTelegramStartUrl(data.telegramStartUrl);
+        setTelegramBotUsername(data.telegramBotUsername || "survivalarena_bot");
+        setStep("confirm");
+        setMessage(data.message || "Apri Telegram per ricevere il codice di recupero.");
+        window.open(data.telegramStartUrl, "_blank", "noopener,noreferrer");
         return;
       }
 
@@ -98,8 +114,9 @@ export function ForgotPasswordView() {
         body: JSON.stringify({
           code,
           confirmPassword,
-          identifier,
           password,
+          phone,
+          username,
         }),
         credentials: "include",
         headers: {
@@ -144,7 +161,8 @@ export function ForgotPasswordView() {
               Recupera <span className="auth-title-accent">Password</span>
             </h2>
             <p className="auth-subtitle">
-              Ricevi il codice sul bot Telegram collegato al tuo account.
+              Inserisci username e numero di telefono. Se corrispondono,
+              riceverai il codice sul bot Telegram.
             </p>
             <PremiumDivider />
           </div>
@@ -166,15 +184,29 @@ export function ForgotPasswordView() {
           {step === "request" ? (
             <form className="auth-form" onSubmit={requestReset}>
               <div className="ui-field">
-                <label className="ui-field-label" htmlFor="reset-identifier">
-                  Email / Username / Telefono
+                <label className="ui-field-label" htmlFor="reset-username">
+                  Username
                 </label>
                 <input
                   className="ui-input"
-                  id="reset-identifier"
-                  onChange={(event) => setIdentifier(event.target.value)}
-                  placeholder="Inserisci il tuo account"
-                  value={identifier}
+                  id="reset-username"
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="Inserisci username"
+                  value={username}
+                />
+              </div>
+              <div className="ui-field">
+                <label className="ui-field-label" htmlFor="reset-phone">
+                  Numero di telefono
+                </label>
+                <input
+                  autoComplete="tel"
+                  className="ui-input"
+                  id="reset-phone"
+                  onChange={(event) => setPhone(event.target.value)}
+                  placeholder="Inserisci il numero associato"
+                  type="tel"
+                  value={phone}
                 />
               </div>
               <Button className="auth-submit-button" disabled={isSubmitting} type="submit">
@@ -188,6 +220,25 @@ export function ForgotPasswordView() {
 
           {step === "confirm" ? (
             <form className="auth-form" onSubmit={confirmReset}>
+              {telegramStartUrl ? (
+                <div className="auth-telegram-panel">
+                  <h3>Apri Telegram</h3>
+                  <p>
+                    Premi Avvia sul bot. Se la chat non si apre automaticamente,
+                    usa il pulsante qui sotto.
+                  </p>
+                  <ButtonLink
+                    className="auth-telegram-button"
+                    href={telegramStartUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <TelegramIcon className="auth-telegram-button-icon" />
+                    Apri @{telegramBotUsername}
+                  </ButtonLink>
+                </div>
+              ) : null}
+
               <div className="ui-field">
                 <label className="ui-field-label" htmlFor="reset-code">
                   Codice Telegram

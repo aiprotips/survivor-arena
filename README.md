@@ -38,7 +38,7 @@ Il progetto usa il database D1 esistente `survivor-arena-db` tramite binding `DB
 
 Il bot Telegram ufficiale viene usato per:
 
-- OTP registrazione
+- verifica account al primo login
 - recupero password
 
 Il token del bot non deve mai essere scritto nel repository. Configurarlo come secret Cloudflare:
@@ -61,7 +61,7 @@ curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
   -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
 ```
 
-Nota: un bot Telegram può scrivere a un utente solo dopo che l'utente ha avviato il bot.
+Nota: un bot Telegram può scrivere a un utente solo dopo che l'utente ha avviato il bot. La registrazione crea l'account senza OTP; al primo login l'utente viene guidato alla verifica Telegram.
 
 Per i test locali senza inviare messaggi reali:
 

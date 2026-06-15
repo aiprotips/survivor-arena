@@ -1,36 +1,24 @@
 /// <reference types="@cloudflare/workers-types" />
 
 import {
-  normalizeEmail,
   normalizePhone,
+  normalizeUsername,
   validateConfirmPassword,
   validatePassword,
+  validatePhone,
+  validateUsername,
 } from "../../src/lib/auth-validation";
 import { consumePasswordResetCode } from "../_shared/account-flows";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../_shared/http";
 import {
   deleteUserSessions,
-  findUserByResetIdentifier,
+  findUserByUsernameAndPhone,
   updateUserPassword,
 } from "../_shared/users";
 
 type Env = {
   DB: D1Database;
 };
-
-function normalizeResetIdentifier(value: unknown) {
-  const identifier = String(value ?? "").trim();
-
-  if (identifier.includes("@")) {
-    return normalizeEmail(identifier);
-  }
-
-  if (/^[+0-9\s().-]+$/.test(identifier)) {
-    return normalizePhone(identifier);
-  }
-
-  return identifier;
-}
 
 function getFlowError(error: unknown) {
   if (
@@ -57,13 +45,20 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   }
 
   const body = await readJsonObject(request);
-  const identifier = normalizeResetIdentifier(body?.identifier);
+  const username = normalizeUsername(body?.username ?? body?.identifier);
+  const phone = normalizePhone(body?.phone);
   const code = String(body?.code ?? "").trim();
   const password = String(body?.password ?? "");
   const confirmPassword = String(body?.confirmPassword ?? "");
 
-  if (!identifier) {
-    return json({ field: "identifier", message: "Account obbligatorio.", ok: false }, { status: 400 });
+  const usernameError = validateUsername(username);
+  if (usernameError) {
+    return json({ field: "username", message: usernameError, ok: false }, { status: 400 });
+  }
+
+  const phoneError = validatePhone(phone);
+  if (phoneError) {
+    return json({ field: "phone", message: phoneError, ok: false }, { status: 400 });
   }
 
   if (!code) {
@@ -80,10 +75,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     return json({ field: "confirmPassword", message: confirmError, ok: false }, { status: 400 });
   }
 
-  const user = await findUserByResetIdentifier(env.DB, identifier);
+  const user = await findUserByUsernameAndPhone(env.DB, {
+    phone,
+    username,
+  });
 
   if (!user) {
-    return json({ field: "identifier", message: "Account non trovato.", ok: false }, { status: 404 });
+    return json({ field: "username", message: "Username e numero di telefono non corrispondono.", ok: false }, { status: 404 });
   }
 
   try {

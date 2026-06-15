@@ -1,31 +1,18 @@
 /// <reference types="@cloudflare/workers-types" />
 
-import { normalizeEmail, normalizePhone } from "../../src/lib/auth-validation";
+import { normalizePhone, normalizeUsername, validatePhone, validateUsername } from "../../src/lib/auth-validation";
 import {
+  createTelegramLinkRequest,
   createPasswordResetCode,
   getTelegramLinkForUser,
 } from "../_shared/account-flows";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../_shared/http";
-import { sendTelegramMessage, type TelegramEnv } from "../_shared/telegram";
-import { findUserByResetIdentifier, toPublicUser } from "../_shared/users";
+import { createTelegramStartUrl, sendTelegramMessage, type TelegramEnv } from "../_shared/telegram";
+import { findUserByUsernameAndPhone, toPublicUser } from "../_shared/users";
 
 type Env = TelegramEnv & {
   DB: D1Database;
 };
-
-function normalizeResetIdentifier(value: unknown) {
-  const identifier = String(value ?? "").trim();
-
-  if (identifier.includes("@")) {
-    return normalizeEmail(identifier);
-  }
-
-  if (/^[+0-9\s().-]+$/.test(identifier)) {
-    return normalizePhone(identifier);
-  }
-
-  return identifier;
-}
 
 export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   if (!env.DB) {
@@ -33,26 +20,43 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   }
 
   const body = await readJsonObject(request);
-  const identifier = normalizeResetIdentifier(body?.identifier);
+  const username = normalizeUsername(body?.username ?? body?.identifier);
+  const phone = normalizePhone(body?.phone);
 
-  if (!identifier) {
+  const usernameError = validateUsername(username);
+  if (usernameError) {
     return json(
       {
-        field: "identifier",
-        message: "Inserisci email, username o telefono.",
+        field: "username",
+        message: usernameError,
         ok: false,
       },
       { status: 400 },
     );
   }
 
-  const user = await findUserByResetIdentifier(env.DB, identifier);
+  const phoneError = validatePhone(phone);
+  if (phoneError) {
+    return json(
+      {
+        field: "phone",
+        message: phoneError,
+        ok: false,
+      },
+      { status: 400 },
+    );
+  }
+
+  const user = await findUserByUsernameAndPhone(env.DB, {
+    phone,
+    username,
+  });
 
   if (!user) {
     return json(
       {
-        field: "identifier",
-        message: "Account non trovato.",
+        field: "username",
+        message: "Username e numero di telefono non corrispondono.",
         ok: false,
       },
       { status: 404 },
@@ -62,12 +66,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   const telegramLink = await getTelegramLinkForUser(env.DB, user.id);
 
   if (!telegramLink) {
+    const linkCode = await createTelegramLinkRequest(env.DB, user.id, "password_reset");
+
     return json(
       {
-        message: "Telegram non è ancora collegato a questo account.",
-        ok: false,
+        message: "Telegram non è ancora collegato. Apri il bot, premi Avvia e riceverai il codice di recupero.",
+        ok: true,
+        requiresTelegramStart: true,
+        telegramBotUsername: env.TELEGRAM_BOT_USERNAME || "survivalarena_bot",
+        telegramStartUrl: createTelegramStartUrl(env, linkCode),
       },
-      { status: 409 },
+      { status: 200 },
     );
   }
 

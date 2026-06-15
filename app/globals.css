@@ -996,7 +996,7 @@ a {
 
   .auth-progress {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.55rem;
   }
 
@@ -1193,8 +1193,42 @@ a {
   }
 
   .auth-telegram-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.52rem;
     justify-self: center;
     width: min(100%, 18rem);
+  }
+
+  .auth-telegram-button-icon {
+    width: 1.08rem;
+    height: 1.08rem;
+    flex: 0 0 auto;
+  }
+
+  .auth-telegram-emblem {
+    display: inline-grid;
+    place-items: center;
+    justify-self: center;
+    width: 3.8rem;
+    height: 3.8rem;
+    border: 1px solid color-mix(in srgb, var(--color-blue-soft) 30%, transparent);
+    border-radius: var(--radius-pill);
+    background:
+      radial-gradient(circle, color-mix(in srgb, var(--color-blue-soft) 20%, transparent), transparent 65%),
+      color-mix(in srgb, var(--color-card-strong) 62%, transparent);
+    color: var(--color-blue-soft);
+    box-shadow: 0 0 28px color-mix(in srgb, var(--color-blue-soft) 18%, transparent);
+  }
+
+  .auth-telegram-emblem-icon {
+    width: 1.85rem;
+    height: 1.85rem;
+  }
+
+  .auth-telegram-verify-card {
+    gap: clamp(1rem, 3.5vw, 1.35rem);
   }
 
   .auth-submit-button,
@@ -1570,6 +1604,33 @@ a {
     color: var(--color-gold-strong);
     font-size: 0.66rem;
     font-weight: 600;
+  }
+
+  .user-telegram-link,
+  .user-mobile-telegram-link {
+    display: inline-grid;
+    place-items: center;
+    width: 2.45rem;
+    height: 2.45rem;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--color-blue-soft) 28%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 54%, transparent);
+    color: var(--color-blue-soft);
+    text-decoration: none;
+    transition: border-color 180ms ease, color 180ms ease, transform 180ms ease;
+  }
+
+  .user-telegram-link:hover,
+  .user-mobile-telegram-link:hover {
+    border-color: color-mix(in srgb, var(--color-blue-soft) 55%, transparent);
+    color: var(--color-white);
+    transform: translateY(-1px);
+  }
+
+  .user-telegram-icon {
+    width: 1.12rem;
+    height: 1.12rem;
   }
 
   .user-nav,
@@ -2113,7 +2174,7 @@ a {
 
   .user-mobile-profile {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.72rem;
     border: 1px solid var(--color-border);
@@ -2141,6 +2202,10 @@ a {
     color: var(--color-gold-strong);
     font-size: 0.78rem;
     font-weight: 600;
+  }
+
+  .user-mobile-telegram-link {
+    justify-self: end;
   }
 
   .user-mobile-nav,

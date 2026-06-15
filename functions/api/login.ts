@@ -1,6 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
 import { normalizeEmail, validateLoginValues, type LoginField } from "../../src/lib/auth-validation";
+import { getTelegramLinkForUser } from "../_shared/account-flows";
 import { verifyPassword } from "../_shared/crypto";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../_shared/http";
 import { createSession } from "../_shared/session";
@@ -79,11 +80,19 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
 
   await updateLastLogin(env.DB, user.id);
   const sessionCookie = await createSession(env.DB, request, user.id);
+  const telegramLink = user.role === "admin" ? null : await getTelegramLinkForUser(env.DB, user.id);
+  const requiresTelegramVerification =
+    user.role !== "admin" && (!telegramLink || !telegramLink.phone_verified_at);
 
   return json(
     {
       ok: true,
-      redirectTo: user.role === "admin" ? "/admin" : "/dashboard",
+      redirectTo: user.role === "admin"
+        ? "/admin"
+        : requiresTelegramVerification
+          ? "/verifica-telegram"
+          : "/dashboard",
+      requiresTelegramVerification,
       user: toPublicUser(user),
     },
     {

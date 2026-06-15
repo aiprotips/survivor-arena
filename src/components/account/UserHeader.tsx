@@ -5,6 +5,7 @@ import { Menu, Trophy } from "lucide-react";
 import { BrandLogo } from "@/components/home/BrandLogo";
 import { UserDropdown } from "@/components/account/UserDropdown";
 import { UserNav } from "@/components/account/UserNav";
+import { TelegramIcon } from "@/components/ui/TelegramIcon";
 import type { AccountUser } from "@/components/account/types";
 
 type UserHeaderProps = {
@@ -36,6 +37,16 @@ export function UserHeader({ balance, onLogout, onMenuOpen, user }: UserHeaderPr
             <strong>{user.username}</strong>
             <span>{balance}</span>
           </div>
+
+          <a
+            aria-label="Apri il bot Telegram Survivor Arena"
+            className="user-telegram-link"
+            href="https://t.me/survivalarena_bot"
+            rel="noreferrer"
+            target="_blank"
+          >
+            <TelegramIcon className="user-telegram-icon" />
+          </a>
 
           <button
             aria-label="Apri menu area utente"

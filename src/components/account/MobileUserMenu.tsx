@@ -5,6 +5,7 @@ import { LogOut, ReceiptText, Settings, UserRound } from "lucide-react";
 import { BrandLogo } from "@/components/home/BrandLogo";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
 import { UserNav } from "@/components/account/UserNav";
+import { TelegramIcon } from "@/components/ui/TelegramIcon";
 import type { AccountUser } from "@/components/account/types";
 
 type MobileUserMenuProps = {
@@ -76,6 +77,15 @@ export function MobileUserMenu({
             <strong>{user.username}</strong>
             <span>{balance}</span>
           </div>
+          <a
+            aria-label="Apri il bot Telegram Survivor Arena"
+            className="user-mobile-telegram-link"
+            href="https://t.me/survivalarena_bot"
+            rel="noreferrer"
+            target="_blank"
+          >
+            <TelegramIcon className="user-telegram-icon" />
+          </a>
         </div>
 
         <UserNav onNavigate={onClose} variant="mobile" />

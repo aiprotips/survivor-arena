@@ -16,6 +16,8 @@ import {
 const registrationTtlMinutes = 15;
 const passwordResetTtlMinutes = 10;
 
+export type TelegramLinkPurpose = "account" | "password_reset" | "verify";
+
 type TelegramProfile = {
   chatId: string;
   firstName?: string;
@@ -38,6 +40,13 @@ export type PendingRegistrationRow = {
   telegram_last_name: string | null;
   telegram_username: string | null;
   username: string;
+};
+
+export type TelegramLinkRow = {
+  phone_verified_at: string | null;
+  telegram_chat_id: string;
+  verification_code_hash: string | null;
+  verification_code_sent_at: string | null;
 };
 
 function minutesFromNow(minutes: number) {
@@ -299,16 +308,20 @@ export async function confirmPendingRegistration(
 export async function getTelegramLinkForUser(db: D1Database, userId: string) {
   return db
     .prepare(
-      `SELECT telegram_chat_id
+      `SELECT telegram_chat_id, phone_verified_at, verification_code_hash, verification_code_sent_at
        FROM telegram_links
        WHERE user_id = ?1
        LIMIT 1`,
     )
     .bind(userId)
-    .first<{ telegram_chat_id: string }>();
+    .first<TelegramLinkRow>();
 }
 
-export async function createTelegramLinkRequest(db: D1Database, userId: string) {
+export async function createTelegramLinkRequest(
+  db: D1Database,
+  userId: string,
+  purpose: TelegramLinkPurpose = "account",
+) {
   await cleanupExpiredAccountFlows(db);
 
   const now = new Date().toISOString();
@@ -322,8 +335,8 @@ export async function createTelegramLinkRequest(db: D1Database, userId: string) 
   await db
     .prepare(
       `INSERT INTO telegram_link_requests (
-        id, user_id, link_code_hash, created_at, expires_at, consumed_at
-      ) VALUES (?1, ?2, ?3, ?4, ?5, NULL)`,
+        id, user_id, link_code_hash, created_at, expires_at, consumed_at, purpose
+      ) VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6)`,
     )
     .bind(
       crypto.randomUUID(),
@@ -331,6 +344,7 @@ export async function createTelegramLinkRequest(db: D1Database, userId: string) 
       await hashVerificationCode(linkCode),
       now,
       minutesFromNow(registrationTtlMinutes),
+      purpose,
     )
     .run();
 
@@ -340,7 +354,7 @@ export async function createTelegramLinkRequest(db: D1Database, userId: string) 
 export async function findTelegramLinkRequestByCode(db: D1Database, linkCode: string) {
   return db
     .prepare(
-      `SELECT id, user_id, expires_at
+      `SELECT id, user_id, expires_at, COALESCE(purpose, 'account') AS purpose
        FROM telegram_link_requests
        WHERE link_code_hash = ?1 AND consumed_at IS NULL
        LIMIT 1`,
@@ -349,6 +363,7 @@ export async function findTelegramLinkRequestByCode(db: D1Database, linkCode: st
     .first<{
       expires_at: string;
       id: string;
+      purpose: TelegramLinkPurpose;
       user_id: string;
     }>();
 }
@@ -409,6 +424,86 @@ export async function attachTelegramToUser(
       .bind(now, input.requestId)
       .run();
   }
+}
+
+export async function createPhoneVerificationCode(db: D1Database, userId: string) {
+  await cleanupExpiredAccountFlows(db);
+
+  const code = createOtpCode();
+  const now = new Date().toISOString();
+
+  await db
+    .prepare(
+      `UPDATE telegram_links
+       SET verification_code_hash = ?1,
+           verification_code_sent_at = ?2,
+           updated_at = ?2
+       WHERE user_id = ?3`,
+    )
+    .bind(await hashVerificationCode(code), now, userId)
+    .run();
+
+  return code;
+}
+
+export async function verifyPhoneVerificationCode(
+  db: D1Database,
+  input: {
+    code: string;
+    userId: string;
+  },
+) {
+  const link = await getTelegramLinkForUser(db, input.userId);
+
+  if (!link) {
+    throw {
+      message: "Apri prima il bot Telegram per ricevere il codice.",
+      status: 409,
+    };
+  }
+
+  if (!link.verification_code_hash) {
+    throw {
+      message: "Richiedi prima un codice OTP su Telegram.",
+      status: 409,
+    };
+  }
+
+  if (!link.verification_code_sent_at) {
+    throw {
+      message: "Codice OTP non disponibile. Richiedine uno nuovo.",
+      status: 409,
+    };
+  }
+
+  const sentAt = Date.parse(link.verification_code_sent_at);
+  if (Number.isNaN(sentAt) || sentAt + registrationTtlMinutes * 60_000 <= Date.now()) {
+    throw {
+      message: "Codice OTP scaduto. Richiedine uno nuovo.",
+      status: 410,
+    };
+  }
+
+  if ((await hashVerificationCode(input.code)) !== link.verification_code_hash) {
+    throw {
+      message: "Codice OTP non valido.",
+      status: 400,
+    };
+  }
+
+  const now = new Date().toISOString();
+
+  await db
+    .prepare(
+      `UPDATE telegram_links
+       SET phone_verified_at = ?1,
+           verification_code_hash = NULL,
+           verification_code_sent_at = NULL,
+           updated_at = ?1
+       WHERE user_id = ?2`,
+    )
+    .bind(now, input.userId)
+    .run();
 }
 
 export async function createPasswordResetCode(db: D1Database, user: PublicUser) {

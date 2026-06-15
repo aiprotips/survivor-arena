@@ -20,6 +20,7 @@ type LoginResponse =
   | {
       ok: true;
       redirectTo: string;
+      requiresTelegramVerification?: boolean;
       user: {
         user_code: string;
         username: string;

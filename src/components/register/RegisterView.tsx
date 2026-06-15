@@ -22,7 +22,7 @@ import {
 } from "@/lib/auth-validation";
 import { cn } from "@/lib/cn";
 
-type RegisterStep = 1 | 2 | 3;
+type RegisterStep = 1 | 2;
 
 type ProgressStep = {
   id: RegisterStep;
@@ -32,27 +32,15 @@ type ProgressStep = {
 
 type RegisterResponse =
   | {
-      expiresAt: string;
-      ok: true;
-      registrationId: string;
-      telegramBotUsername: string;
-      telegramStartUrl: string;
-    }
-  | {
-      details?: string[];
-      field?: RegisterField;
-      message: string;
-      ok: false;
-    };
-
-type RegisterConfirmResponse =
-  | {
       ok: true;
       user: {
+        user_code: string;
         username: string;
       };
     }
   | {
+      details?: string[];
+      field?: RegisterField;
       message: string;
       ok: false;
     };
@@ -67,11 +55,6 @@ const progressSteps: ProgressStep[] = [
     id: 2,
     label: "Step 2",
     title: "Sicurezza",
-  },
-  {
-    id: 3,
-    label: "Step 3",
-    title: "Telegram",
   },
 ];
 
@@ -93,11 +76,6 @@ export function RegisterView() {
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [pendingRegistration, setPendingRegistration] = useState<Extract<
-    RegisterResponse,
-    { ok: true }
-  > | null>(null);
 
   const passwordRequirements = useMemo(
     () => getPasswordRequirements(values.password),
@@ -195,57 +173,11 @@ export function RegisterView() {
         return;
       }
 
-      setPendingRegistration(data);
-      setCurrentStep(3);
-      setOtpCode("");
-    } catch {
-      setFormMessage("Registrazione non riuscita. Controlla la connessione e riprova.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleConfirmOtp = async () => {
-    if (!pendingRegistration) {
-      setFormMessage("Sessione di registrazione non trovata. Ripeti la registrazione.");
-      setCurrentStep(1);
-      return;
-    }
-
-    if (!otpCode.trim()) {
-      setFormMessage("Inserisci il codice ricevuto su Telegram.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setFormMessage("");
-
-    try {
-      const response = await fetch("/api/register-confirm", {
-        body: JSON.stringify({
-          otpCode,
-          registrationId: pendingRegistration.registrationId,
-        }),
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-      });
-      const data = (await response.json()) as RegisterConfirmResponse;
-
-      if (!data.ok) {
-        setFormMessage(data.message);
-        return;
-      }
-
       setIsRegistrationComplete(true);
       setValues(initialValues);
       setErrors({});
-      setOtpCode("");
-      setPendingRegistration(null);
     } catch {
-      setFormMessage("Verifica non riuscita. Controlla la connessione e riprova.");
+      setFormMessage("Registrazione non riuscita. Controlla la connessione e riprova.");
     } finally {
       setIsSubmitting(false);
     }
@@ -325,7 +257,7 @@ export function RegisterView() {
                 onChange={updateValue}
                 values={values}
               />
-            ) : currentStep === 2 ? (
+            ) : (
               <RegisterSecurityStep
                 errors={errors}
                 isConfirmPasswordVisible={isConfirmPasswordVisible}
@@ -342,18 +274,6 @@ export function RegisterView() {
                 onTogglePassword={() => setIsPasswordVisible((current) => !current)}
                 passwordRequirements={passwordRequirements}
                 values={values}
-              />
-            ) : (
-              <RegisterTelegramStep
-                isSubmitting={isSubmitting}
-                onBack={() => {
-                  setFormMessage("");
-                  setCurrentStep(2);
-                }}
-                onConfirm={handleConfirmOtp}
-                onOtpChange={setOtpCode}
-                otpCode={otpCode}
-                pendingRegistration={pendingRegistration}
               />
             )}
 
@@ -493,7 +413,7 @@ function RegisterDataStep({ errors, onChange, values }: RegisterStepProps) {
             value={values.phone}
           />
         </span>
-        <FieldHelp error={errors.phone} text="La verifica avverrà tramite Telegram" />
+        <FieldHelp error={errors.phone} text="Lo verificherai al primo login tramite Telegram" />
       </div>
     </div>
   );
@@ -566,90 +486,6 @@ function RegisterSecurityStep({
         type="submit"
       >
         {isSubmitting ? "CREAZIONE..." : "CREA ACCOUNT"}
-      </Button>
-
-      <button
-        aria-label="Torna indietro"
-        className="auth-back-button"
-        disabled={isSubmitting}
-        onClick={onBack}
-        type="button"
-      >
-        <span aria-hidden="true">&larr;</span>
-        Torna indietro
-      </button>
-    </div>
-  );
-}
-
-function RegisterTelegramStep({
-  isSubmitting,
-  onBack,
-  onConfirm,
-  onOtpChange,
-  otpCode,
-  pendingRegistration,
-}: {
-  isSubmitting: boolean;
-  onBack: () => void;
-  onConfirm: () => void;
-  onOtpChange: (value: string) => void;
-  otpCode: string;
-  pendingRegistration: Extract<RegisterResponse, { ok: true }> | null;
-}) {
-  return (
-    <div className="auth-step-panel">
-      <div className="auth-telegram-panel">
-        <p className="auth-kicker">Verifica Telegram</p>
-        <h3>Collega il bot Survivor Arena</h3>
-        <p>
-          Apri il bot, premi Avvia e inserisci qui il codice che ricevi su Telegram.
-        </p>
-        {pendingRegistration ? (
-          <ButtonLink
-            className="auth-telegram-button"
-            href={pendingRegistration.telegramStartUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            Apri @{pendingRegistration.telegramBotUsername}
-          </ButtonLink>
-        ) : null}
-      </div>
-
-      <div className="ui-field">
-        <label className="ui-field-label" htmlFor="register-otp">
-          Codice OTP
-        </label>
-        <span className="ui-input-wrap">
-          <span className="ui-input-leading-icon" aria-hidden="true">
-            <svg className="auth-icon" viewBox="0 0 24 24">
-              <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" />
-              <path d="M8 9h8" />
-              <path d="M8 13h5" />
-            </svg>
-          </span>
-          <input
-            autoComplete="one-time-code"
-            className={cn("ui-input ui-input-with-icon", otpCode && "ui-input-valid")}
-            id="register-otp"
-            inputMode="numeric"
-            maxLength={6}
-            onChange={(event) => onOtpChange(event.target.value.replace(/\D/g, "").slice(0, 6))}
-            placeholder="Inserisci il codice"
-            value={otpCode}
-          />
-        </span>
-        <p className="ui-field-help">Il codice scade dopo pochi minuti.</p>
-      </div>
-
-      <Button
-        className="auth-submit-button register-submit-button"
-        disabled={isSubmitting}
-        onClick={onConfirm}
-        type="button"
-      >
-        {isSubmitting ? "VERIFICA..." : "VERIFICA E CREA ACCOUNT"}
       </Button>
 
       <button

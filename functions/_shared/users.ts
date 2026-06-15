@@ -189,6 +189,24 @@ export async function findUserByResetIdentifier(db: D1Database, identifier: stri
     .first<UserRecord>();
 }
 
+export async function findUserByUsernameAndPhone(
+  db: D1Database,
+  input: {
+    phone: string;
+    username: string;
+  },
+) {
+  return db
+    .prepare(
+      `SELECT id, user_code, username, email, phone, password_hash, role, created_at, updated_at, last_login_at
+       FROM users
+       WHERE username = ?1 AND phone = ?2
+       LIMIT 1`,
+    )
+    .bind(input.username, input.phone)
+    .first<UserRecord>();
+}
+
 export async function updateUserProfile(
   db: D1Database,
   input: {

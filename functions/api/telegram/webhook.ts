@@ -3,6 +3,8 @@
 import {
   attachTelegramToUser,
   attachTelegramToPendingRegistration,
+  createPasswordResetCode,
+  createPhoneVerificationCode,
   findTelegramLinkRequestByCode,
   findPendingRegistrationByLinkCode,
   isExpired,
@@ -10,12 +12,13 @@ import {
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../_shared/http";
 import {
   createOtpCode,
-  getTelegramBotUsername,
+  getSiteUrl,
   sendTelegramMessage,
   verifyTelegramWebhookSecret,
   type TelegramEnv,
   type TelegramWebhookUpdate,
 } from "../../_shared/telegram";
+import { findUserById, toPublicUser } from "../../_shared/users";
 
 type Env = TelegramEnv & {
   DB: D1Database;
@@ -48,9 +51,27 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   const linkCode = getStartCode(text);
 
   if (!linkCode) {
+    const siteUrl = getSiteUrl(request, env);
+
     await sendTelegramMessage(env, {
       chatId,
-      text: `Ciao, questa è Survivor Arena. Per collegare il conto, apri il link dal sito e premi Avvia su @${getTelegramBotUsername(env)}.`,
+      replyMarkup: {
+        inline_keyboard: [
+          [
+            {
+              text: "Verifica telefono",
+              url: `${siteUrl}/login`,
+            },
+          ],
+          [
+            {
+              text: "Recupero password",
+              url: `${siteUrl}/forgot-password`,
+            },
+          ],
+        ],
+      },
+      text: "Ciao, questa è Survivor Arena. Cosa devi fare?\n\n- Verificare il telefono al primo login\n- Recuperare la password\n\nApri il percorso dal sito: ti riporterà qui con il link corretto.",
     });
 
     return json({ ok: true });
@@ -71,17 +92,47 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
         username: message?.from?.username,
       });
 
+      if (linkRequest.purpose === "password_reset") {
+        const user = await findUserById(env.DB, linkRequest.user_id);
+
+        if (!user) {
+          await sendTelegramMessage(env, {
+            chatId,
+            text: "Account non trovato. Torna su Survivor Arena e ripeti la richiesta.",
+          });
+
+          return json({ ok: true });
+        }
+
+        const code = await createPasswordResetCode(env.DB, toPublicUser(user));
+
+        await sendTelegramMessage(env, {
+          chatId,
+          text: `Codice recupero password Survivor Arena: ${code}\n\nInseriscilo sul sito per creare una nuova password. Il codice scade tra 10 minuti.`,
+        });
+
+        return json({
+          debugCode: env.TELEGRAM_DEBUG_CODES === "1" ? code : undefined,
+          ok: true,
+        });
+      }
+
+      const code = await createPhoneVerificationCode(env.DB, linkRequest.user_id);
+
       await sendTelegramMessage(env, {
         chatId,
-        text: "Telegram collegato correttamente al tuo account Survivor Arena.",
+        text: `Codice verifica Survivor Arena: ${code}\n\nInseriscilo nella pagina di verifica account. Il codice scade tra 15 minuti.`,
       });
 
-      return json({ ok: true });
+      return json({
+        debugOtp: env.TELEGRAM_DEBUG_CODES === "1" ? code : undefined,
+        ok: true,
+      });
     }
 
     await sendTelegramMessage(env, {
       chatId,
-      text: "Questo link non è valido o è scaduto. Torna su Survivor Arena e ripeti la registrazione.",
+      text: "Questo link non è valido o è scaduto. Torna su Survivor Arena e richiedi un nuovo codice.",
     });
 
     return json({ ok: true });

@@ -149,12 +149,25 @@ async function register(client, username, email, phone) {
   });
 
   expectStatus(response, 201, `register ${username}`);
-  assert(response.data.registrationId, "missing pending registration id", response.data);
-  assert(response.data.telegramStartUrl, "missing telegram start url", response.data);
+  assert(response.data.user?.id, "missing registered user", response.data);
 
-  const startUrl = new URL(response.data.telegramStartUrl);
+  return response.data.user;
+}
+
+async function verifyTelegram(client, label) {
+  const link = await client.request("/api/account/telegram-link", {
+    body: {
+      purpose: "verify",
+    },
+    method: "POST",
+  });
+
+  expectStatus(link, 200, `telegram link ${label}`);
+  assert(link.data.telegramStartUrl, "missing telegram start url", link.data);
+
+  const startUrl = new URL(link.data.telegramStartUrl);
   const linkCode = startUrl.searchParams.get("start");
-  assert(linkCode, "missing telegram link code", response.data);
+  assert(linkCode, "missing telegram link code", link.data);
 
   const telegram = await client.request("/api/telegram/webhook", {
     body: {
@@ -163,29 +176,26 @@ async function register(client, username, email, phone) {
           id: Number(`30${Math.floor(10000000 + Math.random() * 89999999)}`),
         },
         from: {
-          first_name: username,
+          first_name: label,
           id: Number(`40${Math.floor(10000000 + Math.random() * 89999999)}`),
-          username: username.slice(0, 24),
+          username: label.slice(0, 24),
         },
         text: `/start ${linkCode}`,
       },
     },
     method: "POST",
   });
-  expectStatus(telegram, 200, `telegram start ${username}`);
+  expectStatus(telegram, 200, `telegram start ${label}`);
   assert(telegram.data.debugOtp, "telegram debug OTP missing. Start local dev with TELEGRAM_TEST_MODE=1 and TELEGRAM_DEBUG_CODES=1.", telegram.data);
 
-  const confirmed = await client.request("/api/register-confirm", {
+  const verified = await client.request("/api/account/telegram-verify", {
     body: {
-      otpCode: telegram.data.debugOtp,
-      registrationId: response.data.registrationId,
+      code: telegram.data.debugOtp,
     },
     method: "POST",
   });
 
-  expectStatus(confirmed, 201, `confirm register ${username}`);
-
-  return confirmed.data.user;
+  expectStatus(verified, 200, `verify telegram ${label}`);
 }
 
 async function login(client, identifier, expectedRedirect = "/dashboard") {
@@ -198,6 +208,11 @@ async function login(client, identifier, expectedRedirect = "/dashboard") {
   });
 
   expectStatus(response, 200, `login ${identifier}`);
+  if (response.data.redirectTo === "/verifica-telegram" && expectedRedirect === "/dashboard") {
+    await verifyTelegram(client, String(identifier));
+    return response.data.user;
+  }
+
   assert(response.data.redirectTo === expectedRedirect, "unexpected login redirect", response.data);
 
   return response.data.user;

@@ -1,8 +1,12 @@
 /// <reference types="@cloudflare/workers-types" />
 
-import { createTelegramLinkRequest, getTelegramLinkForUser } from "../../_shared/account-flows";
+import {
+  createTelegramLinkRequest,
+  getTelegramLinkForUser,
+  type TelegramLinkPurpose,
+} from "../../_shared/account-flows";
 import { requireUser } from "../../_shared/access";
-import { json, methodNotAllowed, missingDatabase } from "../../_shared/http";
+import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../_shared/http";
 import { createTelegramStartUrl, type TelegramEnv } from "../../_shared/telegram";
 
 type Env = TelegramEnv & {
@@ -23,6 +27,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
 
   return json({
     isLinked: !!telegramLink,
+    isVerified: !!telegramLink?.phone_verified_at,
     ok: true,
   });
 };
@@ -37,10 +42,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     return auth.response;
   }
 
-  const linkCode = await createTelegramLinkRequest(env.DB, auth.user.id);
+  const body = await readJsonObject(request);
+  const requestedPurpose = String(body?.purpose ?? "verify");
+  const purpose: TelegramLinkPurpose =
+    requestedPurpose === "password_reset" ? "password_reset" : "verify";
+  const linkCode = await createTelegramLinkRequest(env.DB, auth.user.id, purpose);
 
   return json({
     ok: true,
+    purpose,
     telegramBotUsername: env.TELEGRAM_BOT_USERNAME || "survivalarena_bot",
     telegramStartUrl: createTelegramStartUrl(env, linkCode),
   });

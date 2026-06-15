@@ -1,5 +1,6 @@
 /// <reference types="@cloudflare/workers-types" />
 
+import { getTelegramLinkForUser } from "./_shared/account-flows";
 import { getSessionUser } from "./_shared/session";
 
 type Env = {
@@ -17,6 +18,7 @@ const protectedPaths = new Set([
   "/movimenti",
   "/premi-utente",
   "/profilo",
+  "/verifica-telegram",
 ]);
 
 function normalizePath(pathname: string) {
@@ -57,6 +59,18 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     session.user.role !== "admin"
   ) {
     return Response.redirect(new URL("/dashboard", url), 302);
+  }
+
+  const normalizedPath = normalizePath(url.pathname);
+  if (
+    session.user.role !== "admin" &&
+    normalizedPath !== "/verifica-telegram"
+  ) {
+    const telegramLink = await getTelegramLinkForUser(context.env.DB, session.user.id);
+
+    if (!telegramLink || !telegramLink.phone_verified_at) {
+      return Response.redirect(new URL("/verifica-telegram", url), 302);
+    }
   }
 
   return context.next();

@@ -67,6 +67,7 @@ export async function sendTelegramMessage(
   env: TelegramEnv,
   input: {
     chatId: string;
+    replyMarkup?: unknown;
     text: string;
   },
 ) {
@@ -84,6 +85,7 @@ export async function sendTelegramMessage(
       body: JSON.stringify({
         chat_id: input.chatId,
         disable_web_page_preview: true,
+        reply_markup: input.replyMarkup,
         text: input.text,
       }),
       headers: {
