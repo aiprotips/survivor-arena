@@ -74,7 +74,7 @@ export const publicPages = {
         title: "3. Vinci",
       },
     ],
-    ctaHref: "/register",
+    ctaHref: "/login",
     ctaLabel: "Entra nell'Arena",
     eyebrow: "Regole base",
     intro: "Survivor Arena è una competizione a vite: ogni scelta conta e ogni round può cambiare tutto.",
