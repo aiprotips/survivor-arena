@@ -54,9 +54,21 @@ async function runSchemaStatement(db: D1Database, sql: string) {
   try {
     await db.prepare(sql).run();
   } catch (error) {
-    const message = error instanceof Error ? error.message.toLowerCase() : "";
+    const message = [
+      error instanceof Error ? error.message : "",
+      typeof error === "object" && error && "message" in error
+        ? String(error.message)
+        : "",
+      typeof error === "object" && error && "cause" in error
+        ? String(error.cause)
+        : "",
+      String(error),
+    ].join(" ").toLowerCase();
 
-    if (message.includes("duplicate column name")) {
+    if (
+      message.includes("duplicate column") ||
+      message.includes("already exists")
+    ) {
       return;
     }
 
@@ -162,22 +174,26 @@ async function applyAccountFlowSchema(db: D1Database) {
     "CREATE INDEX IF NOT EXISTS idx_telegram_links_verified ON telegram_links (user_id, phone_verified_at)",
   );
 
-  await runSchemaStatement(
-    db,
-    `CREATE TABLE IF NOT EXISTS d1_migrations (
-      id INTEGER PRIMARY KEY,
-      name TEXT UNIQUE,
-      applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`,
-  );
-  await runSchemaStatement(
-    db,
-    "INSERT OR IGNORE INTO d1_migrations (name) VALUES ('0004_create_telegram_account_flows.sql')",
-  );
-  await runSchemaStatement(
-    db,
-    "INSERT OR IGNORE INTO d1_migrations (name) VALUES ('0005_first_login_telegram_verification.sql')",
-  );
+  try {
+    await runSchemaStatement(
+      db,
+      `CREATE TABLE IF NOT EXISTS d1_migrations (
+        id INTEGER PRIMARY KEY,
+        name TEXT UNIQUE,
+        applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`,
+    );
+    await runSchemaStatement(
+      db,
+      "INSERT OR IGNORE INTO d1_migrations (name) VALUES ('0004_create_telegram_account_flows.sql')",
+    );
+    await runSchemaStatement(
+      db,
+      "INSERT OR IGNORE INTO d1_migrations (name) VALUES ('0005_first_login_telegram_verification.sql')",
+    );
+  } catch {
+    // The user-facing flow must not fail if Cloudflare protects migration metadata.
+  }
 }
 
 export async function ensureAccountFlowSchema(db: D1Database) {
