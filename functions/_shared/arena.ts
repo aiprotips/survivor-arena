@@ -1494,6 +1494,8 @@ export async function calculateRound(
     .bind(nowIso(), round.id)
     .run();
 
+  await markEliminatedRegistrations(db, tournament.id);
+
   const survivors = await getAliveLives(db, tournament.id);
 
   if (survivors.length <= 1) {
@@ -1525,6 +1527,24 @@ async function getAliveLives(db: D1Database, tournamentId: string) {
     .all<LifeRow>();
 
   return rows.results ?? [];
+}
+
+async function markEliminatedRegistrations(db: D1Database, tournamentId: string) {
+  await db
+    .prepare(
+      `UPDATE tournament_registrations
+       SET status = 'ELIMINATED'
+       WHERE tournament_id = ?1
+         AND status = 'ACTIVE'
+         AND NOT EXISTS (
+           SELECT 1
+           FROM tournament_lives
+           WHERE tournament_lives.registration_id = tournament_registrations.id
+             AND tournament_lives.status IN ('ALIVE', 'WINNER')
+         )`,
+    )
+    .bind(tournamentId)
+    .run();
 }
 
 async function completeTournament(

@@ -269,6 +269,68 @@ async function calculateRound(admin, round, results) {
   return response.data.tournament;
 }
 
+function matchResult(match, result) {
+  return {
+    matchId: match.id,
+    result,
+  };
+}
+
+async function getSessionUser(client, label) {
+  const session = await client.request("/api/session");
+  expectStatus(session, 200, `session ${label}`);
+  return session.data.user;
+}
+
+async function getMovements(client, label) {
+  const movements = await client.request("/api/arena/movements");
+  expectStatus(movements, 200, `movements ${label}`);
+  return movements.data.movements;
+}
+
+function assertMovement(movements, type, amount, message) {
+  assert(
+    movements.some((movement) => movement.movement_type === type && movement.amount === amount),
+    message,
+    movements,
+  );
+}
+
+async function getParticipant(admin, tournamentId, username) {
+  const participants = await admin.request(`/api/admin/tournaments/${tournamentId}/participants?q=${username}`);
+  expectStatus(participants, 200, `participants ${username}`);
+  const participant = participants.data.participants.find((item) => item.username === username);
+  assert(participant, `participant ${username} missing`, participants.data);
+  return participant;
+}
+
+async function createPublishedTournament(admin, name, overrides, matches) {
+  let tournament = await createTournament(admin, name, overrides);
+  tournament = await configureRound(admin, tournament, matches);
+  tournament = await publishTournament(admin, tournament);
+  return tournament;
+}
+
+async function joinTournament(client, tournamentId, label) {
+  const joined = await client.request(`/api/arena/tournaments/${tournamentId}/join`, {
+    method: "POST",
+  });
+  expectStatus(joined, 200, `join ${label}`);
+  return joined.data.tournament;
+}
+
+async function chooseTeam(client, lifeId, matchId, selectedTeam, label) {
+  const response = await client.request(`/api/arena/lives/${lifeId}/choice`, {
+    body: {
+      matchId,
+      selectedTeam,
+    },
+    method: "POST",
+  });
+  expectStatus(response, 200, `choice ${label}`);
+  return response.data.tournament;
+}
+
 async function main() {
   console.log(`Smoke tests base URL: ${baseUrl.origin}`);
   console.log("Production DB guard: enabled");
@@ -704,6 +766,188 @@ async function main() {
       },
     ]);
     assert(zeroTournament.status === "COMPLETED", "zero-survivor tournament not completed", zeroTournament);
+  });
+
+  await step("paid multi-user tournament awards one winner, eliminates loser and saves movements", async () => {
+    const winner = new Client();
+    const loser = new Client();
+    const winnerData = await register(winner, "paidwina");
+    const loserData = await register(loser, "paidlose");
+
+    await login(winner, winnerData.username);
+    await login(loser, loserData.username);
+    setBalance(winnerData.username, 200);
+    setBalance(loserData.username, 200);
+
+    let tournament = await createPublishedTournament(
+      admin,
+      `Paid Winner Smoke ${stamp}`,
+      {
+        entryCost: 100,
+        initialLives: 1,
+        maxParticipants: 10,
+      },
+      [["Torino", "Sampdoria"]],
+    );
+
+    const winnerTournament = await joinTournament(winner, tournament.id, "paid winner");
+    const loserTournament = await joinTournament(loser, tournament.id, "paid loser");
+    const match = currentRound(winnerTournament).matches[0];
+
+    await chooseTeam(winner, winnerTournament.user_lives[0].id, match.id, "Torino", "winner home");
+    await chooseTeam(loser, loserTournament.user_lives[0].id, match.id, "Sampdoria", "loser away");
+
+    tournament = await lockTournament(admin, tournament);
+    tournament = await calculateRound(admin, currentRound(tournament), [matchResult(match, "HOME_WIN")]);
+
+    assert(tournament.status === "COMPLETED", "one-winner tournament was not completed", tournament);
+
+    const winnerSession = await getSessionUser(winner, "paid winner after prize");
+    const loserSession = await getSessionUser(loser, "paid loser after elimination");
+    assert(winnerSession.cup_balance === 260, "winner balance did not receive full prize pool", winnerSession);
+    assert(loserSession.cup_balance === 100, "loser balance should only lose entry cost", loserSession);
+
+    const winnerMovements = await getMovements(winner, "paid winner");
+    const loserMovements = await getMovements(loser, "paid loser");
+    assertMovement(winnerMovements, "ENTRY_FEE", -100, "winner entry movement missing");
+    assertMovement(winnerMovements, "PRIZE", 160, "winner prize movement missing");
+    assertMovement(loserMovements, "ENTRY_FEE", -100, "loser entry movement missing");
+    assert(
+      !loserMovements.some((movement) => movement.movement_type === "PRIZE" && movement.amount === 160),
+      "loser should not receive winner prize",
+      loserMovements,
+    );
+
+    const winnerParticipant = await getParticipant(admin, tournament.id, winnerData.username);
+    const loserParticipant = await getParticipant(admin, tournament.id, loserData.username);
+    assert(winnerParticipant.status === "WINNER", "winner registration not marked as winner", winnerParticipant);
+    assert(loserParticipant.status === "ELIMINATED", "loser registration not marked as eliminated", loserParticipant);
+    assert(Number(winnerParticipant.alive_lives) === 1, "winner alive lives mismatch", winnerParticipant);
+    assert(Number(loserParticipant.eliminated_lives) === 1, "loser eliminated lives mismatch", loserParticipant);
+  });
+
+  await step("zero-survivor paid tournament splits prize pool and saves movements", async () => {
+    const first = new Client();
+    const second = new Client();
+    const firstData = await register(first, "splitone");
+    const secondData = await register(second, "splittwo");
+
+    await login(first, firstData.username);
+    await login(second, secondData.username);
+    setBalance(firstData.username, 200);
+    setBalance(secondData.username, 200);
+
+    let tournament = await createPublishedTournament(
+      admin,
+      `Paid Split Smoke ${stamp}`,
+      {
+        entryCost: 100,
+        initialLives: 1,
+        maxParticipants: 10,
+      },
+      [["Parma", "Genoa"]],
+    );
+
+    const firstTournament = await joinTournament(first, tournament.id, "split first");
+    const secondTournament = await joinTournament(second, tournament.id, "split second");
+    const match = currentRound(firstTournament).matches[0];
+
+    await chooseTeam(first, firstTournament.user_lives[0].id, match.id, "Parma", "split first home");
+    await chooseTeam(second, secondTournament.user_lives[0].id, match.id, "Genoa", "split second away");
+
+    tournament = await lockTournament(admin, tournament);
+    tournament = await calculateRound(admin, currentRound(tournament), [matchResult(match, "DRAW")]);
+
+    assert(tournament.status === "COMPLETED", "split tournament was not completed", tournament);
+
+    const firstSession = await getSessionUser(first, "split first after prize");
+    const secondSession = await getSessionUser(second, "split second after prize");
+    assert(firstSession.cup_balance === 180, "first split balance mismatch", firstSession);
+    assert(secondSession.cup_balance === 180, "second split balance mismatch", secondSession);
+
+    const firstMovements = await getMovements(first, "split first");
+    const secondMovements = await getMovements(second, "split second");
+    assertMovement(firstMovements, "ENTRY_FEE", -100, "first split entry movement missing");
+    assertMovement(firstMovements, "PRIZE", 80, "first split prize movement missing");
+    assertMovement(secondMovements, "ENTRY_FEE", -100, "second split entry movement missing");
+    assertMovement(secondMovements, "PRIZE", 80, "second split prize movement missing");
+
+    const firstParticipant = await getParticipant(admin, tournament.id, firstData.username);
+    const secondParticipant = await getParticipant(admin, tournament.id, secondData.username);
+    assert(firstParticipant.status === "ELIMINATED", "first split registration not eliminated", firstParticipant);
+    assert(secondParticipant.status === "ELIMINATED", "second split registration not eliminated", secondParticipant);
+  });
+
+  await step("life team-cycle rules allow same team across lives and reset after all teams are used", async () => {
+    const cycleUser = new Client();
+    const cycleData = await register(cycleUser, "cycle");
+
+    await login(cycleUser, cycleData.username);
+
+    let tournament = await createPublishedTournament(
+      admin,
+      `Cycle Smoke ${stamp}`,
+      {
+        entryCost: 0,
+        initialLives: 2,
+        maxLivesPerUser: 2,
+        maxParticipants: 10,
+      },
+      [["Juventus", "Inter"]],
+    );
+
+    let userTournament = await joinTournament(cycleUser, tournament.id, "cycle user");
+    const [lifeOne, lifeTwo] = userTournament.user_lives;
+    const roundOneMatch = currentRound(userTournament).matches[0];
+
+    await chooseTeam(cycleUser, lifeOne.id, roundOneMatch.id, "Juventus", "cycle life one round one");
+    await chooseTeam(cycleUser, lifeTwo.id, roundOneMatch.id, "Juventus", "cycle life two same team");
+
+    tournament = await lockTournament(admin, tournament);
+    tournament = await calculateRound(admin, currentRound(tournament), [matchResult(roundOneMatch, "HOME_WIN")]);
+    assert(currentRound(tournament).round_number === 2, "cycle round 2 was not created", tournament);
+
+    tournament = await configureRound(admin, tournament, [["Juventus", "Milan"]]);
+    let opened = await admin.request(`/api/admin/tournaments/${tournament.id}/open-round`, {
+      method: "POST",
+    });
+    expectStatus(opened, 200, "open cycle round 2");
+    tournament = opened.data.tournament;
+    const roundTwoMatch = currentRound(tournament).matches[0];
+
+    const repeatedTeam = await cycleUser.request(`/api/arena/lives/${lifeOne.id}/choice`, {
+      body: {
+        matchId: roundTwoMatch.id,
+        selectedTeam: "Juventus",
+      },
+      method: "POST",
+    });
+    expectStatus(repeatedTeam, 409, "cycle repeated team before reset");
+
+    await chooseTeam(cycleUser, lifeOne.id, roundTwoMatch.id, "Milan", "cycle life one round two");
+    await chooseTeam(cycleUser, lifeTwo.id, roundTwoMatch.id, "Milan", "cycle life two round two");
+
+    tournament = await lockTournament(admin, tournament);
+    tournament = await calculateRound(admin, currentRound(tournament), [matchResult(roundTwoMatch, "AWAY_WIN")]);
+    assert(currentRound(tournament).round_number === 3, "cycle round 3 was not created", tournament);
+
+    tournament = await configureRound(admin, tournament, [["Juventus", "Milan"]]);
+    opened = await admin.request(`/api/admin/tournaments/${tournament.id}/open-round`, {
+      method: "POST",
+    });
+    expectStatus(opened, 200, "open cycle round 3");
+    tournament = opened.data.tournament;
+    const roundThreeMatch = currentRound(tournament).matches[0];
+
+    userTournament = await chooseTeam(
+      cycleUser,
+      lifeOne.id,
+      roundThreeMatch.id,
+      "Juventus",
+      "cycle life one after reset",
+    );
+    const updatedLifeOne = userTournament.user_lives.find((life) => life.id === lifeOne.id);
+    assert(updatedLifeOne?.current_cycle === 2, "life cycle did not reset after all teams were used", updatedLifeOne);
   });
 
   await step("pre-deadline unsubscribe refunds entry cost", async () => {
