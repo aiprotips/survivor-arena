@@ -12,7 +12,8 @@
     "db:migrate:local": "wrangler d1 migrations apply survivor-arena-db --local",
     "db:ping": "wrangler d1 execute survivor-arena-db --remote --command \"SELECT 1 AS ok;\" --json",
     "db:ping:local": "wrangler d1 execute survivor-arena-db --local --command \"SELECT 1 AS ok;\" --json",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:flows": "node scripts/arena-flow-smoke-test.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.18.0",
