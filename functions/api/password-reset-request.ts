@@ -8,6 +8,7 @@ import {
 } from "../_shared/account-flows";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../_shared/http";
 import {
+  createTelegramAppStartUrl,
   createTelegramStartUrl,
   getTelegramBotUsername,
   sendTelegramMessage,
@@ -78,6 +79,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
         message: "Telegram non è ancora collegato. Apri il bot, premi Avvia e riceverai il codice di recupero.",
         ok: true,
         requiresTelegramStart: true,
+        telegramAppStartUrl: createTelegramAppStartUrl(env, linkCode),
         telegramBotUsername: getTelegramBotUsername(env),
         telegramStartUrl: createTelegramStartUrl(env, linkCode),
       },
@@ -106,6 +108,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
         message: "Non riesco a inviare il codice nella chat esistente. Apri Telegram dal pulsante e riceverai un nuovo codice.",
         ok: true,
         requiresTelegramStart: true,
+        telegramAppStartUrl: createTelegramAppStartUrl(env, linkCode),
         telegramBotUsername: getTelegramBotUsername(env),
         telegramStartUrl: createTelegramStartUrl(env, linkCode),
       },

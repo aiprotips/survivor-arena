@@ -8,6 +8,7 @@ import {
 import { requireUser } from "../../_shared/access";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../_shared/http";
 import {
+  createTelegramAppStartUrl,
   createTelegramStartUrl,
   getTelegramBotUsername,
   type TelegramEnv,
@@ -55,6 +56,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   return json({
     ok: true,
     purpose,
+    telegramAppStartUrl: createTelegramAppStartUrl(env, linkCode),
     telegramBotUsername: getTelegramBotUsername(env),
     telegramStartUrl: createTelegramStartUrl(env, linkCode),
   });

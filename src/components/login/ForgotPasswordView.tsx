@@ -23,6 +23,7 @@ type ApiResponse =
       message?: string;
       ok: true;
       requiresTelegramStart?: boolean;
+      telegramAppStartUrl?: string;
       telegramBotUsername?: string;
       telegramStartUrl?: string;
     }
@@ -58,6 +59,7 @@ export function ForgotPasswordView() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [telegramAppStartUrl, setTelegramAppStartUrl] = useState("");
   const [telegramStartUrl, setTelegramStartUrl] = useState("");
   const [telegramBotUsername, setTelegramBotUsername] = useState("SurvivorArena_bot");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,11 +93,12 @@ export function ForgotPasswordView() {
       }
 
       if (data.requiresTelegramStart && data.telegramStartUrl) {
+        setTelegramAppStartUrl(data.telegramAppStartUrl || "");
         setTelegramStartUrl(data.telegramStartUrl);
         setTelegramBotUsername(data.telegramBotUsername || "SurvivorArena_bot");
         setStep("confirm");
         setMessage(data.message || "Apri Telegram per ricevere il codice di recupero.");
-        window.open(data.telegramStartUrl, "_blank", "noopener,noreferrer");
+        window.location.href = data.telegramAppStartUrl || data.telegramStartUrl;
         return;
       }
 
@@ -188,7 +191,7 @@ export function ForgotPasswordView() {
             <p
               className={cn(
                 "auth-form-message",
-                step === "confirm" && message.includes("inviato")
+                step === "confirm" && (message.includes("inviato") || Boolean(telegramStartUrl))
                   ? "auth-form-message-success"
                   : "auth-form-message-error",
               )}
@@ -241,17 +244,24 @@ export function ForgotPasswordView() {
                 <div className="auth-telegram-panel">
                   <h3>Apri Telegram</h3>
                   <p>
-                    Premi Avvia sul bot. Se la chat non si apre automaticamente,
-                    usa il pulsante qui sotto.
+                    Il browser resta qui con il campo codice. Se Telegram non si apre
+                    automaticamente, usa il pulsante qui sotto.
                   </p>
+                  <a
+                    className="ui-button ui-button-primary auth-telegram-button w-full sm:w-auto"
+                    href={telegramAppStartUrl || telegramStartUrl}
+                  >
+                    <TelegramIcon className="auth-telegram-button-icon" />
+                    Apri app Telegram
+                  </a>
                   <ButtonLink
-                    className="auth-telegram-button"
+                    className="auth-inline-link"
                     href={telegramStartUrl}
                     rel="noreferrer"
                     target="_blank"
+                    variant="secondary"
                   >
-                    <TelegramIcon className="auth-telegram-button-icon" />
-                    Apri @{telegramBotUsername}
+                    Apri via web @{telegramBotUsername}
                   </ButtonLink>
                 </div>
               ) : null}

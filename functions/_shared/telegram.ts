@@ -44,6 +44,15 @@ export function createTelegramStartUrl(env: TelegramEnv, linkCode: string) {
   return `https://t.me/${getTelegramBotUsername(env)}?start=${encodeURIComponent(linkCode)}`;
 }
 
+export function createTelegramAppStartUrl(env: TelegramEnv, linkCode: string) {
+  const params = new URLSearchParams({
+    domain: getTelegramBotUsername(env),
+    start: linkCode,
+  });
+
+  return `tg://resolve?${params.toString()}`;
+}
+
 export function createOtpCode() {
   const bytes = crypto.getRandomValues(new Uint8Array(4));
   const value = new DataView(bytes.buffer).getUint32(0);

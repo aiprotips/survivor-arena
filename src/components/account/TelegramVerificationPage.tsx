@@ -25,6 +25,7 @@ type TelegramStatusResponse =
 type TelegramLinkResponse =
   | {
       ok: true;
+      telegramAppStartUrl?: string;
       telegramBotUsername: string;
       telegramStartUrl: string;
     }
@@ -47,6 +48,7 @@ export function TelegramVerificationPage() {
   const router = useRouter();
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
+  const [appStartUrl, setAppStartUrl] = useState("");
   const [startUrl, setStartUrl] = useState("");
   const [botUsername, setBotUsername] = useState("SurvivorArena_bot");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,10 +113,11 @@ export function TelegramVerificationPage() {
         return;
       }
 
-      setStartUrl(data.telegramStartUrl);
+      setAppStartUrl(data.telegramAppStartUrl || "");
       setBotUsername(data.telegramBotUsername);
+      setStartUrl(data.telegramStartUrl);
       setMessage("Apri Telegram, premi Avvia e inserisci qui il codice OTP ricevuto.");
-      window.open(data.telegramStartUrl, "_blank", "noopener,noreferrer");
+      window.location.href = data.telegramAppStartUrl || data.telegramStartUrl;
     } catch {
       setMessage("Non riesco ad aprire Telegram. Riprova tra poco.");
     } finally {
@@ -216,6 +219,14 @@ export function TelegramVerificationPage() {
               {isSubmitting ? "APERTURA..." : "RICHIEDI CODICE OTP"}
             </Button>
             {startUrl ? (
+              <a
+                className="ui-button ui-button-secondary auth-inline-link w-full sm:w-auto"
+                href={appStartUrl || startUrl}
+              >
+                Apri app Telegram
+              </a>
+            ) : null}
+            {startUrl ? (
               <ButtonLink
                 className="auth-inline-link"
                 href={startUrl}
@@ -223,7 +234,7 @@ export function TelegramVerificationPage() {
                 target="_blank"
                 variant="secondary"
               >
-                Apri @{botUsername}
+                Apri via web @{botUsername}
               </ButtonLink>
             ) : null}
           </div>

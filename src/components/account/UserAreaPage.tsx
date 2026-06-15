@@ -689,10 +689,12 @@ function ImpostazioniPage() {
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [telegramState, setTelegramState] = useState<{
+    appStartUrl: string;
     botUsername: string;
     isLinked: boolean;
     startUrl: string;
   }>({
+    appStartUrl: "",
     botUsername: "SurvivorArena_bot",
     isLinked: false,
     startUrl: "",
@@ -759,6 +761,7 @@ function ImpostazioniPage() {
       const data = (await response.json()) as
         | {
             ok: true;
+            telegramAppStartUrl?: string;
             telegramBotUsername: string;
             telegramStartUrl: string;
           }
@@ -773,11 +776,13 @@ function ImpostazioniPage() {
       }
 
       setTelegramState({
+        appStartUrl: data.telegramAppStartUrl || "",
         botUsername: data.telegramBotUsername,
         isLinked: false,
         startUrl: data.telegramStartUrl,
       });
       setTelegramMessage("Apri il bot e premi Avvia per completare il collegamento.");
+      window.location.href = data.telegramAppStartUrl || data.telegramStartUrl;
     } catch {
       setTelegramMessage("Collegamento Telegram non disponibile. Riprova tra poco.");
     }
@@ -874,8 +879,16 @@ function ImpostazioniPage() {
             {telegramState.isLinked ? "Rigenera collegamento" : "Collega Telegram"}
           </Button>
           {telegramState.startUrl ? (
+            <a
+              className="ui-button ui-button-primary w-full sm:w-auto"
+              href={telegramState.appStartUrl || telegramState.startUrl}
+            >
+              Apri app Telegram
+            </a>
+          ) : null}
+          {telegramState.startUrl ? (
             <ButtonLink href={telegramState.startUrl} rel="noreferrer" target="_blank">
-              Apri @{telegramState.botUsername}
+              Apri via web @{telegramState.botUsername}
             </ButtonLink>
           ) : null}
         </div>

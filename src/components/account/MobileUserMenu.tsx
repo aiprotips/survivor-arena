@@ -80,9 +80,7 @@ export function MobileUserMenu({
           <a
             aria-label="Apri il bot Telegram Survivor Arena"
             className="user-mobile-telegram-link"
-            href="https://t.me/SurvivorArena_bot"
-            rel="noreferrer"
-            target="_blank"
+            href="tg://resolve?domain=SurvivorArena_bot"
           >
             <TelegramIcon className="user-telegram-icon" />
           </a>
