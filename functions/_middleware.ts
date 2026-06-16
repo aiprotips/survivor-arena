@@ -11,8 +11,6 @@ const protectedPaths = new Set([
   "/admin",
   "/area-personale",
   "/arena",
-  "/arene",
-  "/classifiche",
   "/dashboard",
   "/impostazioni",
   "/movimenti",
