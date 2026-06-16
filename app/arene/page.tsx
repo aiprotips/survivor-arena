@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { UserAreaPage } from "@/components/account/UserAreaPage";
+import { PublicAwareUserPage } from "@/components/public/PublicAwareUserPage";
 
 export const metadata: Metadata = {
   title: "Arene | Survivor Arena",
-  description: "Arene utente di Survivor Arena.",
+  description: "Anteprima delle Arene di Survivor Arena.",
 };
 
 export default function ArenePage() {
-  return <UserAreaPage page="arene" />;
+  return <PublicAwareUserPage page="arene" />;
 }

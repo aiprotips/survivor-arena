@@ -18,10 +18,10 @@ import { cn } from "@/lib/cn";
 const contactEmailHref = "mailto:assistenza.arenasurvivor@gmail.com";
 
 const navItems = [
+  ["Home", "/"],
   ["Arene", "/arene"],
   ["Classifiche", "/classifiche"],
   ["Come Funziona", "/come-funziona"],
-  ["Premi", "/premi"],
   ["FAQ", "/faq"],
 ] as const;
 
@@ -135,9 +135,11 @@ export function SiteHeader() {
             id="mobile-navigation"
             role="dialog"
           >
-            <div className="site-mobile-overlay-shell">
+              <div className="site-mobile-overlay-shell">
               <div className="site-mobile-overlay-top">
-                <BrandLogo />
+                <Link className="site-mobile-brand" href="/" onClick={closeMenu}>
+                  <BrandLogo />
+                </Link>
                 <button
                   aria-label="Chiudi menu"
                   className="site-menu-button site-menu-button-open site-menu-close-button"

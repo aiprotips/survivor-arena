@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { UserAreaPage } from "@/components/account/UserAreaPage";
+import { PublicAwareUserPage } from "@/components/public/PublicAwareUserPage";
 
 export const metadata: Metadata = {
   title: "Classifiche | Survivor Arena",
-  description: "Classifiche utente di Survivor Arena.",
+  description: "Anteprima classifiche di Survivor Arena.",
 };
 
 export default function ClassifichePage() {
-  return <UserAreaPage page="classifiche" />;
+  return <PublicAwareUserPage page="classifiche" />;
 }

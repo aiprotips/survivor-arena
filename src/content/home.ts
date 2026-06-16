@@ -29,19 +29,22 @@ export const homeStats = [
 export const tournaments = [
   {
     title: "Arena Champions",
-    cups: "25.000 Coppe",
-    status: "In corso",
+    highlight: "Facsimile torneo",
+    highlightLabel: "Anteprima",
+    status: "Demo",
     image: "/assets/gold-trophy-arena.jpg",
   },
   {
     title: "Survivor Cup",
-    cups: "15.000 Coppe",
+    highlight: "Apertura demo",
+    highlightLabel: "Anteprima",
     status: "In arrivo",
     image: "/assets/gold-trophy-arena.jpg",
   },
   {
     title: "Legends Arena",
-    cups: "10.000 Coppe",
+    highlight: "Invito demo",
+    highlightLabel: "Anteprima",
     status: "In arrivo",
     image: "/assets/gold-trophy-arena.jpg",
   },

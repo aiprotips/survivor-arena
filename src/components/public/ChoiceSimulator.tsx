@@ -151,31 +151,9 @@ function ChoiceButton({
       onClick={onClick}
       type="button"
     >
-      <TeamCrest team={team} />
       <strong>{teamData.label}</strong>
       <em>{isSelected ? "Scelta" : "Scegli"}</em>
     </button>
-  );
-}
-
-function TeamCrest({ team }: { team: TeamChoice }) {
-  if (team === "juve") {
-    return (
-      <span className="choice-team-crest choice-team-crest-juve" aria-hidden="true">
-        <span className="choice-juve-shield">
-          <span />
-          <strong>J</strong>
-        </span>
-      </span>
-    );
-  }
-
-  return (
-    <span className="choice-team-crest choice-team-crest-inter" aria-hidden="true">
-      <span className="choice-inter-badge">
-        <strong>IM</strong>
-      </span>
-    </span>
   );
 }
 

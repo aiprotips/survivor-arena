@@ -3,18 +3,20 @@ import { cn } from "@/lib/cn";
 
 type TournamentCardProps = {
   title: string;
-  cups: string;
+  highlight: string;
+  highlightLabel: string;
   status: string;
   image: string;
 };
 
 export function TournamentCard({
   title,
-  cups,
+  highlight,
+  highlightLabel,
   status,
   image,
 }: TournamentCardProps) {
-  const isLive = status.toLowerCase() === "in corso";
+  const isLive = status.toLowerCase() === "demo";
 
   return (
     <article className="tournament-card">
@@ -34,8 +36,8 @@ export function TournamentCard({
       </span>
       <div className="tournament-copy">
         <h3 className="tournament-card-title">{title}</h3>
-        <p className="tournament-card-label">Montepremi</p>
-        <p className="tournament-card-value">{cups}</p>
+        <p className="tournament-card-label">{highlightLabel}</p>
+        <p className="tournament-card-value">{highlight}</p>
       </div>
     </article>
   );

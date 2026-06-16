@@ -52,6 +52,10 @@ export function StatsSection() {
   return (
     <section className="arena-shell stats-shell">
       <Card className="stats-strip">
+        <div className="stats-strip-heading">
+          <span>Dati dimostrativi</span>
+          <p>Numeri di esempio per mostrare il formato delle Arene ufficiali.</p>
+        </div>
         {homeStats.map((stat) => (
           <div className="stat-item" key={stat.label}>
             <span className="stat-icon">

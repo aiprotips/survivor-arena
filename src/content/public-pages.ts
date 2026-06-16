@@ -1,4 +1,15 @@
-import { CircleHelp, Cookie, Crown, FileText, ShieldCheck, Swords, Trophy } from "lucide-react";
+import {
+  CircleHelp,
+  Cookie,
+  Crown,
+  FileText,
+  KeyRound,
+  MessageCircle,
+  ShieldCheck,
+  Swords,
+  Trophy,
+  UserPlus,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type PublicInfoPageContent = {
@@ -35,25 +46,50 @@ export const publicPages = {
   faq: {
     cards: [
       {
-        icon: CircleHelp,
-        text: "Scegli una squadra per ogni vita. Se la squadra vince, quella vita resta in gioco.",
+        icon: ShieldCheck,
+        text: "Ogni round fai una scelta per ogni vita. Se la scelta supera il round, quella vita resta in gioco.",
         title: "Come si sopravvive?",
       },
       {
         icon: Trophy,
-        text: "Le Coppe sono il credito interno usato per iscrizioni, vite extra e premi futuri.",
-        title: "Cosa sono le Coppe?",
+        text: "Sono il saldo interno dell'account e servono per partecipare alle dinamiche delle Arene quando saranno attive.",
+        title: "A cosa servono le Coppe?",
       },
       {
-        icon: ShieldCheck,
-        text: "Il recupero password e la verifica account passano dal bot Telegram ufficiale.",
-        title: "Perché Telegram?",
+        icon: Swords,
+        text: "Ogni torneo è diviso in round. Resti dentro finché almeno una tua vita sopravvive.",
+        title: "Come funzionano i tornei?",
+      },
+      {
+        icon: MessageCircle,
+        text: "Il bot ufficiale serve per verifica account e recupero password, così ricevi codici rapidi senza SMS a pagamento.",
+        title: "A cosa serve Telegram?",
+      },
+      {
+        icon: KeyRound,
+        text: "Vai su Recupera Password, inserisci username e numero associato. Se tutto combacia, ricevi il codice tramite bot.",
+        title: "Non riesco ad accedere: cosa faccio?",
+      },
+      {
+        icon: UserPlus,
+        text: "Bastano username, email, numero di telefono e una password sicura. La verifica Telegram arriverà al primo accesso.",
+        title: "Cosa serve per creare un account?",
+      },
+      {
+        icon: CircleHelp,
+        text: "Sì, finché la deadline del round non è scaduta. Dopo il blocco, le scelte restano congelate.",
+        title: "Posso cambiare scelta?",
+      },
+      {
+        icon: FileText,
+        text: "Dopo la chiusura delle scelte, la consultazione pubblica aiuta a rendere il round trasparente.",
+        title: "Quando vedo le scelte degli altri?",
       },
     ],
     ctaHref: "/login",
-    ctaLabel: "Crea account",
+    ctaLabel: "Entra nell'Arena",
     eyebrow: "Supporto",
-    intro: "Le risposte essenziali per iniziare a capire Survivor Arena.",
+    intro: "Le risposte essenziali per capire il gioco prima di entrare nell'Arena.",
     title: "FAQ",
   },
   howItWorks: {
@@ -84,24 +120,19 @@ export const publicPages = {
     cards: [
       {
         icon: Trophy,
-        text: "Ogni torneo genera un montepremi in Coppe, mai in denaro.",
-        title: "Montepremi Coppe",
-      },
-      {
-        icon: Crown,
-        text: "I vincitori ricevono Coppe e riconoscimenti che saranno visibili nell'area personale.",
-        title: "Prestigio",
+        text: "Questa sezione verrà definita con le regole ufficiali prima dell'apertura completa della piattaforma.",
+        title: "Ricompense in definizione",
       },
       {
         icon: ShieldCheck,
-        text: "Il catalogo premi verrà attivato in una fase successiva, sempre dentro l'ecosistema Coppe.",
-        title: "Premi futuri",
+        text: "Le informazioni pubbliche saranno aggiornate solo quando il sistema sarà pronto e verificato.",
+        title: "Regole chiare",
       },
     ],
-    ctaHref: "/register",
-    ctaLabel: "Registrati",
-    eyebrow: "Ricompense",
-    intro: "In Survivor Arena non si parla di soldi: tutto gira intorno alle Coppe.",
+    ctaHref: "/login",
+    ctaLabel: "Entra nell'Arena",
+    eyebrow: "Sezione riservata",
+    intro: "Le ricompense ufficiali saranno comunicate quando le Arene reali saranno aperte.",
     title: "Premi",
   },
   privacy: {
