@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  CheckCircle2,
   Clock3,
   Crown,
   Heart,
@@ -12,45 +11,43 @@ import {
   Users,
 } from "lucide-react";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { ChoiceSimulator } from "@/components/public/ChoiceSimulator";
 import { ButtonLink } from "@/components/ui/Button";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
 
 const steps = [
   {
-    copy: "Scegli un'Arena, usi le Coppe e ricevi le vite incluse per iniziare la sfida.",
+    copy: "Entri in una competizione, ricevi le vite previste e ti prepari al primo round.",
     icon: Trophy,
-    title: "Entra",
-    visual: "entry",
+    title: "Entra nell'Arena",
   },
   {
-    copy: "Per ogni vita selezioni una squadra disponibile prima della deadline.",
+    copy: "Ogni vita richiede una scelta. Una squadra, una deadline, zero ripensamenti dopo il blocco.",
     icon: Swords,
-    title: "Scegli",
-    visual: "choice",
+    title: "Fai la scelta",
   },
   {
-    copy: "Se la tua scelta vince, quella vita continua. Se sbagli, viene eliminata.",
+    copy: "Chi supera il round resta in corsa. Chi sbaglia perde una vita e sente il peso dell'Arena.",
     icon: ShieldCheck,
     title: "Sopravvivi",
-    visual: "survive",
   },
 ] as const;
 
 const highlights = [
   {
     icon: Heart,
-    text: "Ogni vita ha uno storico indipendente: una scelta sbagliata elimina solo quella vita.",
+    text: "Ogni vita ha il suo percorso. Puoi rischiare in modo diverso, vita dopo vita.",
     title: "Vite indipendenti",
   },
   {
     icon: LockKeyhole,
-    text: "Dopo la deadline le scelte si bloccano e diventano consultabili per trasparenza.",
-    title: "Deadline chiare",
+    text: "Quando il tempo finisce, l'Arena chiude. Da lì in poi conta solo il risultato.",
+    title: "Deadline che pesa",
   },
   {
     icon: Crown,
-    text: "Round dopo round resta in gioco chi ha scelto meglio. Alla fine vince l'ultimo sopravvissuto.",
-    title: "Finale competitivo",
+    text: "Niente spiegoni infiniti: solo pressione, prestigio e la voglia di restare l'ultimo in piedi.",
+    title: "Gloria eterna",
   },
 ] as const;
 
@@ -61,50 +58,25 @@ export function HowItWorksPage() {
       <main className="how-page">
         <section className="arena-shell how-hero" aria-labelledby="how-title">
           <div className="how-hero-copy">
-            <p className="user-page-kicker">Come funziona</p>
-            <h1 id="how-title">
-              Una scelta.
-              <span>Una vita.</span>
-              <strong>Un solo vincitore.</strong>
+            <p className="user-page-kicker">Survivor Arena in 60 secondi</p>
+            <h1 aria-label="Scegli. Resisti. Entra nella leggenda." id="how-title">
+              Scegli.
+              <span>Resisti.</span>
+              <strong>Entra nella leggenda.</strong>
             </h1>
             <p>
-              Survivor Arena è semplice da capire e difficile da dominare:
-              entri in un&apos;Arena, fai le tue scelte e provi a restare in gioco
-              più a lungo di tutti.
+              Ogni round ti mette davanti a una scelta secca. Una vita, una squadra,
+              una deadline. Sembra facile, finché l&apos;Arena non inizia a eliminare.
             </p>
             <div className="how-hero-actions">
               <ButtonLink href="/login">Entra nell&apos;Arena</ButtonLink>
-              <ButtonLink href="#passaggi" variant="secondary">
-                Guarda i passaggi
+              <ButtonLink href="#simulazione" variant="secondary">
+                Prova una scelta
               </ButtonLink>
             </div>
           </div>
 
-          <div className="how-arena-visual" aria-hidden="true">
-            <div className="how-arena-lights" />
-            <div className="how-trophy-mark">
-              <Crown />
-              <Trophy />
-            </div>
-            <div className="how-choice-board">
-              <div className="how-choice-topline">
-                <span>Round 1</span>
-                <span>02:14:32</span>
-              </div>
-              <div className="how-life-row">
-                <span><Heart /> Vita 1</span>
-                <strong>Inter</strong>
-              </div>
-              <div className="how-life-row how-life-row-active">
-                <span><Heart /> Vita 2</span>
-                <strong>Napoli</strong>
-              </div>
-              <div className="how-life-row">
-                <span><Heart /> Vita 3</span>
-                <strong>Da scegliere</strong>
-              </div>
-            </div>
-          </div>
+          <ChoiceSimulator />
         </section>
 
         <section className="arena-shell how-quick-strip" aria-label="Punti chiave">
@@ -120,15 +92,15 @@ export function HowItWorksPage() {
           </article>
           <article>
             <Sparkles aria-hidden="true" />
-            <span>In palio</span>
-            <strong>solo Coppe</strong>
+            <span>Obiettivo</span>
+            <strong>gloria eterna</strong>
           </article>
         </section>
 
-        <section className="arena-shell how-section" id="passaggi">
+        <section className="arena-shell how-section" id="simulazione">
           <div className="how-section-heading">
-            <p className="user-page-kicker">Il gioco in 30 secondi</p>
-            <h2>Tre mosse, poi parla l&apos;Arena.</h2>
+            <p className="user-page-kicker">La magia è tutta qui</p>
+            <h2>Capisci il gioco mentre scegli.</h2>
             <PremiumDivider />
           </div>
 
@@ -144,7 +116,7 @@ export function HowItWorksPage() {
                       <Icon aria-hidden="true" />
                     </span>
                   </div>
-                  <HowStepVisual type={step.visual} />
+                  <HowStepIllustration index={index} />
                   <h3>{step.title}</h3>
                   <p>{step.copy}</p>
                 </article>
@@ -156,11 +128,11 @@ export function HowItWorksPage() {
         <section className="arena-shell how-demo-section" aria-labelledby="demo-title">
           <div className="how-demo-card">
             <div className="how-demo-copy">
-              <p className="user-page-kicker">Esempio rapido</p>
-              <h2 id="demo-title">Guardi il round e capisci subito dove sei.</h2>
+              <p className="user-page-kicker">Il momento della verità</p>
+              <h2 id="demo-title">Quando il round si chiude, l&apos;Arena decide.</h2>
               <p>
-                Ogni vita mostra la squadra scelta e il risultato. Niente caos,
-                solo quello che conta: chi resta dentro e chi esce.
+                Le scelte vengono bloccate, il risultato arriva, e ogni vita prende
+                la sua strada: sopravvive o sparisce dalla corsa.
               </p>
             </div>
 
@@ -169,9 +141,9 @@ export function HowItWorksPage() {
                 <span>Round 1</span>
                 <strong>Scelte chiuse</strong>
               </div>
-              <RoundRow label="Vita 1" result="Sopravvissuta" team="Juventus" tone="success" />
+              <RoundRow label="Vita 1" result="Sopravvive" team="Juve" tone="success" />
               <RoundRow label="Vita 2" result="Eliminata" team="Inter" tone="danger" />
-              <RoundRow label="Vita 3" result="Sopravvissuta" team="Napoli" tone="success" />
+              <RoundRow label="Vita 3" result="In attesa" team="Da giocare" tone="neutral" />
             </div>
           </div>
         </section>
@@ -201,9 +173,9 @@ export function HowItWorksPage() {
 
         <section className="arena-shell how-final-cta" aria-label="Entra nell'Arena">
           <div>
-            <p className="user-page-kicker">Pronto a provarci?</p>
-            <h2>Entra, scegli, sopravvivi.</h2>
-            <p>La prossima Arena può essere quella giusta per iniziare la scalata.</p>
+            <p className="user-page-kicker">La scelta è tua</p>
+            <h2>Non devi leggere un manuale. Devi solo avere coraggio.</h2>
+            <p>Entra nell&apos;Arena, fai la tua prima scelta e prova a restare in piedi più degli altri.</p>
           </div>
           <ButtonLink href="/login">
             Entra nell&apos;Arena
@@ -215,27 +187,28 @@ export function HowItWorksPage() {
   );
 }
 
-function HowStepVisual({ type }: { type: (typeof steps)[number]["visual"] }) {
-  if (type === "entry") {
+function HowStepIllustration({ index }: { index: number }) {
+  if (index === 0) {
     return (
       <div className="how-step-visual how-entry-visual" aria-hidden="true">
-        <div>
+        <span className="how-mini-arena-ring" />
+        <div className="how-mini-trophy">
+          <Crown />
           <Trophy />
-          <span>Arena Champions</span>
         </div>
-        <strong>100 Coppe</strong>
-        <p>3 vite incluse</p>
+        <p>Ingresso Arena</p>
       </div>
     );
   }
 
-  if (type === "choice") {
+  if (index === 1) {
     return (
       <div className="how-step-visual how-choice-visual" aria-hidden="true">
         <span>Vita 1</span>
-        <div>
-          <span>JUV</span>
-          <span className="is-selected">NAP</span>
+        <div className="how-mini-match">
+          <strong>Juve</strong>
+          <em>VS</em>
+          <strong>Inter</strong>
         </div>
       </div>
     );
@@ -243,8 +216,8 @@ function HowStepVisual({ type }: { type: (typeof steps)[number]["visual"] }) {
 
   return (
     <div className="how-step-visual how-survive-visual" aria-hidden="true">
-      <span><CheckCircle2 /> Sopravvissuta</span>
-      <span><Heart /> Vita attiva</span>
+      <span><Heart /> Vita salva</span>
+      <span><Crown /> Sei ancora dentro</span>
     </div>
   );
 }
@@ -258,7 +231,7 @@ function RoundRow({
   label: string;
   result: string;
   team: string;
-  tone: "danger" | "success";
+  tone: "danger" | "neutral" | "success";
 }) {
   return (
     <article className="how-round-row">
