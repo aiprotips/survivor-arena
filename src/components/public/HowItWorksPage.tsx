@@ -174,8 +174,8 @@ export function HowItWorksPage() {
         <section className="arena-shell how-final-cta" aria-label="Entra nell'Arena">
           <div>
             <p className="user-page-kicker">La scelta è tua</p>
-            <h2>Non devi leggere un manuale. Devi solo avere coraggio.</h2>
-            <p>Entra nell&apos;Arena, fai la tua prima scelta e prova a restare in piedi più degli altri.</p>
+            <h2>Le leggende non restano sugli spalti. Entrano nell&apos;Arena.</h2>
+            <p>Fai la tua scelta, difendi le tue vite e prova a lasciare il tuo nome tra gli ultimi sopravvissuti.</p>
           </div>
           <ButtonLink href="/login">
             Entra nell&apos;Arena
