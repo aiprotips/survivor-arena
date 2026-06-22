@@ -2285,7 +2285,7 @@ export async function listUserMovements(db: D1Database, userId: string) {
        FROM wallet_movements
        WHERE user_id = ?1
        ORDER BY created_at DESC
-       LIMIT 50`,
+       LIMIT 500`,
     )
     .bind(userId)
     .all<{

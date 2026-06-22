@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   Ban,
@@ -973,6 +973,21 @@ function formatDateOnly(value: string | null) {
   }).format(date);
 }
 
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function shiftDateInputValue(value: string, days: number) {
+  const source = value ? new Date(`${value}T12:00:00`) : new Date();
+  source.setDate(source.getDate() + days);
+
+  return toDateInputValue(source);
+}
+
 function getUserStatusLabel(status: AdminDashboardUser["status"]) {
   return status === "blocked" ? "Bloccato" : "Attivo";
 }
@@ -1059,20 +1074,47 @@ function AdminUsersDashboard({
     amount: "",
     reason: "",
   });
+  const [walletOperation, setWalletOperation] = useState<"deposit" | "withdraw">("deposit");
   const [blockReason, setBlockReason] = useState("");
   const [isWorking, setIsWorking] = useState(false);
+  const [activeModal, setActiveModal] = useState<"movements" | "profile" | "wallet" | null>(null);
+  const [activeUserId, setActiveUserId] = useState("");
+  const [movementDateFrom, setMovementDateFrom] = useState("");
+  const [movementDateTo, setMovementDateTo] = useState("");
+  const [movementPage, setMovementPage] = useState(1);
   const activeUsers = users.filter((adminUser) => adminUser.status === "active").length;
   const blockedUsers = users.filter((adminUser) => adminUser.status === "blocked").length;
   const totalCups = users.reduce((sum, adminUser) => sum + (adminUser.cup_balance ?? 0), 0);
+  const activeUser = (activeUserId ? users.find((adminUser) => adminUser.id === activeUserId) : null) ?? selectedUser;
+  const activeBalance = activeUser
+    ? activeUser.id === selectedUser?.id
+      ? selectedBalance ?? activeUser.cup_balance ?? 0
+      : activeUser.cup_balance ?? 0
+    : 0;
+  const activeMovements = activeUser?.id === selectedUser?.id ? movements : [];
+  const movementPageSize = 10;
+  const filteredMovements = activeMovements.filter((movement) => {
+    const movementTime = new Date(movement.created_at).getTime();
+    const fromTime = movementDateFrom ? new Date(`${movementDateFrom}T00:00:00`).getTime() : -Infinity;
+    const toTime = movementDateTo ? new Date(`${movementDateTo}T23:59:59`).getTime() : Infinity;
+
+    return movementTime >= fromTime && movementTime <= toTime;
+  });
+  const movementPages = Math.max(1, Math.ceil(filteredMovements.length / movementPageSize));
+  const currentMovementPage = Math.min(movementPage, movementPages);
+  const paginatedMovements = filteredMovements.slice(
+    (currentMovementPage - 1) * movementPageSize,
+    currentMovementPage * movementPageSize,
+  );
 
   async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedUser) {
+    if (!activeUser) {
       return;
     }
 
     setIsWorking(true);
-    const ok = await onChangePassword(selectedUser.id, passwordForm.password, passwordForm.confirmPassword);
+    const ok = await onChangePassword(activeUser.id, passwordForm.password, passwordForm.confirmPassword);
     if (ok) {
       setPasswordForm({
         confirmPassword: "",
@@ -1084,33 +1126,67 @@ function AdminUsersDashboard({
 
   async function handleWalletSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedUser) {
+    if (!activeUser) {
       return;
     }
 
+    const absoluteAmount = Math.abs(Number(walletForm.amount));
+    if (!Number.isFinite(absoluteAmount) || absoluteAmount <= 0) {
+      return;
+    }
+
+    const signedAmount = walletOperation === "withdraw" ? -absoluteAmount : absoluteAmount;
     setIsWorking(true);
-    const ok = await onAdjustWallet(selectedUser.id, Number(walletForm.amount), walletForm.reason);
+    const ok = await onAdjustWallet(activeUser.id, signedAmount, walletForm.reason);
     if (ok) {
       setWalletForm({
         amount: "",
         reason: "",
       });
+      setWalletOperation("deposit");
+      setActiveModal(null);
     }
     setIsWorking(false);
   }
 
   async function handleStatusToggle() {
-    if (!selectedUser) {
+    if (!activeUser) {
       return;
     }
 
-    const nextStatus = selectedUser.status === "blocked" ? "active" : "blocked";
+    const nextStatus = activeUser.status === "blocked" ? "active" : "blocked";
     setIsWorking(true);
-    const ok = await onToggleStatus(selectedUser.id, nextStatus, blockReason);
+    const ok = await onToggleStatus(activeUser.id, nextStatus, blockReason);
     if (ok) {
       setBlockReason("");
     }
     setIsWorking(false);
+  }
+
+  function openUserModal(user: AdminDashboardUser, modal: "movements" | "profile" | "wallet") {
+    setActiveUserId(user.id);
+    setActiveModal(modal);
+    onSelect(user);
+
+    if (modal === "movements") {
+      setMovementDateFrom("");
+      setMovementDateTo("");
+      setMovementPage(1);
+    }
+
+    if (modal === "wallet") {
+      setWalletOperation("deposit");
+      setWalletForm({
+        amount: "",
+        reason: "",
+      });
+    }
+  }
+
+  function shiftMovementDates(days: number) {
+    setMovementDateFrom((current) => shiftDateInputValue(current || movementDateTo, days));
+    setMovementDateTo((current) => shiftDateInputValue(current || movementDateFrom, days));
+    setMovementPage(1);
   }
 
   return (
@@ -1177,7 +1253,7 @@ function AdminUsersDashboard({
                       )}
                       key={adminUser.id}
                     >
-                      <button className="admin-user-row-main" onClick={() => onSelect(adminUser)} type="button">
+                      <button className="admin-user-row-main" onClick={() => openUserModal(adminUser, "profile")} type="button">
                         <span className="admin-user-cell admin-user-identity">
                           <span
                             className={cn("admin-user-presence", isBlocked && "admin-user-presence-danger")}
@@ -1209,13 +1285,22 @@ function AdminUsersDashboard({
                           {formatDateOnly(adminUser.created_at)}
                         </span>
                       </button>
-                      <button
-                        className="admin-user-movement-button"
-                        onClick={() => onSelect(adminUser)}
-                        type="button"
-                      >
-                        Movimenti
-                      </button>
+                      <span className="admin-user-row-actions">
+                        <button
+                          className="admin-user-action-button"
+                          onClick={() => openUserModal(adminUser, "movements")}
+                          type="button"
+                        >
+                          Movimenti
+                        </button>
+                        <button
+                          className="admin-user-action-button admin-user-action-button-secondary"
+                          onClick={() => openUserModal(adminUser, "wallet")}
+                          type="button"
+                        >
+                          Giroconto
+                        </button>
+                      </span>
                     </article>
                   );
                 })}
@@ -1366,6 +1451,272 @@ function AdminUsersDashboard({
           </div>
         </div>
       </Card>
+
+      {activeModal === "profile" && activeUser ? (
+        <AdminModal onClose={() => setActiveModal(null)} title={activeUser.username} kicker="Scheda utente">
+          <div className="admin-user-profile-card">
+            <div>
+              <p className="user-page-kicker">Utente selezionato</p>
+              <h3>{activeUser.username}</h3>
+              <span>{activeUser.user_code}</span>
+            </div>
+            <span className={cn("admin-status-pill", activeUser.status === "blocked" && "admin-status-pill-danger")}>
+              {getUserStatusLabel(activeUser.status)}
+            </span>
+          </div>
+
+          <div className="admin-user-data-grid">
+            <AdminDataItem label="Email" value={activeUser.email} />
+            <AdminDataItem label="Telefono" value={activeUser.phone} />
+            <AdminDataItem
+              label="Verifica telefono"
+              value={activeUser.phone_verified_at ? "Verificato" : "Non verificato"}
+            />
+            <AdminDataItem
+              label="Telegram"
+              value={activeUser.telegram_username ? `@${activeUser.telegram_username}` : "Non collegato"}
+            />
+            <AdminDataItem label="Ruolo" value={activeUser.role} />
+            <AdminDataItem label="Saldo" value={formatCups(activeBalance)} />
+            <AdminDataItem label="Creato" value={formatDateTime(activeUser.created_at)} />
+            <AdminDataItem label="Ultimo login" value={formatDateTime(activeUser.last_login_at)} />
+          </div>
+
+          <div className="admin-user-tools-grid">
+            <form className="admin-tool-card" onSubmit={handlePasswordSubmit}>
+              <div className="admin-tool-heading">
+                <KeyRound aria-hidden="true" className="admin-metric-icon" />
+                <strong>Cambia password</strong>
+              </div>
+              <input
+                className="ui-input"
+                onChange={(event) => setPasswordForm((current) => ({ ...current, password: event.target.value }))}
+                placeholder="Nuova password"
+                type="password"
+                value={passwordForm.password}
+              />
+              <input
+                className="ui-input"
+                onChange={(event) =>
+                  setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))
+                }
+                placeholder="Conferma password"
+                type="password"
+                value={passwordForm.confirmPassword}
+              />
+              <Button disabled={isWorking} type="submit" variant="secondary">
+                Aggiorna password
+              </Button>
+            </form>
+
+            <div className="admin-tool-card">
+              <div className="admin-tool-heading">
+                {activeUser.status === "blocked" ? (
+                  <CheckCircle2 aria-hidden="true" className="admin-metric-icon" />
+                ) : (
+                  <Ban aria-hidden="true" className="admin-metric-icon" />
+                )}
+                <strong>{activeUser.status === "blocked" ? "Riattiva accesso" : "Blocca accesso"}</strong>
+              </div>
+              {activeUser.status === "active" ? (
+                <input
+                  className="ui-input"
+                  onChange={(event) => setBlockReason(event.target.value)}
+                  placeholder="Motivo blocco, facoltativo"
+                  value={blockReason}
+                />
+              ) : activeUser.blocked_reason ? (
+                <p className="admin-muted">Motivo blocco: {activeUser.blocked_reason}</p>
+              ) : null}
+              <Button
+                disabled={isWorking}
+                onClick={handleStatusToggle}
+                type="button"
+                variant={activeUser.status === "blocked" ? "primary" : "secondary"}
+              >
+                {activeUser.status === "blocked" ? "Riattiva utente" : "Blocca utente"}
+              </Button>
+            </div>
+          </div>
+        </AdminModal>
+      ) : null}
+
+      {activeModal === "wallet" && activeUser ? (
+        <AdminModal onClose={() => setActiveModal(null)} title="Giroconto Coppe" kicker={activeUser.username}>
+          <form className="admin-modal-form" onSubmit={handleWalletSubmit}>
+            <div className="admin-wallet-summary">
+              <span>Saldo attuale</span>
+              <strong>{formatCups(activeBalance)}</strong>
+            </div>
+            <div className="admin-segmented-control" role="radiogroup" aria-label="Tipo giroconto">
+              <label className={cn(walletOperation === "deposit" && "admin-segmented-active")}>
+                <input
+                  checked={walletOperation === "deposit"}
+                  name="wallet-operation"
+                  onChange={() => setWalletOperation("deposit")}
+                  type="radio"
+                />
+                Deposito
+              </label>
+              <label className={cn(walletOperation === "withdraw" && "admin-segmented-active")}>
+                <input
+                  checked={walletOperation === "withdraw"}
+                  name="wallet-operation"
+                  onChange={() => setWalletOperation("withdraw")}
+                  type="radio"
+                />
+                Prelievo
+              </label>
+            </div>
+            <label className="ui-field">
+              <span className="ui-field-label">Importo Coppe</span>
+              <input
+                className="ui-input"
+                inputMode="numeric"
+                min="1"
+                onChange={(event) => setWalletForm((current) => ({ ...current, amount: event.target.value }))}
+                placeholder="Es. 500"
+                type="number"
+                value={walletForm.amount}
+              />
+            </label>
+            <label className="ui-field">
+              <span className="ui-field-label">Motivo</span>
+              <input
+                className="ui-input"
+                onChange={(event) => setWalletForm((current) => ({ ...current, reason: event.target.value }))}
+                placeholder="Es. Accredito manuale"
+                value={walletForm.reason}
+              />
+            </label>
+            <Button disabled={isWorking} type="submit" variant={walletOperation === "deposit" ? "gold" : "secondary"}>
+              OK
+            </Button>
+          </form>
+        </AdminModal>
+      ) : null}
+
+      {activeModal === "movements" && activeUser ? (
+        <AdminModal onClose={() => setActiveModal(null)} title="Movimenti utente" kicker={activeUser.username}>
+          <div className="admin-movement-toolbar">
+            <button className="admin-date-step-button" onClick={() => shiftMovementDates(-1)} type="button">
+              Giorno precedente
+            </button>
+            <label>
+              Da
+              <input
+                className="admin-date-input"
+                onChange={(event) => {
+                  setMovementDateFrom(event.target.value);
+                  setMovementPage(1);
+                }}
+                type="date"
+                value={movementDateFrom}
+              />
+            </label>
+            <label>
+              A
+              <input
+                className="admin-date-input"
+                onChange={(event) => {
+                  setMovementDateTo(event.target.value);
+                  setMovementPage(1);
+                }}
+                type="date"
+                value={movementDateTo}
+              />
+            </label>
+            <button className="admin-date-step-button" onClick={() => shiftMovementDates(1)} type="button">
+              Giorno successivo
+            </button>
+            <button
+              className="admin-date-step-button"
+              onClick={() => {
+                setMovementDateFrom("");
+                setMovementDateTo("");
+                setMovementPage(1);
+              }}
+              type="button"
+            >
+              Tutti
+            </button>
+          </div>
+
+          <div className="admin-user-movement-list admin-modal-movement-list">
+            {paginatedMovements.length > 0 ? (
+              paginatedMovements.map((movement) => (
+                <article className="admin-user-movement-row" key={movement.id}>
+                  <span>
+                    {movement.amount > 0 ? "+" : ""}
+                    {formatCups(movement.amount)}
+                  </span>
+                  <strong>{movement.description}</strong>
+                  <small>
+                    {formatDateTime(movement.created_at)} • Saldo {formatCups(movement.balance_after)}
+                  </small>
+                </article>
+              ))
+            ) : (
+              <p className="admin-empty-state">
+                {activeMovements.length > 0
+                  ? "Nessun movimento da mostrare per le date selezionate."
+                  : "Nessun movimento da mostrare."}
+              </p>
+            )}
+          </div>
+
+          <div className="admin-pagination">
+            <Button
+              disabled={currentMovementPage <= 1}
+              onClick={() => setMovementPage((current) => Math.max(1, current - 1))}
+              type="button"
+              variant="secondary"
+            >
+              Indietro
+            </Button>
+            <span>
+              Pagina {currentMovementPage} di {movementPages}
+            </span>
+            <Button
+              disabled={currentMovementPage >= movementPages}
+              onClick={() => setMovementPage((current) => Math.min(movementPages, current + 1))}
+              type="button"
+              variant="secondary"
+            >
+              Avanti
+            </Button>
+          </div>
+        </AdminModal>
+      ) : null}
+    </div>
+  );
+}
+
+function AdminModal({
+  children,
+  kicker,
+  onClose,
+  title,
+}: {
+  children: ReactNode;
+  kicker: string;
+  onClose: () => void;
+  title: string;
+}) {
+  return (
+    <div className="admin-modal-backdrop" role="presentation">
+      <section className="admin-modal-card" aria-modal="true" role="dialog">
+        <header className="admin-modal-header">
+          <div>
+            <p className="user-page-kicker">{kicker}</p>
+            <h2>{title}</h2>
+          </div>
+          <button aria-label="Chiudi popup" className="admin-modal-close" onClick={onClose} type="button">
+            ×
+          </button>
+        </header>
+        <div className="admin-modal-content">{children}</div>
+      </section>
     </div>
   );
 }

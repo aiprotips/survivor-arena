@@ -4866,6 +4866,10 @@ a {
     min-width: 0;
   }
 
+  .admin-user-detail {
+    display: none;
+  }
+
   .admin-user-list {
     max-height: 42rem;
     overflow: auto;
@@ -4875,12 +4879,12 @@ a {
   .admin-user-list-scroll {
     display: grid;
     gap: 0.62rem;
-    min-width: 64rem;
+    min-width: 72rem;
   }
 
   .admin-user-list-header {
     display: grid;
-    grid-template-columns: minmax(14rem, 1.42fr) minmax(9.5rem, 0.9fr) minmax(9.5rem, 0.85fr) minmax(7rem, 0.65fr) minmax(6rem, 0.55fr) minmax(7rem, 0.58fr) minmax(8.5rem, 0.7fr);
+    grid-template-columns: minmax(14rem, 1.42fr) minmax(9.5rem, 0.9fr) minmax(9.5rem, 0.85fr) minmax(7rem, 0.65fr) minmax(6rem, 0.55fr) minmax(7rem, 0.58fr) minmax(14rem, 0.9fr);
     gap: 0.9rem;
     align-items: center;
     padding: 0 1rem 0.25rem;
@@ -5053,11 +5057,17 @@ a {
     color: var(--color-muted);
   }
 
-  .admin-user-movement-button {
+  .admin-user-row-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(6.5rem, 1fr));
+    gap: 0.55rem;
+    align-items: center;
+  }
+
+  .admin-user-action-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 8.5rem;
     border: 0;
     border-radius: var(--radius-sm);
     background: var(--color-white);
@@ -5070,9 +5080,19 @@ a {
     transition: background 160ms ease, transform 160ms ease;
   }
 
-  .admin-user-movement-button:hover {
+  .admin-user-action-button:hover {
     background: color-mix(in srgb, var(--color-white) 88%, var(--color-blue-soft));
     transform: translateY(-1px);
+  }
+
+  .admin-user-action-button-secondary {
+    border: 1px solid color-mix(in srgb, var(--color-gold) 34%, transparent);
+    background: color-mix(in srgb, var(--color-gold) 10%, transparent);
+    color: var(--color-white);
+  }
+
+  .admin-user-action-button-secondary:hover {
+    background: color-mix(in srgb, var(--color-gold) 18%, transparent);
   }
 
   .admin-status-pill {
@@ -5240,6 +5260,215 @@ a {
     display: flex;
     flex-wrap: wrap;
     gap: 0.55rem;
+  }
+
+  .admin-modal-backdrop {
+    position: fixed;
+    z-index: 80;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    overflow: auto;
+    padding: clamp(1rem, 4vw, 2rem);
+    background:
+      radial-gradient(circle at 50% 16%, color-mix(in srgb, var(--color-blue) 22%, transparent), transparent 34rem),
+      color-mix(in srgb, var(--color-ink) 78%, transparent);
+    backdrop-filter: blur(18px);
+  }
+
+  .admin-modal-card {
+    display: grid;
+    width: min(100%, 54rem);
+    max-height: min(88vh, 52rem);
+    overflow: auto;
+    gap: 1rem;
+    border: 1px solid color-mix(in srgb, var(--color-blue-soft) 28%, transparent);
+    border-radius: var(--radius-panel);
+    background:
+      linear-gradient(145deg, color-mix(in srgb, var(--color-card-strong) 86%, transparent), color-mix(in srgb, var(--color-surface) 96%, transparent));
+    box-shadow: var(--shadow-card), 0 0 36px color-mix(in srgb, var(--color-blue) 14%, transparent);
+    padding: clamp(1rem, 3vw, 1.35rem);
+  }
+
+  .admin-modal-header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+    padding-bottom: 0.9rem;
+  }
+
+  .admin-modal-header h2 {
+    color: var(--color-white);
+    font-size: clamp(1.35rem, 4vw, 2rem);
+    font-weight: 760;
+    line-height: 1.05;
+    margin-top: 0.2rem;
+  }
+
+  .admin-modal-close {
+    display: inline-grid;
+    flex: 0 0 auto;
+    width: 2.6rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 70%, transparent);
+    color: var(--color-white);
+    font-size: 1.35rem;
+    line-height: 1;
+    transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+  }
+
+  .admin-modal-close:hover {
+    border-color: color-mix(in srgb, var(--color-gold) 34%, transparent);
+    background: color-mix(in srgb, var(--color-gold) 12%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .admin-modal-content,
+  .admin-modal-form {
+    display: grid;
+    gap: 0.9rem;
+    min-width: 0;
+  }
+
+  .admin-wallet-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-gold) 8%, transparent);
+    padding: 0.9rem 1rem;
+  }
+
+  .admin-wallet-summary span {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .admin-wallet-summary strong {
+    color: var(--color-gold-strong);
+    font-size: clamp(1.25rem, 5vw, 1.7rem);
+    font-weight: 800;
+  }
+
+  .admin-segmented-control {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+  }
+
+  .admin-segmented-control label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.48rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 72%, transparent);
+    color: var(--color-muted);
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 760;
+    letter-spacing: 0.04em;
+    padding: 0.92rem 1rem;
+    text-transform: uppercase;
+  }
+
+  .admin-segmented-control input {
+    accent-color: var(--color-gold);
+  }
+
+  .admin-segmented-active {
+    border-color: color-mix(in srgb, var(--color-gold) 48%, transparent) !important;
+    background: color-mix(in srgb, var(--color-gold) 12%, transparent) !important;
+    color: var(--color-white) !important;
+  }
+
+  .admin-movement-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: end;
+    border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-surface) 62%, transparent);
+    padding: 0.85rem;
+  }
+
+  .admin-movement-toolbar label {
+    display: grid;
+    gap: 0.36rem;
+    color: var(--color-muted-soft);
+    font-size: 0.62rem;
+    font-weight: 780;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .admin-date-input,
+  .admin-date-step-button {
+    min-height: 2.55rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 78%, transparent);
+    color: var(--color-white);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 680;
+    padding: 0 0.9rem;
+  }
+
+  .admin-date-step-button {
+    color: var(--color-muted);
+    transition: border-color 160ms ease, color 160ms ease;
+  }
+
+  .admin-date-step-button:hover {
+    border-color: color-mix(in srgb, var(--color-blue-soft) 42%, transparent);
+    color: var(--color-white);
+  }
+
+  .admin-modal-movement-list {
+    max-height: 26rem;
+    overflow: auto;
+  }
+
+  .admin-empty-state {
+    border: 1px solid color-mix(in srgb, var(--color-border) 68%, transparent);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+    color: var(--color-muted);
+    font-size: 0.92rem;
+    font-weight: 620;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .admin-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+  }
+
+  .admin-pagination .ui-button {
+    width: auto;
+  }
+
+  .admin-pagination span {
+    color: var(--color-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
   }
 
   .user-inbox-layout {
