@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { LogOut, ReceiptText, Settings, UserRound } from "lucide-react";
+import { LogOut, Mail, ReceiptText, Settings, UserRound } from "lucide-react";
 import type { AccountUser } from "@/components/account/types";
 import { cn } from "@/lib/cn";
 
@@ -21,6 +21,11 @@ const accountLinks = [
     href: "/movimenti",
     icon: ReceiptText,
     label: "Lista Movimenti",
+  },
+  {
+    href: "/posta",
+    icon: Mail,
+    label: "Posta",
   },
   {
     href: "/impostazioni",

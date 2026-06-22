@@ -1,12 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Ban,
+  CheckCircle2,
   ClipboardList,
   Crown,
+  Download,
+  Eye,
   ImageIcon,
+  KeyRound,
+  LayoutDashboard,
+  Mail,
+  MessageSquare,
+  PiggyBank,
   Plus,
   Search,
   Shield,
@@ -39,6 +48,69 @@ type AdminUser = {
   user_code: string;
   username: string;
 };
+
+type AdminDashboardUser = AdminUser & {
+  blocked_at: string | null;
+  blocked_reason: string | null;
+  created_at: string;
+  last_login_at: string | null;
+  phone: string;
+  status: "active" | "blocked";
+  updated_at: string;
+};
+
+type AdminUsersResponse =
+  | {
+      ok: true;
+      users: AdminDashboardUser[];
+    }
+  | {
+      message: string;
+      ok: false;
+    };
+
+type AdminMovement = {
+  amount: number;
+  balance_after: number;
+  created_at: string;
+  description: string;
+  id: string;
+  movement_type: string;
+};
+
+type AdminUserMovementsResponse =
+  | {
+      balance: number;
+      movements: AdminMovement[];
+      ok: true;
+      user: AdminUser;
+    }
+  | {
+      message: string;
+      ok: false;
+    };
+
+type AdminMessageSummary = {
+  body: string;
+  created_at: string;
+  delivery_mode: "both" | "inbox" | "popup";
+  id: string;
+  popup_seen_count: number;
+  read_count: number;
+  recipient_count: number;
+  target_type: "all" | "users";
+  title: string;
+};
+
+type AdminMessagesResponse =
+  | {
+      messages: AdminMessageSummary[];
+      ok: true;
+    }
+  | {
+      message: string;
+      ok: false;
+    };
 
 type SessionResponse =
   | {
@@ -132,7 +204,14 @@ type TeamResponse =
       ok: false;
     };
 
-type AdminPanelKey = "create" | "manage" | "teams" | "participants" | "events";
+type AdminPanelKey =
+  | "dashboard"
+  | "messages"
+  | "create"
+  | "manage"
+  | "teams"
+  | "participants"
+  | "events";
 
 type TournamentForm = {
   description: string;
@@ -184,6 +263,16 @@ const adminTabs: Array<{
   key: AdminPanelKey;
   label: string;
 }> = [
+  {
+    icon: LayoutDashboard,
+    key: "dashboard",
+    label: "Dashboard",
+  },
+  {
+    icon: MessageSquare,
+    key: "messages",
+    label: "Messaggi",
+  },
   {
     icon: Plus,
     key: "create",
@@ -255,18 +344,28 @@ export function AdminArenaPanel() {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [tournaments, setTournaments] = useState<ArenaTournament[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminDashboardUser[]>([]);
+  const [adminUserQuery, setAdminUserQuery] = useState("");
+  const [selectedAdminUserId, setSelectedAdminUserId] = useState("");
+  const [selectedUserMovements, setSelectedUserMovements] = useState<AdminMovement[]>([]);
+  const [selectedUserBalance, setSelectedUserBalance] = useState<number | null>(null);
+  const [adminMessages, setAdminMessages] = useState<AdminMessageSummary[]>([]);
   const [selectedTournamentId, setSelectedTournamentId] = useState("");
   const [events, setEvents] = useState<EventLog[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantQuery, setParticipantQuery] = useState("");
   const [eventQuery, setEventQuery] = useState("");
-  const [activePanel, setActivePanel] = useState<AdminPanelKey>("create");
+  const [activePanel, setActivePanel] = useState<AdminPanelKey>("dashboard");
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
 
   const selectedTournament = useMemo(
     () => tournaments.find((tournament) => tournament.id === selectedTournamentId) ?? tournaments[0] ?? null,
     [selectedTournamentId, tournaments],
+  );
+  const selectedAdminUser = useMemo(
+    () => adminUsers.find((adminUser) => adminUser.id === selectedAdminUserId) ?? adminUsers[0] ?? null,
+    [adminUsers, selectedAdminUserId],
   );
 
   useEffect(() => {
@@ -322,6 +421,13 @@ export function AdminArenaPanel() {
         setEvents(eventsResponse.data.events);
       }
 
+      const loadedUsers = await loadAdminUsers("");
+      if (loadedUsers[0]) {
+        await loadAdminUserMovements(loadedUsers[0].id);
+      }
+
+      await loadAdminMessages();
+
       setIsLoading(false);
     }
 
@@ -335,7 +441,61 @@ export function AdminArenaPanel() {
     return () => {
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
+
+  async function loadAdminUsers(query = adminUserQuery) {
+    const params = new URLSearchParams();
+    if (query) {
+      params.set("q", query);
+    }
+
+    const { data } = await fetchJson<AdminUsersResponse>(`/api/admin/users${params.toString() ? `?${params}` : ""}`);
+
+    if (!data.ok) {
+      setMessage(data.message);
+      return [];
+    }
+
+    setAdminUsers(data.users);
+    setSelectedAdminUserId((current) => {
+      if (current && data.users.some((adminUser) => adminUser.id === current)) {
+        return current;
+      }
+
+      return data.users[0]?.id ?? "";
+    });
+
+    return data.users;
+  }
+
+  async function loadAdminUserMovements(userId = selectedAdminUser?.id) {
+    if (!userId) {
+      setSelectedUserBalance(null);
+      setSelectedUserMovements([]);
+      return;
+    }
+
+    const { data } = await fetchJson<AdminUserMovementsResponse>(`/api/admin/users/${userId}/movements`);
+
+    if (!data.ok) {
+      setMessage(data.message);
+      return;
+    }
+
+    setSelectedUserBalance(data.balance);
+    setSelectedUserMovements(data.movements);
+  }
+
+  async function loadAdminMessages() {
+    const { data } = await fetchJson<AdminMessagesResponse>("/api/admin/messages");
+
+    if (data.ok) {
+      setAdminMessages(data.messages);
+    } else {
+      setMessage(data.message);
+    }
+  }
 
   async function loadEvents(query = eventQuery) {
     const params = new URLSearchParams();
@@ -447,6 +607,145 @@ export function AdminArenaPanel() {
     return data.tournament;
   }
 
+  async function updateUserStatus(userId: string, status: "active" | "blocked", reason: string) {
+    setMessage("");
+    const { data } = await fetchJson<
+      | {
+          ok: true;
+          user: AdminDashboardUser;
+        }
+      | {
+          message: string;
+          ok: false;
+        }
+    >(`/api/admin/users/${userId}/status`, {
+      body: JSON.stringify({
+        reason,
+        status,
+      }),
+      method: "PATCH",
+    });
+
+    if (!data.ok) {
+      setMessage(data.message);
+      return false;
+    }
+
+    setAdminUsers((current) =>
+      current.map((adminUser) =>
+        adminUser.id === userId
+          ? {
+              ...adminUser,
+              blocked_at: data.user.blocked_at,
+              blocked_reason: data.user.blocked_reason,
+              status: data.user.status,
+            }
+          : adminUser,
+      ),
+    );
+    setMessage(status === "blocked" ? "Accesso utente bloccato." : "Accesso utente riattivato.");
+
+    return true;
+  }
+
+  async function updateUserPassword(userId: string, password: string, confirmPassword: string) {
+    setMessage("");
+    const { data } = await fetchJson<
+      | {
+          message: string;
+          ok: true;
+        }
+      | {
+          message: string;
+          ok: false;
+        }
+    >(`/api/admin/users/${userId}/password`, {
+      body: JSON.stringify({
+        confirmPassword,
+        password,
+      }),
+      method: "PATCH",
+    });
+
+    setMessage(data.message);
+
+    return data.ok;
+  }
+
+  async function adjustUserWallet(userId: string, amount: number, reason: string) {
+    setMessage("");
+    const { data } = await fetchJson<
+      | {
+          balance: number;
+          movements: AdminMovement[];
+          ok: true;
+        }
+      | {
+          message: string;
+          ok: false;
+        }
+    >(`/api/admin/users/${userId}/wallet`, {
+      body: JSON.stringify({
+        amount,
+        reason,
+      }),
+      method: "POST",
+    });
+
+    if (!data.ok) {
+      setMessage(data.message);
+      return false;
+    }
+
+    setSelectedUserBalance(data.balance);
+    setSelectedUserMovements(data.movements);
+    setAdminUsers((current) =>
+      current.map((adminUser) =>
+        adminUser.id === userId
+          ? {
+              ...adminUser,
+              cup_balance: data.balance,
+            }
+          : adminUser,
+      ),
+    );
+    setMessage(amount > 0 ? "Coppe depositate correttamente." : "Coppe prelevate correttamente.");
+
+    return true;
+  }
+
+  async function sendAdminMessage(input: {
+    body: string;
+    deliveryMode: "both" | "inbox" | "popup";
+    targetUserIds: string[];
+    title: string;
+  }) {
+    setMessage("");
+    const { data } = await fetchJson<
+      | {
+          message: AdminMessageSummary;
+          ok: true;
+        }
+      | {
+          message: string;
+          ok: false;
+        }
+    >("/api/admin/messages", {
+      body: JSON.stringify(input),
+      method: "POST",
+    });
+
+    if (!data.ok) {
+      setMessage(data.message);
+      return false;
+    }
+
+    await loadAdminMessages();
+    setMessage("Messaggio inviato correttamente.");
+
+    return true;
+  }
+
   async function handleLogout() {
     await fetch("/api/logout", {
       credentials: "include",
@@ -501,6 +800,16 @@ export function AdminArenaPanel() {
               key={key}
               onClick={() => {
                 setActivePanel(key);
+                if (key === "dashboard") {
+                  void loadAdminUsers();
+                  if (selectedAdminUser?.id) {
+                    void loadAdminUserMovements(selectedAdminUser.id);
+                  }
+                }
+                if (key === "messages") {
+                  void loadAdminUsers();
+                  void loadAdminMessages();
+                }
                 if (key === "participants") {
                   void loadParticipants();
                 }
@@ -519,18 +828,56 @@ export function AdminArenaPanel() {
           ))}
         </nav>
 
-        <div className="admin-layout-grid">
-          <TournamentSidebar
-            onSelect={(id) => {
-              setSelectedTournamentId(id);
-              setActivePanel("manage");
-              void loadParticipants(id);
-            }}
-            selectedTournamentId={selectedTournament?.id ?? ""}
-            tournaments={tournaments}
-          />
+        <div className={cn("admin-layout-grid", (activePanel === "dashboard" || activePanel === "messages") && "admin-layout-grid-wide")}>
+          {activePanel !== "dashboard" && activePanel !== "messages" ? (
+            <TournamentSidebar
+              onSelect={(id) => {
+                setSelectedTournamentId(id);
+                setActivePanel("manage");
+                void loadParticipants(id);
+              }}
+              selectedTournamentId={selectedTournament?.id ?? ""}
+              tournaments={tournaments}
+            />
+          ) : null}
 
           <div className="admin-main-panel">
+            {activePanel === "dashboard" ? (
+              <AdminUsersDashboard
+                movements={selectedUserMovements}
+                onAdjustWallet={adjustUserWallet}
+                onChangePassword={updateUserPassword}
+                onExport={() => exportUsersCsv(adminUsers)}
+                onRefresh={() => {
+                  void loadAdminUsers(adminUserQuery);
+                  if (selectedAdminUser?.id) {
+                    void loadAdminUserMovements(selectedAdminUser.id);
+                  }
+                }}
+                onSearch={(query) => {
+                  setAdminUserQuery(query);
+                  void loadAdminUsers(query);
+                }}
+                onSelect={(adminUser) => {
+                  setSelectedAdminUserId(adminUser.id);
+                  void loadAdminUserMovements(adminUser.id);
+                }}
+                onToggleStatus={updateUserStatus}
+                query={adminUserQuery}
+                selectedBalance={selectedUserBalance}
+                selectedUser={selectedAdminUser}
+                users={adminUsers}
+              />
+            ) : null}
+
+            {activePanel === "messages" ? (
+              <AdminMessagesPanel
+                messages={adminMessages}
+                onSend={sendAdminMessage}
+                users={adminUsers}
+              />
+            ) : null}
+
             {activePanel === "create" ? (
               <CreateTournamentWizard
                 onCreate={async (form) => {
@@ -588,6 +935,576 @@ export function AdminArenaPanel() {
         </div>
       </section>
     </main>
+  );
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return "Mai";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("it-IT", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function getUserStatusLabel(status: AdminDashboardUser["status"]) {
+  return status === "blocked" ? "Bloccato" : "Attivo";
+}
+
+function formatCsvCell(value: string | number | null | undefined) {
+  const text = String(value ?? "");
+
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+function exportUsersCsv(users: AdminDashboardUser[]) {
+  const headers = [
+    "Username",
+    "Codice utente",
+    "Email",
+    "Telefono",
+    "Ruolo",
+    "Stato",
+    "Coppe",
+    "Creato il",
+    "Ultimo login",
+    "Motivo blocco",
+  ];
+  const rows = users.map((user) => [
+    user.username,
+    user.user_code,
+    user.email,
+    user.phone,
+    user.role,
+    getUserStatusLabel(user.status),
+    user.cup_balance,
+    formatDateTime(user.created_at),
+    formatDateTime(user.last_login_at),
+    user.blocked_reason ?? "",
+  ]);
+  const csv = [headers, ...rows]
+    .map((row) => row.map((cell) => formatCsvCell(cell)).join(";"))
+    .join("\n");
+  const blob = new Blob([`\uFEFF${csv}`], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `survivor-arena-utenti-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function AdminUsersDashboard({
+  movements,
+  onAdjustWallet,
+  onChangePassword,
+  onExport,
+  onRefresh,
+  onSearch,
+  onSelect,
+  onToggleStatus,
+  query,
+  selectedBalance,
+  selectedUser,
+  users,
+}: {
+  movements: AdminMovement[];
+  onAdjustWallet: (userId: string, amount: number, reason: string) => Promise<boolean>;
+  onChangePassword: (userId: string, password: string, confirmPassword: string) => Promise<boolean>;
+  onExport: () => void;
+  onRefresh: () => void;
+  onSearch: (query: string) => void;
+  onSelect: (user: AdminDashboardUser) => void;
+  onToggleStatus: (userId: string, status: "active" | "blocked", reason: string) => Promise<boolean>;
+  query: string;
+  selectedBalance: number | null;
+  selectedUser: AdminDashboardUser | null;
+  users: AdminDashboardUser[];
+}) {
+  const [passwordForm, setPasswordForm] = useState({
+    confirmPassword: "",
+    password: "",
+  });
+  const [walletForm, setWalletForm] = useState({
+    amount: "",
+    reason: "",
+  });
+  const [blockReason, setBlockReason] = useState("");
+  const [isWorking, setIsWorking] = useState(false);
+  const activeUsers = users.filter((adminUser) => adminUser.status === "active").length;
+  const blockedUsers = users.filter((adminUser) => adminUser.status === "blocked").length;
+  const totalCups = users.reduce((sum, adminUser) => sum + (adminUser.cup_balance ?? 0), 0);
+
+  async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedUser) {
+      return;
+    }
+
+    setIsWorking(true);
+    const ok = await onChangePassword(selectedUser.id, passwordForm.password, passwordForm.confirmPassword);
+    if (ok) {
+      setPasswordForm({
+        confirmPassword: "",
+        password: "",
+      });
+    }
+    setIsWorking(false);
+  }
+
+  async function handleWalletSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedUser) {
+      return;
+    }
+
+    setIsWorking(true);
+    const ok = await onAdjustWallet(selectedUser.id, Number(walletForm.amount), walletForm.reason);
+    if (ok) {
+      setWalletForm({
+        amount: "",
+        reason: "",
+      });
+    }
+    setIsWorking(false);
+  }
+
+  async function handleStatusToggle() {
+    if (!selectedUser) {
+      return;
+    }
+
+    const nextStatus = selectedUser.status === "blocked" ? "active" : "blocked";
+    setIsWorking(true);
+    const ok = await onToggleStatus(selectedUser.id, nextStatus, blockReason);
+    if (ok) {
+      setBlockReason("");
+    }
+    setIsWorking(false);
+  }
+
+  return (
+    <div className="admin-stack">
+      <Card className="admin-card">
+        <div className="admin-card-heading admin-dashboard-heading">
+          <div>
+            <p className="user-page-kicker">Controllo utenti</p>
+            <h2>Dashboard utenti</h2>
+            <p>Gestisci accesso, saldo Coppe, password e storico movimenti degli account registrati.</p>
+          </div>
+          <div className="admin-actions-row admin-dashboard-actions">
+            <Button onClick={onRefresh} type="button" variant="secondary">
+              Aggiorna
+            </Button>
+            <Button onClick={onExport} type="button" variant="gold">
+              <Download aria-hidden="true" className="admin-button-icon" />
+              Esporta CSV
+            </Button>
+          </div>
+        </div>
+
+        <div className="admin-summary-grid">
+          <AdminMetric icon={Users} label="Utenti totali" value={users.length.toString()} />
+          <AdminMetric icon={CheckCircle2} label="Attivi" value={activeUsers.toString()} />
+          <AdminMetric icon={Ban} label="Bloccati" value={blockedUsers.toString()} />
+          <AdminMetric icon={Crown} label="Coppe totali" value={formatCups(totalCups)} />
+        </div>
+
+        <SearchBox
+          onSearch={onSearch}
+          placeholder="Cerca username, email, telefono o codice"
+          query={query}
+        />
+
+        <div className="admin-users-layout">
+          <div className="admin-user-list" aria-label="Utenti registrati">
+            {users.length > 0 ? (
+              users.map((adminUser) => (
+                <button
+                  className={cn(
+                    "admin-user-row",
+                    selectedUser?.id === adminUser.id && "admin-user-row-active",
+                  )}
+                  key={adminUser.id}
+                  onClick={() => onSelect(adminUser)}
+                  type="button"
+                >
+                  <span className="admin-user-avatar" aria-hidden="true">
+                    {adminUser.username.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="admin-user-main">
+                    <strong>{adminUser.username}</strong>
+                    <small>{adminUser.email}</small>
+                  </span>
+                  <span className={cn("admin-status-pill", adminUser.status === "blocked" && "admin-status-pill-danger")}>
+                    {getUserStatusLabel(adminUser.status)}
+                  </span>
+                </button>
+              ))
+            ) : (
+              <p className="admin-muted">Nessun utente trovato.</p>
+            )}
+          </div>
+
+          <div className="admin-user-detail">
+            {selectedUser ? (
+              <>
+                <div className="admin-user-profile-card">
+                  <div>
+                    <p className="user-page-kicker">Utente selezionato</p>
+                    <h3>{selectedUser.username}</h3>
+                    <span>{selectedUser.user_code}</span>
+                  </div>
+                  <span className={cn("admin-status-pill", selectedUser.status === "blocked" && "admin-status-pill-danger")}>
+                    {getUserStatusLabel(selectedUser.status)}
+                  </span>
+                </div>
+
+                <div className="admin-user-data-grid">
+                  <AdminDataItem label="Email" value={selectedUser.email} />
+                  <AdminDataItem label="Telefono" value={selectedUser.phone} />
+                  <AdminDataItem label="Ruolo" value={selectedUser.role} />
+                  <AdminDataItem label="Saldo" value={formatCups(selectedBalance ?? selectedUser.cup_balance ?? 0)} />
+                  <AdminDataItem label="Creato" value={formatDateTime(selectedUser.created_at)} />
+                  <AdminDataItem label="Ultimo login" value={formatDateTime(selectedUser.last_login_at)} />
+                </div>
+
+                <div className="admin-user-tools-grid">
+                  <form className="admin-tool-card" onSubmit={handlePasswordSubmit}>
+                    <div className="admin-tool-heading">
+                      <KeyRound aria-hidden="true" className="admin-metric-icon" />
+                      <strong>Cambia password</strong>
+                    </div>
+                    <input
+                      className="ui-input"
+                      onChange={(event) => setPasswordForm((current) => ({ ...current, password: event.target.value }))}
+                      placeholder="Nuova password"
+                      type="password"
+                      value={passwordForm.password}
+                    />
+                    <input
+                      className="ui-input"
+                      onChange={(event) =>
+                        setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))
+                      }
+                      placeholder="Conferma password"
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                    />
+                    <Button disabled={isWorking} type="submit" variant="secondary">
+                      Aggiorna password
+                    </Button>
+                  </form>
+
+                  <form className="admin-tool-card" onSubmit={handleWalletSubmit}>
+                    <div className="admin-tool-heading">
+                      <PiggyBank aria-hidden="true" className="admin-metric-icon" />
+                      <strong>Deposita / preleva Coppe</strong>
+                    </div>
+                    <input
+                      className="ui-input"
+                      inputMode="numeric"
+                      onChange={(event) => setWalletForm((current) => ({ ...current, amount: event.target.value }))}
+                      placeholder="Es. 500 oppure -100"
+                      type="number"
+                      value={walletForm.amount}
+                    />
+                    <input
+                      className="ui-input"
+                      onChange={(event) => setWalletForm((current) => ({ ...current, reason: event.target.value }))}
+                      placeholder="Motivo operazione"
+                      value={walletForm.reason}
+                    />
+                    <Button disabled={isWorking} type="submit" variant="gold">
+                      Applica movimento
+                    </Button>
+                  </form>
+                </div>
+
+                <div className="admin-tool-card">
+                  <div className="admin-tool-heading">
+                    {selectedUser.status === "blocked" ? (
+                      <CheckCircle2 aria-hidden="true" className="admin-metric-icon" />
+                    ) : (
+                      <Ban aria-hidden="true" className="admin-metric-icon" />
+                    )}
+                    <strong>{selectedUser.status === "blocked" ? "Riattiva accesso" : "Blocca accesso"}</strong>
+                  </div>
+                  {selectedUser.status === "active" ? (
+                    <input
+                      className="ui-input"
+                      onChange={(event) => setBlockReason(event.target.value)}
+                      placeholder="Motivo blocco, facoltativo"
+                      value={blockReason}
+                    />
+                  ) : selectedUser.blocked_reason ? (
+                    <p className="admin-muted">Motivo blocco: {selectedUser.blocked_reason}</p>
+                  ) : null}
+                  <Button
+                    disabled={isWorking}
+                    onClick={handleStatusToggle}
+                    type="button"
+                    variant={selectedUser.status === "blocked" ? "primary" : "secondary"}
+                  >
+                    {selectedUser.status === "blocked" ? "Riattiva utente" : "Blocca utente"}
+                  </Button>
+                </div>
+
+                <div className="admin-tool-card">
+                  <div className="admin-tool-heading">
+                    <Eye aria-hidden="true" className="admin-metric-icon" />
+                    <strong>Lista movimenti</strong>
+                  </div>
+                  <div className="admin-user-movement-list">
+                    {movements.length > 0 ? (
+                      movements.map((movement) => (
+                        <article className="admin-user-movement-row" key={movement.id}>
+                          <span>
+                            {movement.amount > 0 ? "+" : ""}
+                            {formatCups(movement.amount)}
+                          </span>
+                          <strong>{movement.description}</strong>
+                          <small>{formatDateTime(movement.created_at)}</small>
+                        </article>
+                      ))
+                    ) : (
+                      <p className="admin-muted">Nessun movimento registrato per questo utente.</p>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="admin-muted">Seleziona un utente per gestirlo.</p>
+            )}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function AdminMessagesPanel({
+  messages,
+  onSend,
+  users,
+}: {
+  messages: AdminMessageSummary[];
+  onSend: (input: {
+    body: string;
+    deliveryMode: "both" | "inbox" | "popup";
+    targetUserIds: string[];
+    title: string;
+  }) => Promise<boolean>;
+  users: AdminDashboardUser[];
+}) {
+  const [form, setForm] = useState({
+    body: "",
+    deliveryMode: "inbox" as "both" | "inbox" | "popup",
+    targetMode: "all" as "all" | "users",
+    title: "",
+  });
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [localMessage, setLocalMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const selectedSet = new Set(selectedUserIds);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLocalMessage("");
+
+    if (form.targetMode === "users" && selectedUserIds.length === 0) {
+      setLocalMessage("Seleziona almeno un utente oppure scegli invio a tutti.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const ok = await onSend({
+      body: form.body,
+      deliveryMode: form.deliveryMode,
+      targetUserIds: form.targetMode === "all" ? [] : selectedUserIds,
+      title: form.title,
+    });
+
+    if (ok) {
+      setForm({
+        body: "",
+        deliveryMode: "inbox",
+        targetMode: "all",
+        title: "",
+      });
+      setSelectedUserIds([]);
+      setLocalMessage("Messaggio inviato.");
+    }
+
+    setIsSubmitting(false);
+  }
+
+  function toggleUser(userId: string) {
+    setSelectedUserIds((current) =>
+      current.includes(userId)
+        ? current.filter((id) => id !== userId)
+        : [...current, userId],
+    );
+  }
+
+  return (
+    <div className="admin-stack">
+      <Card className="admin-card">
+        <div className="admin-card-heading">
+          <p className="user-page-kicker">Comunicazioni</p>
+          <h2>Messaggi agli utenti</h2>
+          <p>Invia avvisi in posta, popup al login oppure entrambi. Puoi scegliere tutti gli utenti o destinatari specifici.</p>
+        </div>
+
+        {localMessage ? (
+          <div className="auth-form-message auth-form-message-success" role="alert">
+            {localMessage}
+          </div>
+        ) : null}
+
+        <form className="admin-message-form" onSubmit={handleSubmit}>
+          <div className="admin-form-grid">
+            <div className="ui-field">
+              <label className="ui-field-label" htmlFor="admin-message-title">
+                Titolo
+              </label>
+              <input
+                className="ui-input"
+                id="admin-message-title"
+                onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                placeholder="Es. Nuova Arena disponibile"
+                value={form.title}
+              />
+            </div>
+
+            <div className="ui-field">
+              <label className="ui-field-label" htmlFor="admin-message-delivery">
+                Dove appare
+              </label>
+              <select
+                className="admin-select"
+                id="admin-message-delivery"
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    deliveryMode: event.target.value as "both" | "inbox" | "popup",
+                  }))
+                }
+                value={form.deliveryMode}
+              >
+                <option value="inbox">Posta utente</option>
+                <option value="popup">Popup al login</option>
+                <option value="both">Posta + popup</option>
+              </select>
+            </div>
+
+            <label className="ui-field admin-message-body">
+              <span className="ui-field-label">Messaggio</span>
+              <textarea
+                className="admin-textarea"
+                onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
+                placeholder="Scrivi il messaggio da mostrare agli utenti..."
+                value={form.body}
+              />
+            </label>
+          </div>
+
+          <div className="admin-message-targets">
+            <div className="admin-target-toggle" role="radiogroup" aria-label="Destinatari messaggio">
+              <label>
+                <input
+                  checked={form.targetMode === "all"}
+                  name="admin-message-target"
+                  onChange={() => setForm((current) => ({ ...current, targetMode: "all" }))}
+                  type="radio"
+                />
+                Tutti gli utenti
+              </label>
+              <label>
+                <input
+                  checked={form.targetMode === "users"}
+                  name="admin-message-target"
+                  onChange={() => setForm((current) => ({ ...current, targetMode: "users" }))}
+                  type="radio"
+                />
+                Utenti specifici
+              </label>
+            </div>
+
+            {form.targetMode === "users" ? (
+              <div className="admin-recipient-list" aria-label="Seleziona destinatari">
+                {users
+                  .filter((adminUser) => adminUser.role === "user")
+                  .map((adminUser) => (
+                    <label className="admin-recipient-row" key={adminUser.id}>
+                      <input
+                        checked={selectedSet.has(adminUser.id)}
+                        onChange={() => toggleUser(adminUser.id)}
+                        type="checkbox"
+                      />
+                      <span>{adminUser.username}</span>
+                      <small>{adminUser.email}</small>
+                    </label>
+                  ))}
+              </div>
+            ) : null}
+          </div>
+
+          <Button disabled={isSubmitting} type="submit">
+            <Mail aria-hidden="true" className="admin-button-icon" />
+            {isSubmitting ? "Invio..." : "Invia messaggio"}
+          </Button>
+        </form>
+      </Card>
+
+      <Card className="admin-card">
+        <div className="admin-card-heading">
+          <p className="user-page-kicker">Storico</p>
+          <h2>Messaggi inviati</h2>
+        </div>
+
+        <div className="admin-message-list">
+          {messages.length > 0 ? (
+            messages.map((message) => (
+              <article className="admin-message-row" key={message.id}>
+                <div>
+                  <span>{message.delivery_mode === "both" ? "Posta + popup" : message.delivery_mode === "popup" ? "Popup" : "Posta"}</span>
+                  <strong>{message.title}</strong>
+                  <p>{message.body}</p>
+                </div>
+                <div className="admin-message-meta">
+                  <small>{formatDateTime(message.created_at)}</small>
+                  <small>{message.recipient_count} destinatari</small>
+                  <small>{message.read_count} letti</small>
+                </div>
+              </article>
+            ))
+          ) : (
+            <p className="admin-muted">Nessun messaggio inviato.</p>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function AdminDataItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="admin-data-item">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 

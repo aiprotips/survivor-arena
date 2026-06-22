@@ -1,8 +1,11 @@
 /// <reference types="@cloudflare/workers-types" />
 
 import { hashPassword } from "./crypto";
+import { ensureAdminControlSchema } from "./admin-control-schema";
 
 export type UserRecord = {
+  blocked_at: string | null;
+  blocked_reason: string | null;
   created_at: string;
   email: string;
   id: string;
@@ -10,16 +13,20 @@ export type UserRecord = {
   password_hash: string;
   phone: string;
   role: "user" | "admin";
+  status: "active" | "blocked";
   updated_at: string;
   user_code: string;
   username: string;
 };
 
 export type PublicUser = {
+  blocked_at: string | null;
+  blocked_reason: string | null;
   email: string;
   id: string;
   phone: string;
   role: "user" | "admin";
+  status: "active" | "blocked";
   user_code: string;
   username: string;
 };
@@ -51,19 +58,26 @@ function createUserCodeSuffix() {
 
 export function toPublicUser(user: UserRecord): PublicUser {
   return {
+    blocked_at: user.blocked_at,
+    blocked_reason: user.blocked_reason,
     email: user.email,
     id: user.id,
     phone: user.phone,
     role: user.role,
+    status: user.status,
     user_code: user.user_code,
     username: user.username,
   };
 }
 
 export async function findUserByIdentifier(db: D1Database, identifier: string) {
+  await ensureAdminControlSchema(db);
+
   return db
     .prepare(
-      `SELECT id, user_code, username, email, phone, password_hash, role, created_at, updated_at, last_login_at
+      `SELECT id, user_code, username, email, phone, password_hash, role,
+        COALESCE(status, 'active') AS status, blocked_at, blocked_reason,
+        created_at, updated_at, last_login_at
        FROM users
        WHERE email = ?1 OR username = ?1
        LIMIT 1`,
@@ -121,12 +135,15 @@ export async function createUserWithPasswordHash(
     password_hash: string;
     role: "user";
   } = {
+    blocked_at: null,
+    blocked_reason: null,
     created_at: now,
     email: input.email,
     id: crypto.randomUUID(),
     password_hash: input.passwordHash,
     phone: input.phone,
     role: "user",
+    status: "active",
     updated_at: now,
     user_code: await createUniqueUserCode(db),
     username: input.username,
@@ -159,16 +176,23 @@ export async function createUserWithPasswordHash(
     password_hash: user.password_hash,
     phone: user.phone,
     role: user.role,
+    status: user.status,
     updated_at: user.updated_at,
     user_code: user.user_code,
     username: user.username,
+    blocked_at: user.blocked_at,
+    blocked_reason: user.blocked_reason,
   } satisfies UserRecord;
 }
 
 export async function findUserById(db: D1Database, userId: string) {
+  await ensureAdminControlSchema(db);
+
   return db
     .prepare(
-      `SELECT id, user_code, username, email, phone, password_hash, role, created_at, updated_at, last_login_at
+      `SELECT id, user_code, username, email, phone, password_hash, role,
+        COALESCE(status, 'active') AS status, blocked_at, blocked_reason,
+        created_at, updated_at, last_login_at
        FROM users
        WHERE id = ?1
        LIMIT 1`,
@@ -178,9 +202,13 @@ export async function findUserById(db: D1Database, userId: string) {
 }
 
 export async function findUserByResetIdentifier(db: D1Database, identifier: string) {
+  await ensureAdminControlSchema(db);
+
   return db
     .prepare(
-      `SELECT id, user_code, username, email, phone, password_hash, role, created_at, updated_at, last_login_at
+      `SELECT id, user_code, username, email, phone, password_hash, role,
+        COALESCE(status, 'active') AS status, blocked_at, blocked_reason,
+        created_at, updated_at, last_login_at
        FROM users
        WHERE email = ?1 OR username = ?1 OR phone = ?1
        LIMIT 1`,
@@ -196,9 +224,13 @@ export async function findUserByUsernameAndPhone(
     username: string;
   },
 ) {
+  await ensureAdminControlSchema(db);
+
   return db
     .prepare(
-      `SELECT id, user_code, username, email, phone, password_hash, role, created_at, updated_at, last_login_at
+      `SELECT id, user_code, username, email, phone, password_hash, role,
+        COALESCE(status, 'active') AS status, blocked_at, blocked_reason,
+        created_at, updated_at, last_login_at
        FROM users
        WHERE username = ?1 AND phone = ?2
        LIMIT 1`,
@@ -259,4 +291,41 @@ export async function updateLastLogin(db: D1Database, userId: string) {
     .prepare("UPDATE users SET last_login_at = ?1, updated_at = ?1 WHERE id = ?2")
     .bind(now, userId)
     .run();
+}
+
+export async function setUserAccessStatus(
+  db: D1Database,
+  input: {
+    reason?: string;
+    status: "active" | "blocked";
+    userId: string;
+  },
+) {
+  await ensureAdminControlSchema(db);
+
+  const now = new Date().toISOString();
+
+  await db
+    .prepare(
+      `UPDATE users
+       SET status = ?1,
+           blocked_at = ?2,
+           blocked_reason = ?3,
+           updated_at = ?4
+       WHERE id = ?5`,
+    )
+    .bind(
+      input.status,
+      input.status === "blocked" ? now : null,
+      input.status === "blocked" ? input.reason?.trim() || null : null,
+      now,
+      input.userId,
+    )
+    .run();
+
+  if (input.status === "blocked") {
+    await deleteUserSessions(db, input.userId);
+  }
+
+  return findUserById(db, input.userId);
 }

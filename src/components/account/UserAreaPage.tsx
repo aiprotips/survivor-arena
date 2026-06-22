@@ -14,6 +14,7 @@ import {
   Gift,
   KeyRound,
   Lock,
+  MailOpen,
   ShieldCheck,
   Swords,
   Timer,
@@ -48,6 +49,8 @@ export function UserAreaPage({ page }: UserAreaPageProps) {
             return <ProfiloPage user={user} />;
           case "movimenti":
             return <MovimentiPage />;
+          case "posta":
+            return <PostaPage />;
           case "impostazioni":
             return <ImpostazioniPage />;
           case "dashboard":
@@ -601,6 +604,168 @@ type MovementRow = {
   id: string;
   movement_type: string;
 };
+
+type UserInboxMessage = {
+  body: string;
+  created_at: string;
+  delivery_mode: "both" | "inbox" | "popup";
+  id: string;
+  read_at: string | null;
+  title: string;
+};
+
+function PostaPage() {
+  const [messages, setMessages] = useState<UserInboxMessage[]>([]);
+  const [activeMessageId, setActiveMessageId] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadMessages() {
+      const response = await fetch("/api/messages", {
+        credentials: "include",
+      });
+      const data = (await response.json()) as
+        | {
+            messages: UserInboxMessage[];
+            ok: true;
+            unread_count: number;
+          }
+        | {
+            message: string;
+            ok: false;
+          };
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (data.ok) {
+        setMessages(data.messages);
+        setActiveMessageId(data.messages[0]?.id ?? "");
+      }
+
+      setIsLoading(false);
+    }
+
+    loadMessages().catch(() => {
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  async function openMessage(message: UserInboxMessage) {
+    setActiveMessageId(message.id);
+
+    if (message.read_at) {
+      return;
+    }
+
+    setMessages((current) =>
+      current.map((item) =>
+        item.id === message.id
+          ? {
+              ...item,
+              read_at: new Date().toISOString(),
+            }
+          : item,
+      ),
+    );
+
+    await fetch(`/api/messages/${message.id}`, {
+      credentials: "include",
+      method: "PATCH",
+    }).catch(() => undefined);
+  }
+
+  const activeMessage = messages.find((message) => message.id === activeMessageId) ?? messages[0] ?? null;
+  const unreadCount = messages.filter((message) => !message.read_at).length;
+
+  return (
+    <>
+      <PageIntro
+        eyebrow="Comunicazioni"
+        subtitle="Messaggi ufficiali inviati dallo staff Survivor Arena."
+        title="Posta"
+      />
+
+      <section className="user-inbox-layout" aria-label="Posta utente">
+        <div className="user-inbox-list">
+          {isLoading ? (
+            <div className="user-detail-card user-inbox-empty">
+              <strong>Caricamento posta...</strong>
+            </div>
+          ) : messages.length > 0 ? (
+            messages.map((message) => (
+              <button
+                className={`user-inbox-row ${activeMessage?.id === message.id ? "user-inbox-row-active" : ""}`}
+                key={message.id}
+                onClick={() => void openMessage(message)}
+                type="button"
+              >
+                <span className="user-inbox-row-icon">
+                  <MailOpen aria-hidden="true" />
+                </span>
+                <span>
+                  <strong>{message.title}</strong>
+                  <small>{new Date(message.created_at).toLocaleDateString("it-IT")}</small>
+                </span>
+                {!message.read_at ? <em>Nuovo</em> : null}
+              </button>
+            ))
+          ) : (
+            <div className="user-detail-card user-inbox-empty">
+              <strong>Nessun messaggio</strong>
+              <p>Quando lo staff invierà comunicazioni, le troverai qui.</p>
+            </div>
+          )}
+        </div>
+
+        <article className="user-detail-card user-inbox-detail">
+          {activeMessage ? (
+            <>
+              <div className="user-form-heading">
+                <MailOpen aria-hidden="true" className="user-setting-icon" />
+                <div>
+                  <p className="user-page-kicker">{activeMessage.read_at ? "Letto" : "Nuovo messaggio"}</p>
+                  <h2>{activeMessage.title}</h2>
+                </div>
+              </div>
+              <p>{activeMessage.body}</p>
+              <span>
+                {new Date(activeMessage.created_at).toLocaleString("it-IT", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </span>
+            </>
+          ) : (
+            <>
+              <div className="user-form-heading">
+                <MailOpen aria-hidden="true" className="user-setting-icon" />
+                <div>
+                  <p className="user-page-kicker">Posta</p>
+                  <h2>Tutto in ordine</h2>
+                </div>
+              </div>
+              <p>Non hai comunicazioni da leggere.</p>
+            </>
+          )}
+        </article>
+      </section>
+
+      {unreadCount > 0 ? (
+        <p className="user-inbox-footnote">{unreadCount} messaggi ancora da leggere.</p>
+      ) : null}
+    </>
+  );
+}
 
 function MovimentiPage() {
   const [movements, setMovements] = useState<MovementRow[]>([]);

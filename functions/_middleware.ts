@@ -14,6 +14,7 @@ const protectedPaths = new Set([
   "/dashboard",
   "/impostazioni",
   "/movimenti",
+  "/posta",
   "/premi-utente",
   "/profilo",
   "/verifica-telegram",

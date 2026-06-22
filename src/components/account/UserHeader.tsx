@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, Trophy } from "lucide-react";
+import { Mail, Menu, Trophy } from "lucide-react";
 import { BrandLogo } from "@/components/home/BrandLogo";
 import { UserDropdown } from "@/components/account/UserDropdown";
 import { UserNav } from "@/components/account/UserNav";
@@ -37,6 +37,19 @@ export function UserHeader({ balance, onLogout, onMenuOpen, user }: UserHeaderPr
             <strong>{user.username}</strong>
             <span>{balance}</span>
           </div>
+
+          <Link
+            aria-label={
+              user.unread_message_count
+                ? `Apri posta, ${user.unread_message_count} messaggi non letti`
+                : "Apri posta"
+            }
+            className="user-mail-link"
+            href="/posta"
+          >
+            <Mail aria-hidden="true" className="user-mail-icon" />
+            {user.unread_message_count ? <span className="user-unread-dot" /> : null}
+          </Link>
 
           <a
             aria-label="Apri il bot Telegram Survivor Arena"

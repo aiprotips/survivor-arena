@@ -3,6 +3,7 @@
 import { json, methodNotAllowed, missingDatabase } from "../_shared/http";
 import { getSessionUser } from "../_shared/session";
 import { getWalletBalance } from "../_shared/arena";
+import { getUnreadMessageCount } from "../_shared/messages";
 
 type Env = {
   DB: D1Database;
@@ -26,6 +27,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   }
 
   let cupBalance = 0;
+  let unreadMessageCount = 0;
 
   try {
     cupBalance = await getWalletBalance(env.DB, session.user.id);
@@ -33,11 +35,18 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     console.error("Unable to load user wallet balance.", error);
   }
 
+  try {
+    unreadMessageCount = await getUnreadMessageCount(env.DB, session.user.id);
+  } catch (error) {
+    console.error("Unable to load unread messages.", error);
+  }
+
   return json({
     ok: true,
     user: {
       ...session.user,
       cup_balance: cupBalance,
+      unread_message_count: unreadMessageCount,
     },
   });
 };

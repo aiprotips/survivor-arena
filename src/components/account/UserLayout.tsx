@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { PremiumDivider } from "@/components/ui/PremiumDivider";
 import { MobileUserMenu } from "@/components/account/MobileUserMenu";
 import { UserHeader } from "@/components/account/UserHeader";
 import type { AccountUser, UserAreaPageKey } from "@/components/account/types";
@@ -23,6 +25,13 @@ type UserLayoutProps = {
   currentPage: UserAreaPageKey;
 };
 
+type PopupMessage = {
+  body: string;
+  created_at: string;
+  id: string;
+  title: string;
+};
+
 const demoBalance = "0 Coppe";
 
 function formatCups(value: number) {
@@ -35,6 +44,7 @@ export function UserLayout({ children, currentPage }: UserLayoutProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [popupMessages, setPopupMessages] = useState<PopupMessage[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -75,6 +85,42 @@ export function UserLayout({ children, currentPage }: UserLayoutProps) {
   }, [router]);
 
   useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadPopupMessages() {
+      try {
+        const response = await fetch("/api/messages/popup", {
+          credentials: "include",
+        });
+        const data = (await response.json()) as
+          | {
+              messages: PopupMessage[];
+              ok: true;
+            }
+          | {
+              ok: false;
+            };
+
+        if (isMounted && data.ok) {
+          setPopupMessages(data.messages);
+        }
+      } catch {
+        // I messaggi admin non devono bloccare l'accesso all'area utente.
+      }
+    }
+
+    loadPopupMessages();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  useEffect(() => {
     if (!isMenuOpen) {
       return;
     }
@@ -102,6 +148,20 @@ export function UserLayout({ children, currentPage }: UserLayoutProps) {
       method: "POST",
     });
     router.replace("/");
+  };
+
+  const handleDismissPopup = async () => {
+    const messageToClose = popupMessages[0];
+    if (!messageToClose) {
+      return;
+    }
+
+    setPopupMessages((current) => current.slice(1));
+
+    await fetch(`/api/messages/${messageToClose.id}`, {
+      credentials: "include",
+      method: "POST",
+    }).catch(() => undefined);
   };
 
   if (isLoading || !user) {
@@ -136,6 +196,20 @@ export function UserLayout({ children, currentPage }: UserLayoutProps) {
       />
 
       <div className="user-main-shell">{children(user)}</div>
+
+      {popupMessages[0] ? (
+        <div className="user-message-modal" role="dialog" aria-modal="true" aria-labelledby="user-popup-title">
+          <Card className="user-message-modal-card">
+            <p className="user-page-kicker">Survivor Arena</p>
+            <h2 id="user-popup-title">{popupMessages[0].title}</h2>
+            <PremiumDivider />
+            <p>{popupMessages[0].body}</p>
+            <Button onClick={handleDismissPopup} type="button">
+              Ho capito
+            </Button>
+          </Card>
+        </div>
+      ) : null}
     </main>
   );
 }

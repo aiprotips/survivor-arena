@@ -2964,7 +2964,10 @@ a {
   }
 
   .user-telegram-link,
-  .user-mobile-telegram-link {
+  .user-mobile-telegram-link,
+  .user-mail-link,
+  .user-mobile-mail-link {
+    position: relative;
     display: inline-grid;
     place-items: center;
     width: 2.45rem;
@@ -2979,15 +2982,29 @@ a {
   }
 
   .user-telegram-link:hover,
-  .user-mobile-telegram-link:hover {
+  .user-mobile-telegram-link:hover,
+  .user-mail-link:hover,
+  .user-mobile-mail-link:hover {
     border-color: color-mix(in srgb, var(--color-blue-soft) 55%, transparent);
     color: var(--color-white);
     transform: translateY(-1px);
   }
 
-  .user-telegram-icon {
+  .user-telegram-icon,
+  .user-mail-icon {
     width: 1.12rem;
     height: 1.12rem;
+  }
+
+  .user-unread-dot {
+    position: absolute;
+    top: 0.42rem;
+    right: 0.42rem;
+    width: 0.52rem;
+    aspect-ratio: 1;
+    border-radius: var(--radius-pill);
+    background: var(--color-gold);
+    box-shadow: 0 0 0.85rem color-mix(in srgb, var(--color-gold) 68%, transparent);
   }
 
   .user-nav,
@@ -3561,7 +3578,14 @@ a {
     font-weight: 600;
   }
 
-  .user-mobile-telegram-link {
+  .user-mobile-profile-actions {
+    display: flex;
+    justify-content: end;
+    gap: 0.45rem;
+  }
+
+  .user-mobile-telegram-link,
+  .user-mobile-mail-link {
     justify-self: end;
   }
 
@@ -4699,6 +4723,438 @@ a {
     text-transform: uppercase;
   }
 
+  .admin-dashboard-heading {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .admin-dashboard-actions {
+    align-self: start;
+  }
+
+  .admin-button-icon {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+  }
+
+  .admin-users-layout {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .admin-user-list,
+  .admin-user-detail,
+  .admin-user-tools-grid,
+  .admin-user-movement-list,
+  .admin-message-list,
+  .admin-message-form,
+  .admin-message-targets,
+  .admin-recipient-list {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .admin-user-list {
+    max-height: 34rem;
+    overflow: auto;
+    padding-right: 0.2rem;
+  }
+
+  .admin-user-row,
+  .admin-user-profile-card,
+  .admin-data-item,
+  .admin-tool-card,
+  .admin-user-movement-row,
+  .admin-message-row,
+  .admin-recipient-row {
+    border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-surface) 64%, transparent);
+  }
+
+  .admin-user-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.7rem;
+    color: var(--color-white);
+    font: inherit;
+    padding: 0.75rem;
+    text-align: left;
+    transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+  }
+
+  .admin-user-row:hover,
+  .admin-user-row-active {
+    border-color: color-mix(in srgb, var(--color-blue-soft) 36%, transparent);
+    background: color-mix(in srgb, var(--color-blue) 8%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .admin-user-avatar {
+    display: grid;
+    width: 2.35rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 32%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-gold) 10%, transparent);
+    color: var(--color-gold-strong);
+    font-size: 0.82rem;
+    font-weight: 750;
+  }
+
+  .admin-user-main {
+    display: grid;
+    min-width: 0;
+    gap: 0.18rem;
+  }
+
+  .admin-user-main strong,
+  .admin-user-profile-card h3,
+  .admin-tool-heading strong,
+  .admin-message-row strong,
+  .admin-user-movement-row strong {
+    color: var(--color-white);
+    font-weight: 700;
+    line-height: 1.15;
+  }
+
+  .admin-user-main small,
+  .admin-message-meta small,
+  .admin-user-movement-row small,
+  .admin-recipient-row small {
+    overflow: hidden;
+    color: var(--color-muted);
+    font-size: 0.74rem;
+    font-weight: 550;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-status-pill {
+    width: fit-content;
+    border: 1px solid color-mix(in srgb, var(--color-survival) 34%, transparent);
+    border-radius: var(--radius-pill);
+    color: var(--color-survival);
+    font-size: 0.62rem;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    padding: 0.38rem 0.58rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .admin-status-pill-danger {
+    border-color: color-mix(in srgb, var(--color-danger) 36%, transparent);
+    color: var(--color-danger);
+  }
+
+  .admin-user-profile-card {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .admin-user-profile-card div {
+    display: grid;
+    gap: 0.24rem;
+  }
+
+  .admin-user-profile-card h3 {
+    font-size: clamp(1.15rem, 4vw, 1.45rem);
+  }
+
+  .admin-user-profile-card span:not(.admin-status-pill) {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-weight: 650;
+  }
+
+  .admin-user-data-grid,
+  .admin-user-tools-grid {
+    display: grid;
+    gap: 0.72rem;
+  }
+
+  .admin-data-item,
+  .admin-tool-card {
+    display: grid;
+    gap: 0.68rem;
+    padding: 0.9rem;
+  }
+
+  .admin-data-item span {
+    color: var(--color-muted-soft);
+    font-size: 0.65rem;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .admin-data-item strong {
+    overflow-wrap: anywhere;
+    color: var(--color-white);
+    font-size: 0.92rem;
+    font-weight: 650;
+  }
+
+  .admin-tool-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .admin-user-movement-row,
+  .admin-message-row {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.82rem;
+  }
+
+  .admin-user-movement-row span {
+    color: var(--color-gold-strong);
+    font-size: 0.9rem;
+    font-weight: 750;
+  }
+
+  .admin-message-body {
+    grid-column: 1 / -1;
+  }
+
+  .admin-target-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+  }
+
+  .admin-target-toggle label,
+  .admin-recipient-row {
+    color: var(--color-muted);
+    font-size: 0.84rem;
+    font-weight: 600;
+  }
+
+  .admin-target-toggle label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.48rem;
+  }
+
+  .admin-target-toggle input,
+  .admin-recipient-row input {
+    accent-color: var(--color-gold);
+  }
+
+  .admin-recipient-list {
+    max-height: 16rem;
+    overflow: auto;
+    padding-right: 0.2rem;
+  }
+
+  .admin-recipient-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 0.36fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.7rem 0.8rem;
+  }
+
+  .admin-recipient-row span {
+    color: var(--color-white);
+    font-weight: 650;
+  }
+
+  .admin-message-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-message-row span {
+    width: fit-content;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    color: var(--color-gold);
+    font-size: 0.62rem;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    padding: 0.36rem 0.55rem;
+    text-transform: uppercase;
+  }
+
+  .admin-message-row p {
+    color: var(--color-muted);
+    font-size: 0.84rem;
+    font-weight: 500;
+    line-height: 1.45;
+    margin-top: 0.34rem;
+  }
+
+  .admin-message-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .user-inbox-layout {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .user-inbox-list {
+    display: grid;
+    gap: 0.7rem;
+    min-width: 0;
+  }
+
+  .user-inbox-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--color-card) 72%, transparent);
+    color: var(--color-white);
+    font: inherit;
+    padding: 0.85rem;
+    text-align: left;
+    transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+  }
+
+  .user-inbox-row:hover,
+  .user-inbox-row-active {
+    border-color: color-mix(in srgb, var(--color-blue-soft) 38%, transparent);
+    background: color-mix(in srgb, var(--color-blue) 8%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .user-inbox-row-icon {
+    display: grid;
+    width: 2.45rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-gold);
+  }
+
+  .user-inbox-row-icon svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .user-inbox-row span:not(.user-inbox-row-icon) {
+    display: grid;
+    min-width: 0;
+    gap: 0.22rem;
+  }
+
+  .user-inbox-row strong {
+    overflow: hidden;
+    color: var(--color-white);
+    font-size: 0.92rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .user-inbox-row small {
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 550;
+  }
+
+  .user-inbox-row em {
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-gold) 10%, transparent);
+    color: var(--color-gold);
+    font-size: 0.62rem;
+    font-style: normal;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    padding: 0.36rem 0.5rem;
+    text-transform: uppercase;
+  }
+
+  .user-inbox-detail {
+    gap: 1rem;
+    padding: var(--card-padding);
+  }
+
+  .user-inbox-detail p {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.55;
+  }
+
+  .user-inbox-detail > span {
+    color: var(--color-muted-soft);
+    font-size: 0.74rem;
+    font-weight: 650;
+  }
+
+  .user-inbox-empty {
+    gap: 0.45rem;
+    padding: var(--card-padding);
+  }
+
+  .user-inbox-empty strong {
+    color: var(--color-white);
+  }
+
+  .user-inbox-empty p,
+  .user-inbox-footnote {
+    color: var(--color-muted);
+    font-size: 0.88rem;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  .user-message-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 140;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--color-background) 74%, transparent);
+    padding: var(--spacing-page-x);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .user-message-modal-card {
+    display: grid;
+    width: min(100%, 34rem);
+    gap: 0.9rem;
+    padding: clamp(1.2rem, 4vw, 1.8rem);
+    text-align: center;
+  }
+
+  .user-message-modal-card h2 {
+    color: var(--color-white);
+    font-size: clamp(1.45rem, 6vw, 2.4rem);
+    font-weight: 700;
+    line-height: 1.05;
+  }
+
+  .user-message-modal-card p:not(.user-page-kicker) {
+    color: var(--color-muted);
+    font-size: 0.96rem;
+    font-weight: 500;
+    line-height: 1.55;
+  }
+
+  .user-message-modal-card .ui-premium-divider {
+    justify-self: center;
+  }
+
   .arena-card-grid {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
   }
@@ -5680,6 +6136,39 @@ a {
       align-items: start;
     }
 
+    .admin-layout-grid-wide {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-dashboard-heading {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .admin-users-layout {
+      grid-template-columns: minmax(17rem, 0.42fr) minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .admin-user-data-grid,
+    .admin-user-tools-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-message-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+    }
+
+    .admin-message-meta {
+      justify-content: end;
+      text-align: right;
+    }
+
+    .user-inbox-layout {
+      grid-template-columns: minmax(16rem, 0.42fr) minmax(0, 1fr);
+      align-items: start;
+    }
+
     .admin-form-grid,
     .admin-summary-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5858,6 +6347,10 @@ a {
   @media (min-width: 64rem) {
     .admin-layout-grid {
       grid-template-columns: minmax(17rem, 0.3fr) minmax(0, 1fr);
+    }
+
+    .admin-layout-grid-wide {
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .arena-summary-grid {

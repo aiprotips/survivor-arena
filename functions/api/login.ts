@@ -62,6 +62,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     );
   }
 
+  if (user.status === "blocked") {
+    return json(
+      {
+        field: "identifier",
+        message: "Account bloccato. Contatta l'assistenza.",
+        ok: false,
+      },
+      { status: 403 },
+    );
+  }
+
   const isPasswordValid = await verifyPassword(
     validation.values.password,
     user.password_hash,

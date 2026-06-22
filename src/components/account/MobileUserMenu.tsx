@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, ReceiptText, Settings, UserRound } from "lucide-react";
+import { LogOut, Mail, ReceiptText, Settings, UserRound } from "lucide-react";
 import { BrandLogo } from "@/components/home/BrandLogo";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
 import { UserNav } from "@/components/account/UserNav";
@@ -26,6 +26,11 @@ const accountItems = [
     href: "/movimenti",
     icon: ReceiptText,
     label: "Lista Movimenti",
+  },
+  {
+    href: "/posta",
+    icon: Mail,
+    label: "Posta",
   },
   {
     href: "/impostazioni",
@@ -77,13 +82,28 @@ export function MobileUserMenu({
             <strong>{user.username}</strong>
             <span>{balance}</span>
           </div>
-          <a
-            aria-label="Apri il bot Telegram Survivor Arena"
-            className="user-mobile-telegram-link"
-            href="tg://resolve?domain=SurvivorArena_bot"
-          >
-            <TelegramIcon className="user-telegram-icon" />
-          </a>
+          <div className="user-mobile-profile-actions">
+            <Link
+              aria-label={
+                user.unread_message_count
+                  ? `Apri posta, ${user.unread_message_count} messaggi non letti`
+                  : "Apri posta"
+              }
+              className="user-mobile-mail-link"
+              href="/posta"
+              onClick={onClose}
+            >
+              <Mail aria-hidden="true" className="user-mail-icon" />
+              {user.unread_message_count ? <span className="user-unread-dot" /> : null}
+            </Link>
+            <a
+              aria-label="Apri il bot Telegram Survivor Arena"
+              className="user-mobile-telegram-link"
+              href="tg://resolve?domain=SurvivorArena_bot"
+            >
+              <TelegramIcon className="user-telegram-icon" />
+            </a>
+          </div>
         </div>
 
         <UserNav onNavigate={onClose} variant="mobile" />
