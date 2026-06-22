@@ -139,6 +139,9 @@ function selectUsers(users, index, count) {
 async function register(client, username, email, phone) {
   const response = await client.request("/api/register", {
     body: {
+      acceptCookiePolicy: true,
+      acceptPrivacy: true,
+      acceptTerms: true,
       confirmPassword: password,
       email,
       password,

@@ -85,6 +85,18 @@ export const onRequestPatch: PagesFunction<Env> = async ({ env, request }) => {
     );
   }
 
+  if (values.phone !== auth.user.phone) {
+    return json(
+      {
+        field: "phone",
+        message: "Per cambiare numero devi completare la verifica Telegram.",
+        ok: false,
+        requiresPhoneVerification: true,
+      },
+      { status: 409 },
+    );
+  }
+
   try {
     const user = await updateUserProfile(env.DB, {
       ...values,

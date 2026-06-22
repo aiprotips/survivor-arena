@@ -123,6 +123,9 @@ function userSeed(prefix) {
 async function register(client, prefix, overrides = {}) {
   const seed = userSeed(prefix);
   const payload = {
+    acceptCookiePolicy: true,
+    acceptPrivacy: true,
+    acceptTerms: true,
     confirmPassword: password,
     email: seed.email,
     password,
@@ -452,6 +455,9 @@ async function main() {
     const seed = userSeed("weak");
     const response = await anonymous.request("/api/register", {
       body: {
+        acceptCookiePolicy: true,
+        acceptPrivacy: true,
+        acceptTerms: true,
         confirmPassword: "weak",
         email: seed.email,
         password: "weak",
@@ -470,6 +476,9 @@ async function main() {
 
     const duplicateUsername = await anonymous.request("/api/register", {
       body: {
+        acceptCookiePolicy: true,
+        acceptPrivacy: true,
+        acceptTerms: true,
         confirmPassword: password,
         email: `other-${stamp}@example.com`,
         password,
@@ -480,6 +489,9 @@ async function main() {
     });
     const duplicateEmail = await anonymous.request("/api/register", {
       body: {
+        acceptCookiePolicy: true,
+        acceptPrivacy: true,
+        acceptTerms: true,
         confirmPassword: password,
         email: userData.email,
         password,
@@ -490,6 +502,9 @@ async function main() {
     });
     const duplicatePhone = await anonymous.request("/api/register", {
       body: {
+        acceptCookiePolicy: true,
+        acceptPrivacy: true,
+        acceptTerms: true,
         confirmPassword: password,
         email: `phone-${stamp}@example.com`,
         password,

@@ -26,7 +26,9 @@ import { StatCard } from "@/components/account/StatCard";
 import { UserLayout } from "@/components/account/UserLayout";
 import type { AccountUser, UserAreaPageKey } from "@/components/account/types";
 import { Button, ButtonLink } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
+import { TelegramIcon } from "@/components/ui/TelegramIcon";
 import { getPasswordRequirements } from "@/lib/auth-validation";
 import { formatCups } from "@/lib/arena-client";
 
@@ -44,7 +46,7 @@ export function UserAreaPage({ page }: UserAreaPageProps) {
           case "classifiche":
             return <ClassifichePage />;
           case "premi":
-            return <PremiPage />;
+            return <PremiPage user={user} />;
           case "profilo":
             return <ProfiloPage user={user} />;
           case "movimenti":
@@ -81,107 +83,136 @@ function PageIntro({
   );
 }
 
+type DashboardArena = {
+  alive_lives: number;
+  deadline_at: string | null;
+  eliminated_lives: number;
+  entry_cost: number;
+  pending_choices: number;
+  prize_pool: number;
+  progress_percent: number;
+  registration_id: string;
+  registration_status: string;
+  round_label: string;
+  round_status: string | null;
+  total_lives: number;
+  tournament_id: string;
+  tournament_name: string;
+  tournament_status: string;
+};
+
+type DashboardAction = {
+  label: string;
+  meta: string;
+  tone: "gold" | "neutral";
+  type: "choice" | "deadline" | "result";
+};
+
+type DashboardData = {
+  actions: DashboardAction[];
+  arenas: DashboardArena[];
+  movements: MovementRow[];
+  position: {
+    correct_rate: number | null;
+    rank: number | null;
+    weekly_delta: number;
+  };
+  stats: {
+    active_arenas: number;
+    available_cups: number;
+    won_arenas: number;
+  };
+};
+
+type DashboardResponse =
+  | {
+      dashboard: DashboardData;
+      ok: true;
+    }
+  | {
+      message: string;
+      ok: false;
+    };
+
 function DashboardPage({ user }: { user: AccountUser }) {
-  const isDemoUser = user.username.toLowerCase() === "lorenzop96";
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboard() {
+      const response = await fetch("/api/account/dashboard", {
+        credentials: "include",
+      });
+      const data = (await response.json()) as DashboardResponse;
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (data.ok) {
+        setDashboard(data.dashboard);
+      } else {
+        setMessage(data.message);
+      }
+
+      setIsLoading(false);
+    }
+
+    loadDashboard().catch(() => {
+      if (isMounted) {
+        setMessage("Dashboard non disponibile. Riprova tra poco.");
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const stats = [
     {
       icon: Gem,
       label: "Coppe disponibili",
       tone: "gold" as const,
-      value: formatCups(user.cup_balance ?? 0),
+      value: formatCups(dashboard?.stats.available_cups ?? user.cup_balance ?? 0),
     },
     {
       icon: Swords,
       label: "Arene attive",
-      value: isDemoUser ? "3" : "0",
+      value: String(dashboard?.stats.active_arenas ?? 0),
     },
     {
       icon: Crown,
       label: "Arene vinte",
       tone: "gold" as const,
-      value: "0",
+      value: String(dashboard?.stats.won_arenas ?? 0),
     },
     {
       icon: BarChart3,
       label: "Posizione classifica",
-      value: isDemoUser ? "#128" : "N/D",
+      value: dashboard?.position.rank ? `#${dashboard.position.rank}` : "N/D",
     },
   ];
 
-  const arenas = isDemoUser
-    ? [
-        {
-          deadline: "1 giorno 12 ore",
-          entry: "250 Coppe",
-          progress: "40%",
-          progressClassName: "dashboard-progress-40",
-          status: "Scelta richiesta",
-          title: "Arena Champions",
-          turn: "Turno 4 di 10",
-        },
-        {
-          deadline: "2 giorni 04 ore",
-          entry: "150 Coppe",
-          progress: "20%",
-          progressClassName: "dashboard-progress-20",
-          status: "In corso",
-          title: "Survivor Cup",
-          turn: "Turno 2 di 8",
-        },
-        {
-          deadline: "5 giorni 18 ore",
-          entry: "100 Coppe",
-          progress: "10%",
-          progressClassName: "dashboard-progress-10",
-          status: "In arrivo",
-          title: "Legends Arena",
-          turn: "Turno 1 di 10",
-        },
-      ]
-    : [];
-
-  const actions = isDemoUser
-    ? [
-        {
-          icon: AlertCircle,
-          label: "Devi effettuare una scelta",
-          meta: "Arena Champions",
-        },
-        {
-          icon: Timer,
-          label: "Arena in scadenza",
-          meta: "1 giorno 12 ore",
-        },
-        {
-          icon: Gift,
-          label: "Premio disponibile",
-          meta: "Ricompensa demo",
-        },
-      ]
-    : [];
-
-  const movements = isDemoUser
-    ? [
-        ["+500 Coppe", "Vittoria Arena Champions"],
-        ["-100 Coppe", "Iscrizione Survivor Cup"],
-        ["+250 Coppe", "Bonus classifica"],
-        ["-50 Coppe", "Ingresso Legends Arena"],
-      ]
-    : [];
-
-  const position = isDemoUser
-    ? {
-        choices: "72%",
-        progress: "+18%",
-        rank: "#128",
-        text: "+12 posizioni negli ultimi 7 giorni",
-      }
-    : {
-        choices: "0%",
-        progress: "0%",
-        rank: "N/D",
-        text: "Partecipa a un'Arena per entrare in classifica",
-      };
+  const arenas = dashboard?.arenas ?? [];
+  const actions = dashboard?.actions ?? [];
+  const movements = dashboard?.movements ?? [];
+  const position = {
+    choices: dashboard?.position.correct_rate === null || dashboard?.position.correct_rate === undefined
+      ? "N/D"
+      : `${dashboard.position.correct_rate}%`,
+    progress: dashboard?.position.weekly_delta
+      ? `${dashboard.position.weekly_delta > 0 ? "+" : ""}${formatCups(dashboard.position.weekly_delta)}`
+      : "0 Coppe",
+    rank: dashboard?.position.rank ? `#${dashboard.position.rank}` : "N/D",
+    text: dashboard?.position.rank
+      ? `Saldo reale: ${formatCups(dashboard.stats.available_cups)}`
+      : "Partecipa a un'Arena per entrare in classifica",
+  };
 
   return (
     <div className="dashboard-page-content">
@@ -194,9 +225,21 @@ function DashboardPage({ user }: { user: AccountUser }) {
 
         <div className="dashboard-hero-status" aria-label="Riepilogo rapido">
           <span>Saldo Coppe</span>
-          <strong>{formatCups(user.cup_balance ?? 0)}</strong>
+          <strong>{formatCups(dashboard?.stats.available_cups ?? user.cup_balance ?? 0)}</strong>
         </div>
       </section>
+
+      {message ? (
+        <div className="auth-form-message auth-form-message-error" role="alert">
+          {message}
+        </div>
+      ) : null}
+
+      {isLoading ? (
+        <section className="dashboard-panel">
+          <p>Caricamento dati reali...</p>
+        </section>
+      ) : null}
 
       <section className="user-stat-grid dashboard-stat-grid" aria-label="Statistiche principali">
         {stats.map((stat) => {
@@ -227,45 +270,47 @@ function DashboardPage({ user }: { user: AccountUser }) {
               </ButtonLink>
             </div>
 
-            {arenas.length > 0 ? (
+            {!isLoading && arenas.length > 0 ? (
               <div className="dashboard-arena-list">
                 {arenas.map((arena) => (
-                  <article className="dashboard-arena-card" key={arena.title}>
+                  <article className="dashboard-arena-card" key={arena.registration_id}>
                     <div className="dashboard-arena-top">
-                      <span className="dashboard-arena-status">{arena.status}</span>
-                      <span>{arena.entry}</span>
+                      <span className="dashboard-arena-status">
+                        {arena.pending_choices > 0 ? "Scelta richiesta" : arena.tournament_status}
+                      </span>
+                      <span>{formatCups(arena.entry_cost)}</span>
                     </div>
 
                     <div className="dashboard-arena-copy">
-                      <h3>{arena.title}</h3>
-                      <p>{arena.turn}</p>
+                      <h3>{arena.tournament_name}</h3>
+                      <p>{arena.round_label}</p>
                     </div>
 
                     <div className="dashboard-arena-meta">
                       <div>
                         <Clock3 aria-hidden="true" className="dashboard-small-icon" />
-                        <span>Scadenza: {arena.deadline}</span>
+                        <span>Scadenza: {formatDashboardDeadline(arena.deadline_at)}</span>
                       </div>
-                      <div className="dashboard-progress" aria-label={`Avanzamento ${arena.progress}`}>
-                        <span className={arena.progressClassName} />
+                      <div className="dashboard-progress" aria-label={`Vite vive ${arena.progress_percent}%`}>
+                        <span style={{ width: `${arena.progress_percent}%` }} />
                       </div>
                     </div>
 
-                    <ButtonLink className="dashboard-arena-button" href="/arene">
+                    <ButtonLink className="dashboard-arena-button" href={`/arena?id=${arena.tournament_id}`}>
                       Vai all&apos;Arena
                       <ArrowUpRight aria-hidden="true" className="dashboard-button-icon" />
                     </ButtonLink>
                   </article>
                 ))}
               </div>
-            ) : (
+            ) : !isLoading ? (
               <DashboardEmptyState
                 cta="Scopri le Arene"
                 href="/arene"
                 text="Non stai partecipando a nessuna Arena. Quando entrerai in gioco, le tue competizioni appariranno qui."
                 title="Nessuna Arena attiva"
               />
-            )}
+            ) : null}
           </section>
 
           <section className="dashboard-panel dashboard-movements-panel" aria-labelledby="recent-movements-title">
@@ -279,21 +324,24 @@ function DashboardPage({ user }: { user: AccountUser }) {
               </ButtonLink>
             </div>
 
-            {movements.length > 0 ? (
+            {!isLoading && movements.length > 0 ? (
               <div className="dashboard-movement-list">
-                {movements.map(([amount, label]) => (
-                  <article className="dashboard-movement-row" key={label}>
-                    <span>{amount}</span>
-                    <strong>{label}</strong>
+                {movements.map((movement) => (
+                  <article className="dashboard-movement-row" key={movement.id}>
+                    <span>
+                      {movement.amount > 0 ? "+" : ""}
+                      {formatCups(movement.amount)}
+                    </span>
+                    <strong>{movement.description}</strong>
                   </article>
                 ))}
               </div>
-            ) : (
+            ) : !isLoading ? (
               <DashboardEmptyState
                 text="Non ci sono ancora movimenti. Le iscrizioni, i bonus e le ricompense verranno tracciati qui."
                 title="Nessun movimento"
               />
-            )}
+            ) : null}
           </section>
         </div>
 
@@ -306,13 +354,18 @@ function DashboardPage({ user }: { user: AccountUser }) {
               </div>
             </div>
 
-            {actions.length > 0 ? (
+            {!isLoading && actions.length > 0 ? (
               <div className="dashboard-action-list">
                 {actions.map((action) => {
-                  const Icon = action.icon;
+                  const Icon =
+                    action.type === "choice"
+                      ? AlertCircle
+                      : action.type === "result"
+                        ? Gift
+                        : Timer;
 
                   return (
-                    <article className="dashboard-action-item" key={action.label}>
+                    <article className="dashboard-action-item" key={`${action.label}-${action.meta}`}>
                       <span className="dashboard-action-icon">
                         <Icon aria-hidden="true" className="dashboard-small-icon" />
                       </span>
@@ -324,12 +377,12 @@ function DashboardPage({ user }: { user: AccountUser }) {
                   );
                 })}
               </div>
-            ) : (
+            ) : !isLoading ? (
               <DashboardEmptyState
                 text="Non hai azioni urgenti. Quando una scelta sarà richiesta, la vedrai subito qui."
                 title="Tutto sotto controllo"
               />
-            )}
+            ) : null}
           </section>
 
           <section className="dashboard-panel dashboard-position-panel" aria-labelledby="position-title">
@@ -393,71 +446,191 @@ function DashboardEmptyState({
   );
 }
 
+function formatDashboardDeadline(value: string | null) {
+  if (!value) {
+    return "Da impostare";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Da impostare";
+  }
+
+  return new Intl.DateTimeFormat("it-IT", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
 function ArenePage() {
   return <ArenaListContent />;
 }
 
 function ClassifichePage() {
-  const rows = [
-    ["1", "Survivor_One", "2.450"],
-    ["2", "TheLastOne", "2.150"],
-    ["3", "ArenaKing", "1.890"],
+  const [leaderboards, setLeaderboards] = useState<LeaderboardsData | null>(null);
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadLeaderboards() {
+      const response = await fetch("/api/account/leaderboards", {
+        credentials: "include",
+      });
+      const data = (await response.json()) as LeaderboardsResponse;
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (data.ok) {
+        setLeaderboards(data.leaderboards);
+      } else {
+        setMessage(data.message);
+      }
+
+      setIsLoading(false);
+    }
+
+    loadLeaderboards().catch(() => {
+      if (isMounted) {
+        setMessage("Classifiche non disponibili. Riprova tra poco.");
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const sections = [
+    {
+      key: "global" as const,
+      title: "Classifica globale",
+    },
+    {
+      key: "weekly" as const,
+      title: "Classifica settimanale",
+    },
+    {
+      key: "monthly" as const,
+      title: "Classifica mensile",
+    },
   ];
 
   return (
     <>
       <PageIntro
         eyebrow="Prestigio"
-        subtitle="Classifiche demo per preparare la futura esperienza competitiva."
+        subtitle="Classifiche calcolate sui dati reali degli account e dei movimenti Coppe."
         title="Classifiche"
       />
 
-      <section className="user-section-grid" aria-label="Classifiche demo">
-        {["Classifica globale", "Classifica settimanale", "Classifica mensile"].map((title) => (
-          <PlaceholderCard eyebrow="Demo" key={title} title={title}>
-            <div className="user-ranking-list">
-              {rows.map(([position, name, points]) => (
-                <div className="user-ranking-row" key={`${title}-${position}`}>
-                  <span>{position}</span>
-                  <strong>{name}</strong>
-                  <em>{points} Coppe</em>
+      {message ? (
+        <div className="auth-form-message auth-form-message-error" role="alert">
+          {message}
+        </div>
+      ) : null}
+
+      <section className="user-section-grid" aria-label="Classifiche reali">
+        {sections.map((section) => {
+          const rows = leaderboards?.[section.key] ?? [];
+
+          return (
+            <PlaceholderCard eyebrow="Live" key={section.key} title={section.title}>
+              {isLoading ? (
+                <p>Caricamento classifica...</p>
+              ) : rows.length > 0 ? (
+                <div className="user-ranking-list">
+                  {rows.map((row) => (
+                    <div className="user-ranking-row" key={`${section.key}-${row.user_code}`}>
+                      <span>{row.position}</span>
+                      <strong>{row.username}</strong>
+                      <em>{formatCups(row.score)}</em>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </PlaceholderCard>
-        ))}
+              ) : (
+                <p>Non ci sono ancora dati reali per questa classifica.</p>
+              )}
+            </PlaceholderCard>
+          );
+        })}
       </section>
     </>
   );
 }
 
-function PremiPage() {
+type LeaderboardEntry = {
+  position: number;
+  score: number;
+  user_code: string;
+  username: string;
+};
+
+type LeaderboardsData = {
+  global: LeaderboardEntry[];
+  monthly: LeaderboardEntry[];
+  weekly: LeaderboardEntry[];
+};
+
+type LeaderboardsResponse =
+  | {
+      leaderboards: LeaderboardsData;
+      ok: true;
+    }
+  | {
+      message: string;
+      ok: false;
+    };
+
+function PremiPage({ user }: { user: AccountUser }) {
   return (
     <>
       <PageIntro
         eyebrow="Ricompense"
-        subtitle="Area demo dedicata al saldo Coppe e ai premi futuri."
+        subtitle="Qui vedrai solo saldo e premi reali quando saranno disponibili sul tuo account."
         title="Premi"
       />
 
       <section className="user-summary-panel" aria-label="Saldo coppe">
         <div>
           <span>Saldo Coppe</span>
-          <strong>0 Coppe</strong>
+          <strong>{formatCups(user.cup_balance ?? 0)}</strong>
         </div>
       </section>
 
-      <section className="user-section-grid" aria-label="Premi demo">
-        <PlaceholderCard eyebrow="Demo" meta="Catalogo in arrivo" title="Premi disponibili">
-          <p>Qui verranno mostrati badge, coppe speciali e ricompense riscattabili.</p>
+      <section className="user-section-grid" aria-label="Premi reali">
+        <PlaceholderCard eyebrow="Account" meta="Nessun premio disponibile" title="Premi disponibili">
+          <p>Al momento non ci sono premi reali disponibili per il tuo account.</p>
         </PlaceholderCard>
-        <PlaceholderCard eyebrow="Demo" meta="Nessun premio riscattato" title="Premi riscattati">
-          <p>Lo storico dei premi riscattati sarà disponibile nelle prossime versioni.</p>
+        <PlaceholderCard eyebrow="Storico" meta="Nessun riscatto registrato" title="Premi riscattati">
+          <p>Quando riscatterai un premio reale, verrà mostrato qui.</p>
         </PlaceholderCard>
       </section>
     </>
   );
 }
+
+type PhoneChangeResponse =
+  | {
+      expiresAt?: string;
+      message: string;
+      ok: true;
+      phone?: string;
+    }
+  | {
+      field?: string;
+      message: string;
+      ok: false;
+      requiresTelegramLink?: boolean;
+      telegramAppStartUrl?: string;
+      telegramBotUsername?: string;
+      telegramStartUrl?: string;
+    };
 
 function ProfiloPage({ user }: { user: AccountUser }) {
   const [profile, setProfile] = useState(user);
@@ -466,8 +639,89 @@ function ProfiloPage({ user }: { user: AccountUser }) {
     phone: user.phone,
     username: user.username,
   });
+  const [phoneCode, setPhoneCode] = useState("");
+  const [phoneModal, setPhoneModal] = useState<{
+    appStartUrl?: string;
+    botUsername?: string;
+    message: string;
+    phone: string;
+    startUrl?: string;
+    status: "code" | "telegram";
+  } | null>(null);
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPhoneSubmitting, setIsPhoneSubmitting] = useState(false);
+
+  async function saveProfile(nextForm = form) {
+    const response = await fetch("/api/account/profile", {
+      body: JSON.stringify(nextForm),
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    });
+    const data = (await response.json()) as
+      | {
+          ok: true;
+          user: AccountUser;
+        }
+      | {
+          message: string;
+          ok: false;
+          requiresPhoneVerification?: boolean;
+        };
+
+    if (!data.ok) {
+      throw new Error(data.message);
+    }
+
+    setProfile({
+      ...profile,
+      ...data.user,
+    });
+    setForm({
+      email: data.user.email,
+      phone: data.user.phone,
+      username: data.user.username,
+    });
+
+    return data.user;
+  }
+
+  async function startPhoneVerification() {
+    const response = await fetch("/api/account/phone-change", {
+      body: JSON.stringify({ phone: form.phone }),
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+    const data = (await response.json()) as PhoneChangeResponse;
+
+    if (!data.ok) {
+      if (data.requiresTelegramLink) {
+        setPhoneModal({
+          appStartUrl: data.telegramAppStartUrl,
+          botUsername: data.telegramBotUsername,
+          message: data.message,
+          phone: form.phone,
+          startUrl: data.telegramStartUrl,
+          status: "telegram",
+        });
+        return;
+      }
+
+      throw new Error(data.message);
+    }
+
+    setPhoneModal({
+      message: data.message,
+      phone: form.phone,
+      status: "code",
+    });
+  }
 
   async function updateProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -475,43 +729,66 @@ function ProfiloPage({ user }: { user: AccountUser }) {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/account/profile", {
-        body: JSON.stringify(form),
+      if (form.phone !== profile.phone) {
+        await startPhoneVerification();
+        return;
+      }
+
+      await saveProfile();
+      setMessage("Profilo aggiornato correttamente.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Aggiornamento profilo non riuscito. Riprova tra poco.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function confirmPhoneChange(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage("");
+    setIsPhoneSubmitting(true);
+
+    try {
+      const response = await fetch("/api/account/phone-change", {
+        body: JSON.stringify({ code: phoneCode }),
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
         method: "PATCH",
       });
-      const data = (await response.json()) as
-        | {
-            ok: true;
-            user: AccountUser;
-          }
-        | {
-            message: string;
-            ok: false;
-          };
+      const data = (await response.json()) as PhoneChangeResponse;
 
       if (!data.ok) {
         setMessage(data.message);
         return;
       }
 
-      setProfile({
-        ...profile,
-        ...data.user,
-      });
-      setForm({
-        email: data.user.email,
-        phone: data.user.phone,
-        username: data.user.username,
-      });
-      setMessage("Profilo aggiornato correttamente.");
-    } catch {
-      setMessage("Aggiornamento profilo non riuscito. Riprova tra poco.");
+      const nextForm = {
+        ...form,
+        phone: data.phone ?? form.phone,
+      };
+      await saveProfile(nextForm);
+      setPhoneCode("");
+      setPhoneModal(null);
+      setMessage("Numero verificato e profilo aggiornato correttamente.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Verifica telefono non riuscita. Riprova tra poco.");
     } finally {
-      setIsSubmitting(false);
+      setIsPhoneSubmitting(false);
+    }
+  }
+
+  async function retryPhoneVerification() {
+    setMessage("");
+    setIsPhoneSubmitting(true);
+
+    try {
+      await startPhoneVerification();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Codice non inviato. Riprova tra poco.");
+    } finally {
+      setIsPhoneSubmitting(false);
     }
   }
 
@@ -592,6 +869,100 @@ function ProfiloPage({ user }: { user: AccountUser }) {
           </Button>
         </form>
       </section>
+
+      {phoneModal ? (
+        <div className="auth-modal-backdrop user-phone-modal" role="presentation">
+          <Card
+            aria-labelledby="phone-change-title"
+            aria-modal="true"
+            className="auth-modal-card"
+            role="dialog"
+          >
+            <span className="auth-telegram-emblem" aria-hidden="true">
+              <TelegramIcon className="auth-telegram-emblem-icon" />
+            </span>
+            <div className="auth-modal-copy">
+              <p className="auth-kicker">Verifica telefono</p>
+              <h2 className="auth-modal-title" id="phone-change-title">
+                Conferma il nuovo numero
+              </h2>
+              <p className="auth-modal-text">{phoneModal.message}</p>
+            </div>
+
+            {phoneModal.status === "telegram" ? (
+              <div className="auth-telegram-panel">
+                <p>
+                  Apri il bot Telegram, premi Avvia e poi torna qui per richiedere
+                  il codice del nuovo numero.
+                </p>
+                {phoneModal.appStartUrl || phoneModal.startUrl ? (
+                  <a
+                    className="ui-button ui-button-primary auth-telegram-button"
+                    href={phoneModal.appStartUrl || phoneModal.startUrl}
+                  >
+                    <TelegramIcon className="auth-telegram-button-icon" />
+                    Apri Telegram
+                  </a>
+                ) : null}
+                {phoneModal.startUrl ? (
+                  <ButtonLink
+                    className="auth-inline-link"
+                    href={phoneModal.startUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                    variant="secondary"
+                  >
+                    Apri via web @{phoneModal.botUsername}
+                  </ButtonLink>
+                ) : null}
+                <Button
+                  disabled={isPhoneSubmitting}
+                  onClick={() => void retryPhoneVerification()}
+                  type="button"
+                  variant="secondary"
+                >
+                  {isPhoneSubmitting ? "CONTROLLO..." : "Ho collegato Telegram"}
+                </Button>
+              </div>
+            ) : (
+              <form className="auth-form" onSubmit={confirmPhoneChange}>
+                <div className="ui-field">
+                  <label className="ui-field-label" htmlFor="profile-phone-code">
+                    Codice OTP
+                  </label>
+                  <input
+                    autoComplete="one-time-code"
+                    className="ui-input"
+                    id="profile-phone-code"
+                    inputMode="numeric"
+                    maxLength={6}
+                    onChange={(event) =>
+                      setPhoneCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
+                    placeholder="Inserisci il codice Telegram"
+                    value={phoneCode}
+                  />
+                </div>
+                <Button className="auth-submit-button" disabled={isPhoneSubmitting} type="submit">
+                  {isPhoneSubmitting ? "VERIFICA..." : "CONFERMA NUMERO"}
+                </Button>
+              </form>
+            )}
+
+            <Button
+              onClick={() => {
+                setPhoneCode("");
+                setPhoneModal(null);
+                setForm((current) => ({ ...current, phone: profile.phone }));
+              }}
+              type="button"
+              variant="secondary"
+            >
+              Annulla
+            </Button>
+          </Card>
+        </div>
+      ) : null}
     </>
   );
 }

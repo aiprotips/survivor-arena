@@ -7,6 +7,7 @@ import {
 } from "../../src/lib/auth-validation";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../_shared/http";
 import { createUser, findUserByUniqueFields, toPublicUser } from "../_shared/users";
+import { ensureUserComplianceSchema, recordLegalAcceptance } from "../_shared/user-compliance";
 
 type Env = {
   DB: D1Database;
@@ -46,6 +47,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   }
 
   const validation = validateRegistrationValues({
+    acceptCookiePolicy: body.acceptCookiePolicy === true,
+    acceptPrivacy: body.acceptPrivacy === true,
+    acceptTerms: body.acceptTerms === true,
     confirmPassword: String(body.confirmPassword ?? ""),
     email: String(body.email ?? ""),
     password: String(body.password ?? ""),
@@ -89,7 +93,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   }
 
   try {
+    await ensureUserComplianceSchema(env.DB);
     const user = await createUser(env.DB, validation.values);
+    await recordLegalAcceptance(env.DB, user.id);
 
     return json(
       {

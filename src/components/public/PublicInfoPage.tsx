@@ -36,6 +36,24 @@ export function PublicInfoPage({ content }: { content: PublicInfoPageContent }) 
             );
           })}
         </section>
+
+        {content.sections ? (
+          <section className="arena-shell public-legal-sections" aria-label={`Dettagli ${content.title}`}>
+            {content.sections.map((section) => (
+              <article className="public-legal-section" key={section.title}>
+                <h2>{section.title}</h2>
+                {section.text ? <p>{section.text}</p> : null}
+                {section.items ? (
+                  <ul>
+                    {section.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </article>
+            ))}
+          </section>
+        ) : null}
       </main>
     </>
   );

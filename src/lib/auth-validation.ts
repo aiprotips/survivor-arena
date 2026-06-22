@@ -1,4 +1,7 @@
 export type RegisterFormValues = {
+  acceptCookiePolicy: boolean;
+  acceptPrivacy: boolean;
+  acceptTerms: boolean;
   confirmPassword: string;
   email: string;
   password: string;
@@ -154,6 +157,9 @@ export function validateConfirmPassword(password: string, confirmPassword: strin
 
 export function normalizeRegistrationValues(input: Partial<RegisterFormValues>) {
   return {
+    acceptCookiePolicy: input.acceptCookiePolicy === true,
+    acceptPrivacy: input.acceptPrivacy === true,
+    acceptTerms: input.acceptTerms === true,
     confirmPassword: String(input.confirmPassword ?? ""),
     email: normalizeEmail(input.email),
     password: String(input.password ?? ""),
@@ -180,6 +186,9 @@ export function validateRegistrationValues(input: Partial<RegisterFormValues>) {
   if (phoneError) errors.phone = phoneError;
   if (passwordError) errors.password = passwordError;
   if (confirmPasswordError) errors.confirmPassword = confirmPasswordError;
+  if (!values.acceptTerms) errors.acceptTerms = "Devi accettare i Termini e Condizioni.";
+  if (!values.acceptPrivacy) errors.acceptPrivacy = "Devi confermare la presa visione della Privacy Policy.";
+  if (!values.acceptCookiePolicy) errors.acceptCookiePolicy = "Devi confermare la Cookie Policy.";
 
   return {
     errors,

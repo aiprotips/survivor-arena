@@ -3,6 +3,7 @@
 export type ApiErrorResponse<TField extends string = string> = {
   details?: string[];
   field?: TField;
+  [key: string]: unknown;
   message: string;
   ok: false;
 };

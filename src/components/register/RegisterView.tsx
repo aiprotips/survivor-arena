@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
+import type { ReactNode } from "react";
 import { BrandLogo } from "@/components/home/BrandLogo";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -59,6 +60,9 @@ const progressSteps: ProgressStep[] = [
 ];
 
 const initialValues: RegisterFormValues = {
+  acceptCookiePolicy: false,
+  acceptPrivacy: false,
+  acceptTerms: false,
   confirmPassword: "",
   email: "",
   password: "",
@@ -96,6 +100,22 @@ export function RegisterView() {
       const nextValues = {
         ...values,
         [field]: event.target.value,
+      };
+
+      setValues(nextValues);
+      setFormMessage("");
+      setErrors((currentErrors) => ({
+        ...currentErrors,
+        [field]: getFieldError(field, nextValues),
+      }));
+    };
+
+  const updateConsent =
+    (field: "acceptCookiePolicy" | "acceptPrivacy" | "acceptTerms") =>
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const nextValues = {
+        ...values,
+        [field]: event.target.checked,
       };
 
       setValues(nextValues);
@@ -268,6 +288,7 @@ export function RegisterView() {
                   setCurrentStep(1);
                 }}
                 onChange={updateValue}
+                onConsentChange={updateConsent}
                 onToggleConfirmPassword={() =>
                   setIsConfirmPasswordVisible((current) => !current)
                 }
@@ -424,6 +445,9 @@ type RegisterSecurityStepProps = RegisterStepProps & {
   isPasswordVisible: boolean;
   isSubmitting: boolean;
   onBack: () => void;
+  onConsentChange: (
+    field: "acceptCookiePolicy" | "acceptPrivacy" | "acceptTerms",
+  ) => (event: ChangeEvent<HTMLInputElement>) => void;
   onToggleConfirmPassword: () => void;
   onTogglePassword: () => void;
   passwordRequirements: ReturnType<typeof getPasswordRequirements>;
@@ -436,6 +460,7 @@ function RegisterSecurityStep({
   isSubmitting,
   onBack,
   onChange,
+  onConsentChange,
   onToggleConfirmPassword,
   onTogglePassword,
   passwordRequirements,
@@ -480,6 +505,42 @@ function RegisterSecurityStep({
         <FieldHelp error={errors.confirmPassword} />
       </div>
 
+      <div className="auth-legal-consents" aria-label="Consensi obbligatori">
+        <ConsentCheckbox
+          checked={values.acceptTerms}
+          error={errors.acceptTerms}
+          id="register-accept-terms"
+          label={
+            <>
+              Accetto i <a href="/termini" rel="noreferrer" target="_blank">Termini e Condizioni</a>.
+            </>
+          }
+          onChange={onConsentChange("acceptTerms")}
+        />
+        <ConsentCheckbox
+          checked={values.acceptPrivacy}
+          error={errors.acceptPrivacy}
+          id="register-accept-privacy"
+          label={
+            <>
+              Ho letto la <a href="/privacy" rel="noreferrer" target="_blank">Privacy Policy</a>.
+            </>
+          }
+          onChange={onConsentChange("acceptPrivacy")}
+        />
+        <ConsentCheckbox
+          checked={values.acceptCookiePolicy}
+          error={errors.acceptCookiePolicy}
+          id="register-accept-cookie"
+          label={
+            <>
+              Confermo la <a href="/cookie" rel="noreferrer" target="_blank">Cookie Policy</a>.
+            </>
+          }
+          onChange={onConsentChange("acceptCookiePolicy")}
+        />
+      </div>
+
       <Button
         className="auth-submit-button register-submit-button"
         disabled={isSubmitting}
@@ -499,6 +560,33 @@ function RegisterSecurityStep({
         Torna indietro
       </button>
     </div>
+  );
+}
+
+function ConsentCheckbox({
+  checked,
+  error,
+  id,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  error?: string;
+  id: string;
+  label: ReactNode;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <label className={cn("auth-consent-row", error && "auth-consent-row-error")} htmlFor={id}>
+      <input checked={checked} id={id} onChange={onChange} type="checkbox" />
+      <span aria-hidden="true" className="auth-consent-check">
+        {checked ? "✓" : ""}
+      </span>
+      <span>
+        {label}
+        {error ? <em role="alert">{error}</em> : null}
+      </span>
+    </label>
   );
 }
 
@@ -605,6 +693,9 @@ function FieldHelp({ error, text }: { error?: string; text?: string }) {
 }
 
 function getFieldError(field: RegisterField, values: RegisterFormValues) {
+  if (field === "acceptTerms") return values.acceptTerms ? "" : "Devi accettare i Termini e Condizioni.";
+  if (field === "acceptPrivacy") return values.acceptPrivacy ? "" : "Devi confermare la presa visione della Privacy Policy.";
+  if (field === "acceptCookiePolicy") return values.acceptCookiePolicy ? "" : "Devi confermare la Cookie Policy.";
   if (field === "username") return validateUsername(values.username);
   if (field === "email") return validateEmail(values.email);
   if (field === "phone") return validatePhone(values.phone);
