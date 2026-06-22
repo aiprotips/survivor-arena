@@ -237,6 +237,77 @@ function isMissingSchemaField(error: unknown) {
   return message.includes("no such column") || message.includes("no such table");
 }
 
+function isNonFatalSchemaChange(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return (
+    message.includes("duplicate column name") ||
+    message.includes("already exists") ||
+    message.includes("no such table")
+  );
+}
+
+let teamsSchemaReady = false;
+
+async function runOptionalSchemaStatement(db: D1Database, statement: string) {
+  try {
+    await db.prepare(statement).run();
+  } catch (error) {
+    if (!isNonFatalSchemaChange(error)) {
+      throw error;
+    }
+  }
+}
+
+async function ensureTeamsSchema(db: D1Database) {
+  if (teamsSchemaReady) {
+    return;
+  }
+
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS teams (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        normalized_name TEXT NOT NULL UNIQUE,
+        logo_url TEXT,
+        created_by TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+      )`,
+    )
+    .run();
+
+  await runOptionalSchemaStatement(db, "CREATE INDEX IF NOT EXISTS idx_teams_name ON teams (normalized_name)");
+  await runOptionalSchemaStatement(
+    db,
+    "ALTER TABLE tournament_matches ADD COLUMN home_team_id TEXT REFERENCES teams (id) ON DELETE SET NULL",
+  );
+  await runOptionalSchemaStatement(
+    db,
+    "ALTER TABLE tournament_matches ADD COLUMN away_team_id TEXT REFERENCES teams (id) ON DELETE SET NULL",
+  );
+  await runOptionalSchemaStatement(
+    db,
+    "ALTER TABLE life_selections ADD COLUMN selected_team_id TEXT REFERENCES teams (id) ON DELETE SET NULL",
+  );
+  await runOptionalSchemaStatement(
+    db,
+    "CREATE INDEX IF NOT EXISTS idx_tournament_matches_home_team ON tournament_matches (home_team_id)",
+  );
+  await runOptionalSchemaStatement(
+    db,
+    "CREATE INDEX IF NOT EXISTS idx_tournament_matches_away_team ON tournament_matches (away_team_id)",
+  );
+  await runOptionalSchemaStatement(
+    db,
+    "CREATE INDEX IF NOT EXISTS idx_life_selections_selected_team ON life_selections (selected_team_id)",
+  );
+
+  teamsSchemaReady = true;
+}
+
 export function parseTournamentInput(body: Record<string, unknown>): TournamentInput {
   const name = toStringValue(body.name);
   const entryCost = toInteger(body.entryCost ?? body.entry_cost);
@@ -397,6 +468,7 @@ export async function listTeams(db: D1Database) {
   let rows;
 
   try {
+    await ensureTeamsSchema(db);
     await seedNationalTeams(db);
     rows = await db
       .prepare(
@@ -417,11 +489,11 @@ export async function listTeams(db: D1Database) {
 }
 
 async function seedNationalTeams(db: D1Database) {
-  const seedEvent = await db
-    .prepare("SELECT id FROM arena_events WHERE event_type = 'national_teams_seeded' LIMIT 1")
-    .first<{ id: string }>();
+  const existingNationalTeams = await db
+    .prepare("SELECT COUNT(*) AS count FROM teams WHERE id LIKE 'national-%'")
+    .first<{ count: number }>();
 
-  if (seedEvent) {
+  if ((existingNationalTeams?.count ?? 0) > 0) {
     return;
   }
 
@@ -437,13 +509,21 @@ async function seedNationalTeams(db: D1Database) {
       .run();
   }
 
-  await logArenaEvent(db, {
-    eventType: "national_teams_seeded",
-    message: `Catalogo nazionali importato: ${nationalTeamSeeds.length} squadre.`,
-  });
+  try {
+    await logArenaEvent(db, {
+      eventType: "national_teams_seeded",
+      message: `Catalogo nazionali importato: ${nationalTeamSeeds.length} squadre.`,
+    });
+  } catch (error) {
+    if (!isMissingSchemaField(error)) {
+      throw error;
+    }
+  }
 }
 
 export async function getTeam(db: D1Database, teamId: string) {
+  await ensureTeamsSchema(db);
+
   return db
     .prepare(
       `SELECT id, name, normalized_name, logo_url, created_by, created_at, updated_at
@@ -456,6 +536,8 @@ export async function getTeam(db: D1Database, teamId: string) {
 }
 
 async function getTeamByNormalizedName(db: D1Database, normalizedName: string) {
+  await ensureTeamsSchema(db);
+
   return db
     .prepare(
       `SELECT id, name, normalized_name, logo_url, created_by, created_at, updated_at
@@ -550,7 +632,12 @@ export async function updateTeam(
        WHERE home_team_id = ?3`,
     )
     .bind(name, nowIso(), input.teamId)
-    .run();
+    .run()
+    .catch((error: unknown) => {
+      if (!isMissingSchemaField(error)) {
+        throw error;
+      }
+    });
   await db
     .prepare(
       `UPDATE tournament_matches
@@ -559,11 +646,21 @@ export async function updateTeam(
        WHERE away_team_id = ?3`,
     )
     .bind(name, nowIso(), input.teamId)
-    .run();
+    .run()
+    .catch((error: unknown) => {
+      if (!isMissingSchemaField(error)) {
+        throw error;
+      }
+    });
   await db
     .prepare("UPDATE life_selections SET selected_team = ?1, updated_at = ?2 WHERE selected_team_id = ?3")
     .bind(name, nowIso(), input.teamId)
-    .run();
+    .run()
+    .catch((error: unknown) => {
+      if (!isMissingSchemaField(error)) {
+        throw error;
+      }
+    });
 
   await logArenaEvent(db, {
     eventType: "team_updated",
@@ -581,14 +678,22 @@ export async function deleteTeam(db: D1Database, teamId: string, adminId: string
   const team = await getTeam(db, teamId);
   assertArena(team, "Squadra non trovata.", 404);
 
-  const usage = await db
-    .prepare(
-      `SELECT
-         (SELECT COUNT(*) FROM tournament_matches WHERE home_team_id = ?1 OR away_team_id = ?1) AS match_count,
-         (SELECT COUNT(*) FROM life_selections WHERE selected_team_id = ?1) AS selection_count`,
-    )
-    .bind(teamId)
-    .first<{ match_count: number; selection_count: number }>();
+  let usage: { match_count: number; selection_count: number } | null = null;
+
+  try {
+    usage = await db
+      .prepare(
+        `SELECT
+           (SELECT COUNT(*) FROM tournament_matches WHERE home_team_id = ?1 OR away_team_id = ?1) AS match_count,
+           (SELECT COUNT(*) FROM life_selections WHERE selected_team_id = ?1) AS selection_count`,
+      )
+      .bind(teamId)
+      .first<{ match_count: number; selection_count: number }>();
+  } catch (error) {
+    if (!isMissingSchemaField(error)) {
+      throw error;
+    }
+  }
 
   assertArena(
     !usage || (usage.match_count === 0 && usage.selection_count === 0),
