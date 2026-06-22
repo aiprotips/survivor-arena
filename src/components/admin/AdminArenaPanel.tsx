@@ -2620,6 +2620,35 @@ function TeamEditor({
     logoUrl: team.logo_url ?? "",
     name: team.name,
   });
+  const [localMessage, setLocalMessage] = useState("");
+
+  function handleLogoFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setLocalMessage("Seleziona un file immagine.");
+      return;
+    }
+
+    if (file.size > 160_000) {
+      setLocalMessage("Logo troppo pesante. Usa un file sotto 160 KB oppure un URL immagine.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setDraft((current) => ({
+        ...current,
+        logoUrl: typeof reader.result === "string" ? reader.result : "",
+      }));
+      setLocalMessage("");
+    };
+    reader.readAsDataURL(file);
+  }
 
   return (
     <article className="admin-team-row">
@@ -2642,7 +2671,13 @@ function TeamEditor({
           placeholder="Logo URL"
           value={draft.logoUrl.startsWith("data:image/") ? "Logo caricato da file" : draft.logoUrl}
         />
+        <input accept="image/*" className="ui-input" onChange={handleLogoFile} type="file" />
       </div>
+      {localMessage ? (
+        <div className="auth-form-message auth-form-message-error" role="alert">
+          {localMessage}
+        </div>
+      ) : null}
       <div className="admin-actions-row admin-row-actions">
         <Button
           onClick={() =>

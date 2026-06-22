@@ -1,5 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
+import { nationalTeamSeeds } from "./national-teams";
+
 export type TournamentStatus = "PENDING" | "ACTIVE" | "LOCKED" | "COMPLETED" | "CANCELLED";
 export type RoundStatus = "PENDING" | "OPEN" | "LOCKED" | "CALCULATED";
 export type MatchResult = "PENDING" | "HOME_WIN" | "DRAW" | "AWAY_WIN" | "POSTPONED" | "CANCELLED";
@@ -172,7 +174,10 @@ function normalizeTeamName(value: string) {
 function isValidLogoValue(value: string | null) {
   return (
     !value ||
-    ((value.startsWith("https://") || value.startsWith("http://") || value.startsWith("data:image/")) &&
+    ((value.startsWith("https://") ||
+      value.startsWith("http://") ||
+      value.startsWith("data:image/") ||
+      value.startsWith("/assets/")) &&
       value.length <= 250_000)
   );
 }
@@ -392,6 +397,7 @@ export async function listTeams(db: D1Database) {
   let rows;
 
   try {
+    await seedNationalTeams(db);
     rows = await db
       .prepare(
         `SELECT id, name, normalized_name, logo_url, created_by, created_at, updated_at
@@ -408,6 +414,33 @@ export async function listTeams(db: D1Database) {
   }
 
   return rows.results ?? [];
+}
+
+async function seedNationalTeams(db: D1Database) {
+  const seedEvent = await db
+    .prepare("SELECT id FROM arena_events WHERE event_type = 'national_teams_seeded' LIMIT 1")
+    .first<{ id: string }>();
+
+  if (seedEvent) {
+    return;
+  }
+
+  const now = nowIso();
+
+  for (const team of nationalTeamSeeds) {
+    await db
+      .prepare(
+        `INSERT OR IGNORE INTO teams (id, name, normalized_name, logo_url, created_by, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)`,
+      )
+      .bind(`national-${team.code.toLowerCase()}`, team.name, normalizeTeamName(team.name), team.logoUrl, now)
+      .run();
+  }
+
+  await logArenaEvent(db, {
+    eventType: "national_teams_seeded",
+    message: `Catalogo nazionali importato: ${nationalTeamSeeds.length} squadre.`,
+  });
 }
 
 export async function getTeam(db: D1Database, teamId: string) {
