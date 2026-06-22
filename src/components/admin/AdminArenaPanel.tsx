@@ -55,7 +55,9 @@ type AdminDashboardUser = AdminUser & {
   created_at: string;
   last_login_at: string | null;
   phone: string;
+  phone_verified_at: string | null;
   status: "active" | "blocked";
+  telegram_username: string | null;
   updated_at: string;
 };
 
@@ -954,6 +956,23 @@ function formatDateTime(value: string | null) {
   }).format(date);
 }
 
+function formatDateOnly(value: string | null) {
+  if (!value) {
+    return "Mai";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("it-IT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  }).format(date);
+}
+
 function getUserStatusLabel(status: AdminDashboardUser["status"]) {
   return status === "blocked" ? "Bloccato" : "Attivo";
 }
@@ -1130,28 +1149,77 @@ function AdminUsersDashboard({
         <div className="admin-users-layout">
           <div className="admin-user-list" aria-label="Utenti registrati">
             {users.length > 0 ? (
-              users.map((adminUser) => (
-                <button
-                  className={cn(
-                    "admin-user-row",
-                    selectedUser?.id === adminUser.id && "admin-user-row-active",
-                  )}
-                  key={adminUser.id}
-                  onClick={() => onSelect(adminUser)}
-                  type="button"
-                >
-                  <span className="admin-user-avatar" aria-hidden="true">
-                    {adminUser.username.slice(0, 1).toUpperCase()}
-                  </span>
-                  <span className="admin-user-main">
-                    <strong>{adminUser.username}</strong>
-                    <small>{adminUser.email}</small>
-                  </span>
-                  <span className={cn("admin-status-pill", adminUser.status === "blocked" && "admin-status-pill-danger")}>
-                    {getUserStatusLabel(adminUser.status)}
-                  </span>
-                </button>
-              ))
+              <div className="admin-user-list-scroll">
+                <div className="admin-user-list-header" aria-hidden="true">
+                  <span>Utente</span>
+                  <span>Codice</span>
+                  <span>Verifica</span>
+                  <span>Saldo</span>
+                  <span>Ruolo</span>
+                  <span>Iscritto</span>
+                  <span>Azioni</span>
+                </div>
+
+                {users.map((adminUser) => {
+                  const isBlocked = adminUser.status === "blocked";
+                  const isVerified = adminUser.role === "admin" || Boolean(adminUser.phone_verified_at);
+                  const verificationLabel = adminUser.role === "admin"
+                    ? "Admin OK"
+                    : isVerified
+                      ? "Telefono OK"
+                      : "Da verificare";
+
+                  return (
+                    <article
+                      className={cn(
+                        "admin-user-row",
+                        selectedUser?.id === adminUser.id && "admin-user-row-active",
+                      )}
+                      key={adminUser.id}
+                    >
+                      <button className="admin-user-row-main" onClick={() => onSelect(adminUser)} type="button">
+                        <span className="admin-user-cell admin-user-identity">
+                          <span
+                            className={cn("admin-user-presence", isBlocked && "admin-user-presence-danger")}
+                            aria-hidden="true"
+                          />
+                          <span className="admin-user-main">
+                            <strong>{adminUser.username}</strong>
+                            <small>
+                              {adminUser.email} • {getUserStatusLabel(adminUser.status)}
+                            </small>
+                          </span>
+                        </span>
+                        <span className="admin-user-cell admin-user-code">( {adminUser.user_code} )</span>
+                        <span
+                          className={cn(
+                            "admin-user-cell admin-user-verify",
+                            isVerified ? "admin-user-verify-ok" : "admin-user-verify-warn",
+                          )}
+                        >
+                          {verificationLabel}
+                        </span>
+                        <span className="admin-user-cell admin-user-amount">
+                          {formatCups(adminUser.cup_balance ?? 0)}
+                        </span>
+                        <span className="admin-user-cell admin-user-role">
+                          {adminUser.role === "admin" ? "Admin" : "Utente"}
+                        </span>
+                        <span className="admin-user-cell admin-user-date">
+                          {formatDateOnly(adminUser.created_at)}
+                        </span>
+                      </button>
+                      <button
+                        className="admin-user-movement-button"
+                        onClick={() => onSelect(adminUser)}
+                        type="button"
+                      >
+                        Movimenti
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
             ) : (
               <p className="admin-muted">Nessun utente trovato.</p>
             )}
@@ -1174,6 +1242,14 @@ function AdminUsersDashboard({
                 <div className="admin-user-data-grid">
                   <AdminDataItem label="Email" value={selectedUser.email} />
                   <AdminDataItem label="Telefono" value={selectedUser.phone} />
+                  <AdminDataItem
+                    label="Verifica telefono"
+                    value={selectedUser.phone_verified_at ? "Verificato" : "Non verificato"}
+                  />
+                  <AdminDataItem
+                    label="Telegram"
+                    value={selectedUser.telegram_username ? `@${selectedUser.telegram_username}` : "Non collegato"}
+                  />
                   <AdminDataItem label="Ruolo" value={selectedUser.role} />
                   <AdminDataItem label="Saldo" value={formatCups(selectedBalance ?? selectedUser.cup_balance ?? 0)} />
                   <AdminDataItem label="Creato" value={formatDateTime(selectedUser.created_at)} />

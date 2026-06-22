@@ -16,8 +16,10 @@ type AdminUserRow = {
   id: string;
   last_login_at: string | null;
   phone: string;
+  phone_verified_at: string | null;
   role: "admin" | "user";
   status: "active" | "blocked";
+  telegram_username: string | null;
   updated_at: string;
   user_code: string;
   username: string;
@@ -39,25 +41,29 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   const rows = await env.DB
     .prepare(
       `SELECT
-        id,
-        user_code,
-        username,
-        email,
-        phone,
-        role,
-        COALESCE(status, 'active') AS status,
-        blocked_at,
-        blocked_reason,
-        created_at,
-        updated_at,
-        last_login_at
-       FROM users
+        u.id,
+        u.user_code,
+        u.username,
+        u.email,
+        u.phone,
+        u.role,
+        COALESCE(u.status, 'active') AS status,
+        u.blocked_at,
+        u.blocked_reason,
+        u.created_at,
+        u.updated_at,
+        u.last_login_at,
+        tl.phone_verified_at,
+        tl.telegram_username
+       FROM users u
+       LEFT JOIN telegram_links tl ON tl.user_id = u.id
        WHERE ?1 = '%%'
-          OR username LIKE ?1
-          OR email LIKE ?1
-          OR phone LIKE ?1
-          OR user_code LIKE ?1
-       ORDER BY created_at DESC
+          OR u.username LIKE ?1
+          OR u.email LIKE ?1
+          OR u.phone LIKE ?1
+          OR u.user_code LIKE ?1
+          OR tl.telegram_username LIKE ?1
+       ORDER BY u.created_at DESC
        LIMIT 1000`,
     )
     .bind(filter)
