@@ -4,6 +4,7 @@ export type AccountUser = {
   cup_balance: number;
   email: string;
   id: string;
+  platform_mode?: "COPPE" | "FRIENDS";
   unread_message_count?: number;
   phone: string;
   role: string;
@@ -18,6 +19,7 @@ export type UserAreaPageKey =
   | "arene"
   | "classifiche"
   | "dashboard"
+  | "friends"
   | "impostazioni"
   | "movimenti"
   | "posta"

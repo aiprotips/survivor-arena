@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Gem, LayoutDashboard, Trophy } from "lucide-react";
+import { BarChart3, Gem, LayoutDashboard, Trophy, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -33,14 +33,33 @@ export const mainUserNavItems: Array<{
   },
 ];
 
+export const friendsUserNavItems: Array<{
+  href: string;
+  icon: LucideIcon;
+  label: string;
+}> = [
+  {
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    label: "Dashboard",
+  },
+  {
+    href: "/friends",
+    icon: UsersRound,
+    label: "Friends",
+  },
+];
+
 type UserNavProps = {
   className?: string;
+  mode?: "COPPE" | "FRIENDS";
   onNavigate?: () => void;
   variant?: "desktop" | "mobile";
 };
 
-export function UserNav({ className, onNavigate, variant = "desktop" }: UserNavProps) {
+export function UserNav({ className, mode = "COPPE", onNavigate, variant = "desktop" }: UserNavProps) {
   const pathname = usePathname();
+  const items = mode === "FRIENDS" ? friendsUserNavItems : mainUserNavItems;
 
   return (
     <nav
@@ -50,7 +69,7 @@ export function UserNav({ className, onNavigate, variant = "desktop" }: UserNavP
         className,
       )}
     >
-      {mainUserNavItems.map((item) => {
+      {items.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 

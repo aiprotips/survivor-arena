@@ -215,6 +215,18 @@ type AdminPanelKey =
   | "participants"
   | "events";
 
+type PlatformMode = "COPPE" | "FRIENDS";
+
+type PlatformModeResponse =
+  | {
+      mode: PlatformMode;
+      ok: true;
+    }
+  | {
+      message: string;
+      ok: false;
+    };
+
 type TournamentForm = {
   description: string;
   entryCost: string;
@@ -302,6 +314,12 @@ const adminTabs: Array<{
   },
 ];
 
+const friendsAdminPanels = new Set<AdminPanelKey>(["dashboard", "messages", "teams", "events"]);
+
+function isAdminPanelVisible(panel: AdminPanelKey, mode: PlatformMode) {
+  return mode === "COPPE" || friendsAdminPanels.has(panel);
+}
+
 async function fetchJson<TResponse>(url: string, init?: RequestInit) {
   const response = await fetch(url, {
     credentials: "include",
@@ -358,6 +376,7 @@ export function AdminArenaPanel() {
   const [participantQuery, setParticipantQuery] = useState("");
   const [eventQuery, setEventQuery] = useState("");
   const [activePanel, setActivePanel] = useState<AdminPanelKey>("dashboard");
+  const [platformMode, setPlatformModeState] = useState<PlatformMode>("COPPE");
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -369,6 +388,11 @@ export function AdminArenaPanel() {
     () => adminUsers.find((adminUser) => adminUser.id === selectedAdminUserId) ?? adminUsers[0] ?? null,
     [adminUsers, selectedAdminUserId],
   );
+  const visibleAdminTabs = useMemo(
+    () => adminTabs.filter((tab) => isAdminPanelVisible(tab.key, platformMode)),
+    [platformMode],
+  );
+  const showTournamentSidebar = platformMode === "COPPE" && activePanel !== "dashboard" && activePanel !== "messages";
 
   useEffect(() => {
     let isMounted = true;
@@ -391,6 +415,14 @@ export function AdminArenaPanel() {
       }
 
       setUser(session.data.user);
+      const platformResponse = await fetchJson<PlatformModeResponse>("/api/platform-mode");
+
+      if (platformResponse.data.ok) {
+        setPlatformModeState(platformResponse.data.mode);
+      } else {
+        setMessage(platformResponse.data.message);
+      }
+
       const tournamentsResponse = await fetchJson<TournamentsResponse>("/api/admin/tournaments");
 
       if (tournamentsResponse.data.ok) {
@@ -497,6 +529,25 @@ export function AdminArenaPanel() {
     } else {
       setMessage(data.message);
     }
+  }
+
+  async function updatePlatformMode(nextMode: PlatformMode) {
+    setMessage("");
+    const { data } = await fetchJson<PlatformModeResponse>("/api/platform-mode", {
+      body: JSON.stringify({ mode: nextMode }),
+      method: "POST",
+    });
+
+    if (!data.ok) {
+      setMessage(data.message);
+      return;
+    }
+
+    setPlatformModeState(data.mode);
+    if (!isAdminPanelVisible(activePanel, data.mode)) {
+      setActivePanel("dashboard");
+    }
+    setMessage(data.mode === "FRIENDS" ? "Modalità Friends attivata." : "Modalità Coppe attivata.");
   }
 
   async function loadEvents(query = eventQuery) {
@@ -785,8 +836,41 @@ export function AdminArenaPanel() {
         <header className="admin-hero">
           <p className="user-page-kicker">Pannello Admin</p>
           <h1>ADMIN ARENA</h1>
-          <p>Gestisci tornei, round, vite, scelte e registro eventi da un unico pannello.</p>
+          <p>
+            {platformMode === "FRIENDS"
+              ? "Modalità ricreativa privata: niente Coppe, wallet, premi o montepremi."
+              : "Gestisci tornei, round, vite, scelte e registro eventi da un unico pannello."}
+          </p>
           <PremiumDivider />
+          <div className="admin-tool-card">
+            <div className="dashboard-section-heading">
+              <div>
+                <p className="user-page-kicker">Modalità piattaforma</p>
+                <h3>{platformMode === "FRIENDS" ? "Friends" : "Coppe"}</h3>
+                <p className="admin-muted">
+                  La modalità selezionata adatta navigazione e funzioni visibili agli utenti.
+                </p>
+              </div>
+            </div>
+            <div className="admin-segmented-control" role="radiogroup" aria-label="Modalità piattaforma">
+              <label className={cn(platformMode === "COPPE" && "admin-segmented-active")}>
+                <input
+                  checked={platformMode === "COPPE"}
+                  onChange={() => void updatePlatformMode("COPPE")}
+                  type="radio"
+                />
+                Coppe
+              </label>
+              <label className={cn(platformMode === "FRIENDS" && "admin-segmented-active")}>
+                <input
+                  checked={platformMode === "FRIENDS"}
+                  onChange={() => void updatePlatformMode("FRIENDS")}
+                  type="radio"
+                />
+                Friends
+              </label>
+            </div>
+          </div>
         </header>
 
         {message ? (
@@ -796,7 +880,7 @@ export function AdminArenaPanel() {
         ) : null}
 
         <nav className="admin-tabs" aria-label="Sezioni admin">
-          {adminTabs.map(({ icon: Icon, key, label }) => (
+          {visibleAdminTabs.map(({ icon: Icon, key, label }) => (
             <button
               className={cn("admin-tab", activePanel === key && "admin-tab-active")}
               key={key}
@@ -830,8 +914,8 @@ export function AdminArenaPanel() {
           ))}
         </nav>
 
-        <div className={cn("admin-layout-grid", (activePanel === "dashboard" || activePanel === "messages") && "admin-layout-grid-wide")}>
-          {activePanel !== "dashboard" && activePanel !== "messages" ? (
+        <div className={cn("admin-layout-grid", !showTournamentSidebar && "admin-layout-grid-wide")}>
+          {showTournamentSidebar ? (
             <TournamentSidebar
               onSelect={(id) => {
                 setSelectedTournamentId(id);

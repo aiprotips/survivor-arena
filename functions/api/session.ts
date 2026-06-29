@@ -4,6 +4,7 @@ import { json, methodNotAllowed, missingDatabase } from "../_shared/http";
 import { getSessionUser } from "../_shared/session";
 import { getWalletBalance } from "../_shared/arena";
 import { getUnreadMessageCount } from "../_shared/messages";
+import { getPlatformMode } from "../_shared/platform";
 
 type Env = {
   DB: D1Database;
@@ -46,6 +47,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     user: {
       ...session.user,
       cup_balance: cupBalance,
+      platform_mode: await getPlatformMode(env.DB),
       unread_message_count: unreadMessageCount,
     },
   });

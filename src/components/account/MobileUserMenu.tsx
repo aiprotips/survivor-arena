@@ -39,6 +39,8 @@ const accountItems = [
   },
 ];
 
+const friendsAccountItems = accountItems.filter((item) => item.href !== "/movimenti");
+
 export function MobileUserMenu({
   balance,
   isOpen,
@@ -51,6 +53,7 @@ export function MobileUserMenu({
   }
 
   const initial = user.username.slice(0, 1).toUpperCase();
+  const accountMenu = user.platform_mode === "FRIENDS" ? friendsAccountItems : accountItems;
 
   return (
     <div
@@ -80,7 +83,7 @@ export function MobileUserMenu({
           </span>
           <div>
             <strong>{user.username}</strong>
-            <span>{balance}</span>
+            <span>{user.platform_mode === "FRIENDS" ? "Modalità Friends" : balance}</span>
           </div>
           <div className="user-mobile-profile-actions">
             <Link
@@ -106,12 +109,12 @@ export function MobileUserMenu({
           </div>
         </div>
 
-        <UserNav onNavigate={onClose} variant="mobile" />
+        <UserNav mode={user.platform_mode} onNavigate={onClose} variant="mobile" />
 
         <PremiumDivider className="user-mobile-divider" />
 
         <nav aria-label="Menu account" className="user-mobile-account">
-          {accountItems.map((item) => {
+          {accountMenu.map((item) => {
             const Icon = item.icon;
 
             return (

@@ -23,19 +23,26 @@ export function UserHeader({ balance, onLogout, onMenuOpen, user }: UserHeaderPr
           <BrandLogo />
         </Link>
 
-        <UserNav className="user-header-nav" />
+        <UserNav className="user-header-nav" mode={user.platform_mode} />
 
         <div className="user-header-actions">
-          <span className="user-balance-pill">
-            <Trophy aria-hidden="true" className="user-balance-icon" />
-            <span>{balance}</span>
-          </span>
+          {user.platform_mode === "FRIENDS" ? (
+            <span className="user-balance-pill">
+              <Trophy aria-hidden="true" className="user-balance-icon" />
+              <span>Friends</span>
+            </span>
+          ) : (
+            <span className="user-balance-pill">
+              <Trophy aria-hidden="true" className="user-balance-icon" />
+              <span>{balance}</span>
+            </span>
+          )}
 
           <UserDropdown onLogout={onLogout} user={user} />
 
           <div className="user-mobile-summary" aria-label={`Utente ${user.username}`}>
             <strong>{user.username}</strong>
-            <span>{balance}</span>
+            <span>{user.platform_mode === "FRIENDS" ? "Friends" : balance}</span>
           </div>
 
           <Link
