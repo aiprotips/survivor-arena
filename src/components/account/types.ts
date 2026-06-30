@@ -15,6 +15,7 @@ export type AccountUser = {
 
 export type UserAreaPageKey =
   | "admin"
+  | "area-manager"
   | "arena"
   | "arene"
   | "classifiche"

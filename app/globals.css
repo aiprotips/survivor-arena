@@ -4039,6 +4039,32 @@ a {
     gap: 0.75rem;
   }
 
+  .friends-tournament-grid,
+  .friends-quick-actions,
+  .friends-wizard-panel {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .friends-tournament-grid {
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  }
+
+  .friends-tournament-card {
+    width: 100%;
+    color: inherit;
+    text-align: left;
+  }
+
+  button.friends-tournament-card {
+    cursor: pointer;
+  }
+
+  .friends-create-modal {
+    position: relative;
+    width: min(42rem, calc(100vw - 2rem));
+  }
+
   .dashboard-action-item {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);

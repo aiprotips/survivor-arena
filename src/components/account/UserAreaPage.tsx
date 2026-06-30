@@ -12,7 +12,6 @@ import {
   Crown,
   Gem,
   Gift,
-  Heart,
   KeyRound,
   Lock,
   MailOpen,
@@ -20,10 +19,9 @@ import {
   Swords,
   Timer,
   TrendingUp,
-  UsersRound,
 } from "lucide-react";
 import { ArenaListContent } from "@/components/arena/ArenaListContent";
-import { FriendsPage } from "@/components/friends/FriendsPage";
+import { FriendsDashboardContent, FriendsPage } from "@/components/friends/FriendsPage";
 import { PlaceholderCard } from "@/components/account/PlaceholderCard";
 import { StatCard } from "@/components/account/StatCard";
 import { UserLayout } from "@/components/account/UserLayout";
@@ -50,7 +48,9 @@ export function UserAreaPage({ page }: UserAreaPageProps) {
         switch (page) {
           case "friends":
           case "tornei":
-            return user.platform_mode === "FRIENDS" ? <FriendsPage user={user} /> : <DashboardPage user={user} />;
+            return user.platform_mode === "FRIENDS" ? <FriendsPage user={user} view="tournaments" /> : <DashboardPage user={user} />;
+          case "area-manager":
+            return user.platform_mode === "FRIENDS" ? <FriendsPage user={user} view="manager" /> : <DashboardPage user={user} />;
           case "arene":
             return <ArenePage />;
           case "classifiche":
@@ -435,58 +435,7 @@ function CoppeDashboardPage({ user }: { user: AccountUser }) {
 }
 
 function FriendsDashboard({ user }: { user: AccountUser }) {
-  return (
-    <div className="dashboard-page-content">
-      <section className="dashboard-hero-card" aria-labelledby="friends-dashboard-title">
-        <div className="dashboard-hero-copy">
-          <p className="user-page-kicker">Modalità Friends</p>
-          <h1 id="friends-dashboard-title">Benvenuto, {user.username}</h1>
-          <p>Crea competizioni private, invita gli amici e gioca senza Coppe, premi o wallet.</p>
-        </div>
-
-        <div className="dashboard-hero-status" aria-label="Modalità corrente">
-          <span>Modalità</span>
-          <strong>Friends</strong>
-        </div>
-      </section>
-
-      <section className="user-stat-grid dashboard-stat-grid" aria-label="Funzioni Friends">
-        <StatCard
-          icon={<UsersRound aria-hidden="true" className="user-stat-svg" />}
-          label="Competizioni private"
-          value="Inviti"
-        />
-        <StatCard
-          icon={<Swords aria-hidden="true" className="user-stat-svg" />}
-          label="Round manuali"
-          value="Gestione"
-        />
-        <StatCard
-          icon={<Heart aria-hidden="true" className="user-stat-svg" />}
-          label="Vite libere"
-          value="Friends"
-        />
-        <StatCard
-          icon={<ShieldCheck aria-hidden="true" className="user-stat-svg" />}
-          label="Solo invitati"
-          value="Privato"
-        />
-      </section>
-
-      <Card className="dashboard-panel">
-        <div className="dashboard-section-heading">
-          <div>
-            <p className="user-page-kicker">Accesso rapido</p>
-            <h2>Entra in Friends</h2>
-            <p className="admin-muted">Da qui puoi creare una competizione, invitare amici o gestire una sfida già aperta.</p>
-          </div>
-          <ButtonLink className="dashboard-section-link" href="/friends">
-            Apri Friends
-          </ButtonLink>
-        </div>
-      </Card>
-    </div>
-  );
+  return <FriendsDashboardContent user={user} />;
 }
 
 function DashboardEmptyState({

@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, CheckCircle2, Clock3, Heart, Lock, Plus, Shield, UsersRound } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Clock3, Heart, Lock, Plus, Shield, Swords, Trophy, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { AccountUser } from "@/components/account/types";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
+import { StatCard } from "@/components/account/StatCard";
 import { cn } from "@/lib/cn";
 import { formatDeadline, fromDateTimeLocal, isDeadlinePassed, toDateTimeLocal, type MatchResult } from "@/lib/arena-client";
 
@@ -163,10 +164,54 @@ async function fetchJson<TResponse>(url: string, init?: RequestInit) {
   return (await response.json()) as TResponse;
 }
 
-export function FriendsPage({ user }: { user: AccountUser }) {
+type FriendsPageView = "manager" | "tournaments";
+
+function isFinishedCompetition(competition: FriendsCompetition) {
+  return competition.status === "COMPLETED" || competition.status === "CANCELLED";
+}
+
+function getCurrentRound(competition: FriendsCompetition) {
+  return competition.rounds.find((round) => round.round_number === competition.current_round_number) ?? competition.current_round;
+}
+
+function getSelectionStats(competitions: FriendsCompetition[]) {
+  const teamCounts = new Map<string, number>();
+  let selections = 0;
+  let firstPlaces = 0;
+  let aliveLives = 0;
+
+  competitions.forEach((competition) => {
+    const lives = competition.participant?.lives ?? [];
+
+    if (lives.some((life) => life.status === "WINNER")) {
+      firstPlaces += 1;
+    }
+
+    lives.forEach((life) => {
+      if (life.status === "ALIVE" || life.status === "WINNER") {
+        aliveLives += 1;
+      }
+
+      life.selections.forEach((selection) => {
+        selections += 1;
+        teamCounts.set(selection.selected_team, (teamCounts.get(selection.selected_team) ?? 0) + 1);
+      });
+    });
+  });
+
+  const favoriteTeam = Array.from(teamCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Nessuna";
+
+  return {
+    aliveLives,
+    favoriteTeam,
+    firstPlaces,
+    selections,
+  };
+}
+
+function useFriendsData(loadTeams = true) {
   const [competitions, setCompetitions] = useState<FriendsCompetition[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [inviteCode, setInviteCode] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -177,10 +222,8 @@ export function FriendsPage({ user }: { user: AccountUser }) {
     let isMounted = true;
 
     async function loadInitialData() {
-      const [competitionData, teamData] = await Promise.all([
-        fetchJson<FriendsResponse>("/api/friends/competitions"),
-        fetchJson<TeamsResponse>("/api/friends/teams"),
-      ]);
+      const competitionData = await fetchJson<FriendsResponse>("/api/friends/competitions");
+      const teamData = loadTeams ? await fetchJson<TeamsResponse>("/api/friends/teams") : null;
 
       if (!isMounted) {
         return;
@@ -193,10 +236,12 @@ export function FriendsPage({ user }: { user: AccountUser }) {
         setMessage(competitionData.message);
       }
 
-      if (teamData.ok) {
-        setTeams(teamData.teams);
-      } else {
-        setMessage(teamData.message);
+      if (teamData) {
+        if (teamData.ok) {
+          setTeams(teamData.teams);
+        } else {
+          setMessage(teamData.message);
+        }
       }
 
       setIsLoading(false);
@@ -212,7 +257,7 @@ export function FriendsPage({ user }: { user: AccountUser }) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loadTeams]);
 
   async function mutate(url: string, init?: RequestInit) {
     setMessage("");
@@ -236,12 +281,161 @@ export function FriendsPage({ user }: { user: AccountUser }) {
     return data.competition;
   }
 
+  return {
+    competitions,
+    isLoading,
+    message,
+    mutate,
+    selected,
+    selectedId,
+    setMessage,
+    setSelectedId,
+    teams,
+  };
+}
+
+export function FriendsDashboardContent({ user }: { user: AccountUser }) {
+  const { competitions, isLoading, message, mutate } = useFriendsData(false);
+  const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const activeCompetitions = competitions.filter((competition) => !isFinishedCompetition(competition));
+  const finishedCompetitions = competitions.filter(isFinishedCompetition);
+  const stats = getSelectionStats(competitions);
+
+  return (
+    <div className="dashboard-page-content">
+      <section className="dashboard-hero-card" aria-labelledby="friends-dashboard-title">
+        <div className="dashboard-hero-copy">
+          <p className="user-page-kicker">Modalità Friends</p>
+          <h1 id="friends-dashboard-title">Benvenuto, {user.username}</h1>
+          <p>Qui vedi i tornei in corso, le tue scelte e gli inviti privati tra amici.</p>
+        </div>
+
+        <div className="dashboard-hero-status" aria-label="Tornei Friends in corso">
+          <span>Tornei in corso</span>
+          <strong>{activeCompetitions.length}</strong>
+        </div>
+      </section>
+
+      {message ? (
+        <div className="auth-form-message auth-form-message-error" role="alert">
+          {message}
+        </div>
+      ) : null}
+
+      {isLoading ? (
+        <section className="dashboard-panel">
+          <p>Caricamento dati Friends...</p>
+        </section>
+      ) : null}
+
+      <section className="user-stat-grid dashboard-stat-grid" aria-label="Statistiche Friends">
+        <StatCard icon={<Trophy aria-hidden="true" className="user-stat-svg" />} label="Volte primo" tone="gold" value={String(stats.firstPlaces)} />
+        <StatCard icon={<Swords aria-hidden="true" className="user-stat-svg" />} label="Scelte effettuate" value={String(stats.selections)} />
+        <StatCard icon={<Heart aria-hidden="true" className="user-stat-svg" />} label="Vite vive" value={String(stats.aliveLives)} />
+        <StatCard icon={<Shield aria-hidden="true" className="user-stat-svg" />} label="Squadra più scelta" value={stats.favoriteTeam} />
+      </section>
+
+      <div className="dashboard-layout-grid">
+        <div className="dashboard-main-stack">
+          <section className="dashboard-panel">
+            <div className="dashboard-section-heading">
+              <div>
+                <p className="user-page-kicker">In gioco</p>
+                <h2>Tornei in corso</h2>
+              </div>
+              <ButtonLink className="dashboard-section-link" href="/tornei" variant="secondary">
+                Vedi tornei
+              </ButtonLink>
+            </div>
+
+            {!isLoading && activeCompetitions.length > 0 ? (
+              <div className="friends-tournament-grid">
+                {activeCompetitions.slice(0, 4).map((competition) => (
+                  <FriendsTournamentCard competition={competition} key={competition.id} />
+                ))}
+              </div>
+            ) : !isLoading ? (
+              <DashboardEmpty
+                text="Quando riceverai un invito o entrerai in una competizione, la vedrai qui."
+                title="Nessun torneo in corso"
+              />
+            ) : null}
+          </section>
+
+          <section className="dashboard-panel">
+            <div className="dashboard-section-heading">
+              <div>
+                <p className="user-page-kicker">Archivio</p>
+                <h2>Tornei conclusi</h2>
+              </div>
+            </div>
+
+            {!isLoading && finishedCompetitions.length > 0 ? (
+              <div className="dashboard-action-list">
+                {finishedCompetitions.slice(0, 5).map((competition) => (
+                  <FriendsCompactRow competition={competition} key={competition.id} />
+                ))}
+              </div>
+            ) : !isLoading ? (
+              <p className="admin-muted">Nessun torneo concluso.</p>
+            ) : null}
+          </section>
+        </div>
+
+        <aside className="dashboard-side-stack">
+          <section className="dashboard-panel">
+            <div className="dashboard-section-heading">
+              <div>
+                <p className="user-page-kicker">Azioni rapide</p>
+                <h2>Friends</h2>
+              </div>
+            </div>
+            <div className="friends-quick-actions">
+              <Button onClick={() => setIsJoinOpen(true)} type="button">
+                Partecipa a una competizione
+              </Button>
+              <ButtonLink href="/tornei" variant="secondary">
+                Apri Tornei
+              </ButtonLink>
+              <ButtonLink href="/area-manager" variant="secondary">
+                Area Manager
+              </ButtonLink>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      {isJoinOpen ? (
+        <JoinInviteModal
+          mutate={mutate}
+          onClose={() => setIsJoinOpen(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+export function FriendsPage({ user, view = "tournaments" }: { user: AccountUser; view?: FriendsPageView }) {
+  const { competitions, isLoading, message, mutate, selected, selectedId, setSelectedId, teams } = useFriendsData(true);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const activeCompetitions = competitions.filter((competition) => !isFinishedCompetition(competition));
+  const finishedCompetitions = competitions.filter(isFinishedCompetition);
+  const ownedCompetitions = competitions.filter((competition) => competition.is_owner);
+  const selectedOwner = ownedCompetitions.find((competition) => competition.id === selectedId) ?? ownedCompetitions[0] ?? null;
+  const selectedTournament = selected;
+  const isManager = view === "manager";
+
   return (
     <div className="dashboard-page-content">
       <header className="user-page-intro">
         <p className="user-page-kicker">Modalità Friends</p>
-        <h1>Competizioni private</h1>
-        <p>Crea sfide tra amici, invita solo chi vuoi e gestisci vite, round e risultati senza Coppe o premi.</p>
+        <h1>{isManager ? "Area Manager" : "Tornei"}</h1>
+        <p>
+          {isManager
+            ? "Crea competizioni, invita amici, assegna vite e gestisci round e risultati."
+            : "Tutti i tornei Friends a cui sei invitato o iscritto, separati tra in corso e conclusi."}
+        </p>
         <PremiumDivider />
       </header>
 
@@ -257,88 +451,414 @@ export function FriendsPage({ user }: { user: AccountUser }) {
         </Card>
       ) : null}
 
-      <div className="dashboard-layout-grid">
-        <div className="dashboard-main-stack">
-          <CreateFriendsWizard onCreate={mutate} teams={teams} />
+      {isManager ? (
+        <ManagerView
+          competitions={ownedCompetitions}
+          mutate={mutate}
+          onCreate={() => setIsCreateOpen(true)}
+          selected={selectedOwner}
+          selectedId={selectedId}
+          setSelectedId={setSelectedId}
+          teams={teams}
+          user={user}
+        />
+      ) : (
+        <TournamentsView
+          activeCompetitions={activeCompetitions}
+          finishedCompetitions={finishedCompetitions}
+          mutate={mutate}
+          onJoin={() => setIsJoinOpen(true)}
+          selected={selectedTournament}
+          selectedId={selectedId}
+          setSelectedId={setSelectedId}
+          teams={teams}
+          user={user}
+        />
+      )}
 
-          {selected ? (
-            <FriendsCompetitionPanel
-              competition={selected}
-              mutate={mutate}
-              teams={teams}
-              user={user}
-            />
-          ) : (
-            <Card className="dashboard-panel">
-              <h2>Nessuna competizione Friends</h2>
-              <p className="admin-muted">Crea una competizione o attendi un invito da un amico.</p>
-            </Card>
-          )}
-        </div>
+      {isCreateOpen ? (
+        <CreateCompetitionModal
+          onClose={() => setIsCreateOpen(false)}
+          onCreate={mutate}
+          teams={teams}
+        />
+      ) : null}
 
-        <aside className="dashboard-side-stack">
-          <Card className="dashboard-panel">
-            <div className="dashboard-section-heading">
-              <div>
-                <p className="user-page-kicker">Le tue sfide</p>
-                <h2>Friends</h2>
-              </div>
+      {isJoinOpen ? (
+        <JoinInviteModal
+          mutate={mutate}
+          onClose={() => setIsJoinOpen(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function TournamentsView({
+  activeCompetitions,
+  finishedCompetitions,
+  mutate,
+  onJoin,
+  selected,
+  selectedId,
+  setSelectedId,
+  teams,
+  user,
+}: {
+  activeCompetitions: FriendsCompetition[];
+  finishedCompetitions: FriendsCompetition[];
+  mutate: (url: string, init?: RequestInit) => Promise<FriendsCompetition | null>;
+  onJoin: () => void;
+  selected: FriendsCompetition | null;
+  selectedId: string;
+  setSelectedId: (value: string) => void;
+  teams: Team[];
+  user: AccountUser;
+}) {
+  return (
+    <div className="dashboard-layout-grid">
+      <div className="dashboard-main-stack">
+        <section className="dashboard-panel">
+          <div className="dashboard-section-heading">
+            <div>
+              <p className="user-page-kicker">In corso</p>
+              <h2>Tornei in corso</h2>
             </div>
+            <Button onClick={onJoin} type="button" variant="secondary">
+              Partecipa con codice
+            </Button>
+          </div>
 
-            <div className="admin-tool-card">
-              <strong>Hai un codice invito?</strong>
-              <div className="admin-form-grid">
-                <input
-                  className="ui-input"
-                  onChange={(event) => setInviteCode(event.target.value)}
-                  placeholder="FR-ABCDEFGH"
-                  value={inviteCode}
+          {activeCompetitions.length > 0 ? (
+            <div className="friends-tournament-grid">
+              {activeCompetitions.map((competition) => (
+                <FriendsTournamentCard
+                  competition={competition}
+                  isSelected={selectedId === competition.id}
+                  key={competition.id}
+                  onSelect={() => setSelectedId(competition.id)}
                 />
-                <Button
-                  onClick={async () => {
-                    const updated = await mutate("/api/friends/join", {
-                      body: JSON.stringify({ inviteCode }),
-                      method: "POST",
-                    });
-                    if (updated) {
-                      setInviteCode("");
-                    }
-                  }}
+              ))}
+            </div>
+          ) : (
+            <DashboardEmpty
+              text="Qui appariranno solo i tornei Friends in cui sei invitato, iscritto o organizzatore."
+              title="Nessun torneo in corso"
+            />
+          )}
+        </section>
+
+        <section className="dashboard-panel">
+          <div className="dashboard-section-heading">
+            <div>
+              <p className="user-page-kicker">Conclusi</p>
+              <h2>Tornei conclusi</h2>
+            </div>
+          </div>
+
+          {finishedCompetitions.length > 0 ? (
+            <div className="dashboard-action-list">
+              {finishedCompetitions.map((competition) => (
+                <button
+                  className={cn("dashboard-action-item", selectedId === competition.id && "user-nav-link-active")}
+                  key={competition.id}
+                  onClick={() => setSelectedId(competition.id)}
                   type="button"
-                  variant="secondary"
                 >
-                  Entra
-                </Button>
+                  <span className="dashboard-action-icon">
+                    <Trophy aria-hidden="true" />
+                  </span>
+                  <div>
+                    <strong>{competition.name}</strong>
+                    <p>{competition.participants.length} partecipanti • {competition.status}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="admin-muted">Nessun torneo concluso.</p>
+          )}
+        </section>
+
+        {selected ? (
+          <FriendsCompetitionPanel
+            competition={selected}
+            mutate={mutate}
+            showManagerTools={false}
+            teams={teams}
+            user={user}
+          />
+        ) : null}
+      </div>
+
+      <aside className="dashboard-side-stack">
+        <section className="dashboard-panel">
+          <div className="dashboard-section-heading">
+            <div>
+              <p className="user-page-kicker">Organizzazione</p>
+              <h2>Area Manager</h2>
+            </div>
+          </div>
+          <p className="admin-muted">Creazione, inviti, vite e calcolo round sono stati spostati in un pannello separato.</p>
+          <ButtonLink href="/area-manager">
+            Apri Area Manager
+          </ButtonLink>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
+function ManagerView({
+  competitions,
+  mutate,
+  onCreate,
+  selected,
+  selectedId,
+  setSelectedId,
+  teams,
+  user,
+}: {
+  competitions: FriendsCompetition[];
+  mutate: (url: string, init?: RequestInit) => Promise<FriendsCompetition | null>;
+  onCreate: () => void;
+  selected: FriendsCompetition | null;
+  selectedId: string;
+  setSelectedId: (value: string) => void;
+  teams: Team[];
+  user: AccountUser;
+}) {
+  return (
+    <div className="dashboard-layout-grid">
+      <div className="dashboard-main-stack">
+        <section className="dashboard-panel">
+          <div className="dashboard-section-heading">
+            <div>
+              <p className="user-page-kicker">Manager</p>
+              <h2>Le competizioni che gestisci</h2>
+              <p className="admin-muted">Crea nuove competizioni e gestisci solo quelle organizzate da te.</p>
+            </div>
+            <Button onClick={onCreate} type="button">
+              Crea competizione
+            </Button>
+          </div>
+
+          {competitions.length > 0 ? (
+            <div className="friends-tournament-grid">
+              {competitions.map((competition) => (
+                <FriendsTournamentCard
+                  competition={competition}
+                  isSelected={selectedId === competition.id}
+                  key={competition.id}
+                  onSelect={() => setSelectedId(competition.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <DashboardEmpty
+              text="Premi Crea competizione per aprire il wizard e preparare una nuova sfida privata."
+              title="Nessuna competizione creata"
+            />
+          )}
+        </section>
+
+        {selected ? (
+          <FriendsCompetitionPanel
+            competition={selected}
+            mutate={mutate}
+            showManagerTools
+            teams={teams}
+            user={user}
+          />
+        ) : null}
+      </div>
+
+      <aside className="dashboard-side-stack">
+        <section className="dashboard-panel">
+          <div className="dashboard-section-heading">
+            <div>
+              <p className="user-page-kicker">Suggerimento</p>
+              <h2>Flusso consigliato</h2>
+            </div>
+          </div>
+          <div className="dashboard-action-list">
+            <div className="dashboard-action-item">
+              <span className="dashboard-action-icon">1</span>
+              <div>
+                <strong>Crea competizione</strong>
+                <p>Imposta nome, regole, match e deadline.</p>
               </div>
             </div>
-
-            <div className="dashboard-action-list">
-              {competitions.length > 0 ? (
-                competitions.map((competition) => (
-                  <button
-                    className={cn("dashboard-action-item", selected?.id === competition.id && "user-nav-link-active")}
-                    key={competition.id}
-                    onClick={() => setSelectedId(competition.id)}
-                    type="button"
-                  >
-                    <span className="dashboard-action-icon">
-                      <UsersRound aria-hidden="true" />
-                    </span>
-                    <div>
-                      <strong>{competition.name}</strong>
-                      <p>
-                        {competition.is_owner ? "Organizzatore" : competition.can_join ? "Invito ricevuto" : "Partecipante"} •{" "}
-                        {competition.status}
-                      </p>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <p className="admin-muted">Nessuna competizione da mostrare.</p>
-              )}
+            <div className="dashboard-action-item">
+              <span className="dashboard-action-icon">2</span>
+              <div>
+                <strong>Invita gli amici</strong>
+                <p>Gli inviti arrivano nella Posta con Accetta/Declina.</p>
+              </div>
             </div>
-          </Card>
-        </aside>
+            <div className="dashboard-action-item">
+              <span className="dashboard-action-icon">3</span>
+              <div>
+                <strong>Gestisci il round</strong>
+                <p>Blocca scelte, inserisci risultati e calcola il round.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
+function CreateCompetitionModal({
+  onClose,
+  onCreate,
+  teams,
+}: {
+  onClose: () => void;
+  onCreate: (url: string, init?: RequestInit) => Promise<FriendsCompetition | null>;
+  teams: Team[];
+}) {
+  async function create(url: string, init?: RequestInit) {
+    const competition = await onCreate(url, init);
+
+    if (competition) {
+      onClose();
+    }
+
+    return competition;
+  }
+
+  return (
+    <div className="arena-modal-backdrop" role="presentation">
+      <Card aria-modal="true" className="arena-modal-card friends-create-modal" role="dialog">
+        <button aria-label="Chiudi creazione competizione" className="admin-modal-close" onClick={onClose} type="button">
+          ×
+        </button>
+        <CreateFriendsWizard onCreate={create} teams={teams} />
+      </Card>
+    </div>
+  );
+}
+
+function JoinInviteModal({
+  mutate,
+  onClose,
+}: {
+  mutate: (url: string, init?: RequestInit) => Promise<FriendsCompetition | null>;
+  onClose: () => void;
+}) {
+  const [inviteCode, setInviteCode] = useState("");
+
+  async function join() {
+    const updated = await mutate("/api/friends/join", {
+      body: JSON.stringify({ inviteCode }),
+      method: "POST",
+    });
+
+    if (updated) {
+      setInviteCode("");
+      onClose();
+    }
+  }
+
+  return (
+    <div className="arena-modal-backdrop" role="presentation">
+      <Card aria-modal="true" className="arena-modal-card" role="dialog">
+        <button aria-label="Chiudi invito" className="admin-modal-close" onClick={onClose} type="button">
+          ×
+        </button>
+        <p className="user-page-kicker">Invito Friends</p>
+        <h2>Partecipa a una competizione</h2>
+        <p className="admin-muted">Inserisci il codice che hai ricevuto dall&apos;organizzatore.</p>
+        <input
+          className="ui-input"
+          onChange={(event) => setInviteCode(event.target.value)}
+          placeholder="FR-ABCDEFGH"
+          value={inviteCode}
+        />
+        <div className="arena-modal-actions">
+          <Button onClick={() => void join()} type="button">
+            Entra
+          </Button>
+          <Button onClick={onClose} type="button" variant="secondary">
+            Annulla
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function FriendsTournamentCard({
+  competition,
+  isSelected,
+  onSelect,
+}: {
+  competition: FriendsCompetition;
+  isSelected?: boolean;
+  onSelect?: () => void;
+}) {
+  const currentRound = getCurrentRound(competition);
+  const role = competition.is_owner ? "Organizzatore" : competition.can_join ? "Invito ricevuto" : "Partecipante";
+
+  const content = (
+    <>
+      <div className="dashboard-arena-top">
+        <span className="dashboard-arena-status">{role}</span>
+        <span>{competition.status}</span>
+      </div>
+      <div className="dashboard-arena-copy">
+        <h3>{competition.name}</h3>
+        <p>{competition.description || `Round ${competition.current_round_number}`}</p>
+      </div>
+      <div className="dashboard-arena-meta">
+        <div>
+          <Clock3 aria-hidden="true" className="dashboard-small-icon" />
+          <span>{formatDeadline(currentRound?.deadline_at ?? null)}</span>
+        </div>
+        <div>
+          <UsersRound aria-hidden="true" className="dashboard-small-icon" />
+          <span>{competition.participants.length} partecipanti</span>
+        </div>
+      </div>
+    </>
+  );
+
+  if (onSelect) {
+    return (
+      <button
+        className={cn("dashboard-arena-card friends-tournament-card", isSelected && "user-nav-link-active")}
+        onClick={onSelect}
+        type="button"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <article className="dashboard-arena-card friends-tournament-card">
+      {content}
+    </article>
+  );
+}
+
+function FriendsCompactRow({ competition }: { competition: FriendsCompetition }) {
+  return (
+    <article className="dashboard-movement-row">
+      <span>{competition.status}</span>
+      <strong>{competition.name}</strong>
+    </article>
+  );
+}
+
+function DashboardEmpty({ text, title }: { text: string; title: string }) {
+  return (
+    <div className="dashboard-empty-state">
+      <div>
+        <strong>{title}</strong>
+        <p>{text}</p>
       </div>
     </div>
   );
@@ -385,7 +905,7 @@ function CreateFriendsWizard({
   }
 
   return (
-    <Card className="dashboard-panel">
+    <section className="friends-wizard-panel">
       <div className="dashboard-section-heading">
         <div>
           <p className="user-page-kicker">Wizard Friends</p>
@@ -514,18 +1034,20 @@ function CreateFriendsWizard({
           </Button>
         )}
       </div>
-    </Card>
+    </section>
   );
 }
 
 function FriendsCompetitionPanel({
   competition,
   mutate,
+  showManagerTools = true,
   teams,
   user,
 }: {
   competition: FriendsCompetition;
   mutate: (url: string, init?: RequestInit) => Promise<FriendsCompetition | null>;
+  showManagerTools?: boolean;
   teams: Team[];
   user: AccountUser;
 }) {
@@ -605,7 +1127,7 @@ function FriendsCompetitionPanel({
         </div>
       ) : null}
 
-      {competition.is_owner ? (
+      {competition.is_owner && showManagerTools ? (
         <div className="dashboard-main-stack">
           <section className="admin-tool-card">
             <div className="dashboard-section-heading">

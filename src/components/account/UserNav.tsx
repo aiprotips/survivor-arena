@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Gem, LayoutDashboard, Trophy, UsersRound } from "lucide-react";
+import { BarChart3, Gem, LayoutDashboard, Settings2, Trophy, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -47,6 +47,11 @@ export const friendsUserNavItems: Array<{
     href: "/tornei",
     icon: UsersRound,
     label: "Tornei",
+  },
+  {
+    href: "/area-manager",
+    icon: Settings2,
+    label: "Area Manager",
   },
 ];
 
