@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, CheckCircle2, Clock3, Heart, Lock, Plus, Shield, Swords, Trophy, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -164,7 +165,7 @@ async function fetchJson<TResponse>(url: string, init?: RequestInit) {
   return (await response.json()) as TResponse;
 }
 
-type FriendsPageView = "manager" | "tournaments";
+type FriendsPageView = "manager" | "manager-detail" | "tournament-detail" | "tournaments";
 
 function isFinishedCompetition(competition: FriendsCompetition) {
   return competition.status === "COMPLETED" || competition.status === "CANCELLED";
@@ -371,9 +372,9 @@ export function FriendsDashboardContent({ user }: { user: AccountUser }) {
             </div>
 
             {!isLoading && finishedCompetitions.length > 0 ? (
-              <div className="dashboard-action-list">
+              <div className="friends-tournament-grid">
                 {finishedCompetitions.slice(0, 5).map((competition) => (
-                  <FriendsCompactRow competition={competition} key={competition.id} />
+                  <FriendsTournamentCard competition={competition} key={competition.id} />
                 ))}
               </div>
             ) : !isLoading ? (
@@ -397,9 +398,6 @@ export function FriendsDashboardContent({ user }: { user: AccountUser }) {
               <ButtonLink href="/tornei" variant="secondary">
                 Apri Tornei
               </ButtonLink>
-              <ButtonLink href="/area-manager" variant="secondary">
-                Area Manager
-              </ButtonLink>
             </div>
           </section>
         </aside>
@@ -415,27 +413,42 @@ export function FriendsDashboardContent({ user }: { user: AccountUser }) {
   );
 }
 
-export function FriendsPage({ user, view = "tournaments" }: { user: AccountUser; view?: FriendsPageView }) {
-  const { competitions, isLoading, message, mutate, selected, selectedId, setSelectedId, teams } = useFriendsData(true);
+export function FriendsPage({
+  competitionId,
+  user,
+  view = "tournaments",
+}: {
+  competitionId?: string;
+  user: AccountUser;
+  view?: FriendsPageView;
+}) {
+  const { competitions, isLoading, message, mutate, selected, teams } = useFriendsData(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const activeCompetitions = competitions.filter((competition) => !isFinishedCompetition(competition));
   const finishedCompetitions = competitions.filter(isFinishedCompetition);
   const ownedCompetitions = competitions.filter((competition) => competition.is_owner);
-  const selectedOwner = ownedCompetitions.find((competition) => competition.id === selectedId) ?? ownedCompetitions[0] ?? null;
-  const selectedTournament = selected;
   const isManager = view === "manager";
+  const isManagerDetail = view === "manager-detail";
+  const isTournamentDetail = view === "tournament-detail";
+  const detailCompetition = competitionId
+    ? competitions.find((competition) => competition.id === competitionId && (!isManagerDetail || competition.is_owner)) ?? null
+    : selected;
+  const pageTitle = isManager || isManagerDetail ? "Area Manager" : isTournamentDetail ? detailCompetition?.name ?? "Torneo" : "Tornei";
+  const pageCopy = isManager
+    ? "Crea competizioni e apri il pannello dedicato di ogni torneo."
+    : isManagerDetail
+      ? "Gestisci inviti, partecipanti, vite, round e risultati di questa competizione."
+      : isTournamentDetail
+        ? "Dettaglio torneo Friends, scelte e storico della competizione."
+        : "Tutti i tornei Friends a cui sei invitato o iscritto, separati tra in corso e conclusi.";
 
   return (
     <div className="dashboard-page-content">
       <header className="user-page-intro">
         <p className="user-page-kicker">Modalità Friends</p>
-        <h1>{isManager ? "Area Manager" : "Tornei"}</h1>
-        <p>
-          {isManager
-            ? "Crea competizioni, invita amici, assegna vite e gestisci round e risultati."
-            : "Tutti i tornei Friends a cui sei invitato o iscritto, separati tra in corso e conclusi."}
-        </p>
+        <h1>{pageTitle}</h1>
+        <p>{pageCopy}</p>
         <PremiumDivider />
       </header>
 
@@ -451,28 +464,27 @@ export function FriendsPage({ user, view = "tournaments" }: { user: AccountUser;
         </Card>
       ) : null}
 
-      {isManager ? (
-        <ManagerView
-          competitions={ownedCompetitions}
+      {isManagerDetail || isTournamentDetail ? (
+        <FriendsDetailView
+          backHref={isManagerDetail ? "/area-manager" : "/tornei"}
+          backLabel={isManagerDetail ? "Torna all'Area Manager" : "Torna ai Tornei"}
+          competition={detailCompetition}
+          isLoading={isLoading}
           mutate={mutate}
-          onCreate={() => setIsCreateOpen(true)}
-          selected={selectedOwner}
-          selectedId={selectedId}
-          setSelectedId={setSelectedId}
+          showManagerTools={isManagerDetail}
           teams={teams}
           user={user}
+        />
+      ) : isManager ? (
+        <ManagerView
+          competitions={ownedCompetitions}
+          onCreate={() => setIsCreateOpen(true)}
         />
       ) : (
         <TournamentsView
           activeCompetitions={activeCompetitions}
           finishedCompetitions={finishedCompetitions}
-          mutate={mutate}
           onJoin={() => setIsJoinOpen(true)}
-          selected={selectedTournament}
-          selectedId={selectedId}
-          setSelectedId={setSelectedId}
-          teams={teams}
-          user={user}
         />
       )}
 
@@ -494,218 +506,168 @@ export function FriendsPage({ user, view = "tournaments" }: { user: AccountUser;
   );
 }
 
-function TournamentsView({
-  activeCompetitions,
-  finishedCompetitions,
+function FriendsDetailView({
+  backHref,
+  backLabel,
+  competition,
+  isLoading,
   mutate,
-  onJoin,
-  selected,
-  selectedId,
-  setSelectedId,
+  showManagerTools,
   teams,
   user,
 }: {
-  activeCompetitions: FriendsCompetition[];
-  finishedCompetitions: FriendsCompetition[];
+  backHref: string;
+  backLabel: string;
+  competition: FriendsCompetition | null;
+  isLoading: boolean;
   mutate: (url: string, init?: RequestInit) => Promise<FriendsCompetition | null>;
-  onJoin: () => void;
-  selected: FriendsCompetition | null;
-  selectedId: string;
-  setSelectedId: (value: string) => void;
+  showManagerTools: boolean;
   teams: Team[];
   user: AccountUser;
 }) {
+  if (!competition && isLoading) {
+    return null;
+  }
+
+  if (!competition) {
+    return (
+      <section className="dashboard-panel">
+        <h2>Torneo non disponibile</h2>
+        <p className="admin-muted">Non hai accesso a questa competizione oppure non esiste più.</p>
+        <ButtonLink href={backHref} variant="secondary">
+          {backLabel}
+        </ButtonLink>
+      </section>
+    );
+  }
+
   return (
-    <div className="dashboard-layout-grid">
-      <div className="dashboard-main-stack">
-        <section className="dashboard-panel">
-          <div className="dashboard-section-heading">
-            <div>
-              <p className="user-page-kicker">In corso</p>
-              <h2>Tornei in corso</h2>
-            </div>
-            <Button onClick={onJoin} type="button" variant="secondary">
-              Partecipa con codice
-            </Button>
-          </div>
-
-          {activeCompetitions.length > 0 ? (
-            <div className="friends-tournament-grid">
-              {activeCompetitions.map((competition) => (
-                <FriendsTournamentCard
-                  competition={competition}
-                  isSelected={selectedId === competition.id}
-                  key={competition.id}
-                  onSelect={() => setSelectedId(competition.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            <DashboardEmpty
-              text="Qui appariranno solo i tornei Friends in cui sei invitato, iscritto o organizzatore."
-              title="Nessun torneo in corso"
-            />
-          )}
-        </section>
-
-        <section className="dashboard-panel">
-          <div className="dashboard-section-heading">
-            <div>
-              <p className="user-page-kicker">Conclusi</p>
-              <h2>Tornei conclusi</h2>
-            </div>
-          </div>
-
-          {finishedCompetitions.length > 0 ? (
-            <div className="dashboard-action-list">
-              {finishedCompetitions.map((competition) => (
-                <button
-                  className={cn("dashboard-action-item", selectedId === competition.id && "user-nav-link-active")}
-                  key={competition.id}
-                  onClick={() => setSelectedId(competition.id)}
-                  type="button"
-                >
-                  <span className="dashboard-action-icon">
-                    <Trophy aria-hidden="true" />
-                  </span>
-                  <div>
-                    <strong>{competition.name}</strong>
-                    <p>{competition.participants.length} partecipanti • {competition.status}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="admin-muted">Nessun torneo concluso.</p>
-          )}
-        </section>
-
-        {selected ? (
-          <FriendsCompetitionPanel
-            competition={selected}
-            mutate={mutate}
-            showManagerTools={false}
-            teams={teams}
-            user={user}
-          />
-        ) : null}
+    <div className="dashboard-main-stack">
+      <div>
+        <ButtonLink href={backHref} variant="secondary">
+          {backLabel}
+        </ButtonLink>
       </div>
+      <FriendsCompetitionPanel
+        competition={competition}
+        mutate={mutate}
+        showManagerTools={showManagerTools}
+        teams={teams}
+        user={user}
+      />
+    </div>
+  );
+}
 
-      <aside className="dashboard-side-stack">
-        <section className="dashboard-panel">
-          <div className="dashboard-section-heading">
-            <div>
-              <p className="user-page-kicker">Organizzazione</p>
-              <h2>Area Manager</h2>
-            </div>
+function TournamentsView({
+  activeCompetitions,
+  finishedCompetitions,
+  onJoin,
+}: {
+  activeCompetitions: FriendsCompetition[];
+  finishedCompetitions: FriendsCompetition[];
+  onJoin: () => void;
+}) {
+  return (
+    <div className="dashboard-main-stack">
+      <section className="dashboard-panel">
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="user-page-kicker">In corso</p>
+            <h2>Tornei in corso</h2>
+            <p className="admin-muted">Solo competizioni a cui puoi partecipare, sei iscritto o sei invitato.</p>
           </div>
-          <p className="admin-muted">Creazione, inviti, vite e calcolo round sono stati spostati in un pannello separato.</p>
-          <ButtonLink href="/area-manager">
-            Apri Area Manager
-          </ButtonLink>
-        </section>
-      </aside>
+          <Button onClick={onJoin} type="button" variant="secondary">
+            Partecipa con codice
+          </Button>
+        </div>
+
+        {activeCompetitions.length > 0 ? (
+          <div className="friends-horizontal-list">
+            {activeCompetitions.map((competition) => (
+              <FriendsTournamentRow
+                actionLabel={competition.can_join ? "Accetta invito" : "Apri torneo"}
+                competition={competition}
+                href={`/tornei/dettaglio?id=${competition.id}`}
+                key={competition.id}
+              />
+            ))}
+          </div>
+        ) : (
+          <DashboardEmpty
+            text="Qui appariranno solo i tornei Friends in cui sei invitato, iscritto o organizzatore."
+            title="Nessun torneo in corso"
+          />
+        )}
+      </section>
+
+      <section className="dashboard-panel">
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="user-page-kicker">Archivio</p>
+            <h2>Tornei conclusi</h2>
+            <p className="admin-muted">Storico delle competizioni terminate, con round disputati e riepilogo scelte.</p>
+          </div>
+        </div>
+
+        {finishedCompetitions.length > 0 ? (
+          <div className="friends-horizontal-list">
+            {finishedCompetitions.map((competition) => (
+              <FriendsTournamentRow
+                actionLabel="Rivedi le scelte"
+                competition={competition}
+                href={`/tornei/dettaglio?id=${competition.id}`}
+                key={competition.id}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="admin-muted">Nessun torneo concluso.</p>
+        )}
+      </section>
     </div>
   );
 }
 
 function ManagerView({
   competitions,
-  mutate,
   onCreate,
-  selected,
-  selectedId,
-  setSelectedId,
-  teams,
-  user,
 }: {
   competitions: FriendsCompetition[];
-  mutate: (url: string, init?: RequestInit) => Promise<FriendsCompetition | null>;
   onCreate: () => void;
-  selected: FriendsCompetition | null;
-  selectedId: string;
-  setSelectedId: (value: string) => void;
-  teams: Team[];
-  user: AccountUser;
 }) {
   return (
-    <div className="dashboard-layout-grid">
-      <div className="dashboard-main-stack">
-        <section className="dashboard-panel">
-          <div className="dashboard-section-heading">
-            <div>
-              <p className="user-page-kicker">Manager</p>
-              <h2>Le competizioni che gestisci</h2>
-              <p className="admin-muted">Crea nuove competizioni e gestisci solo quelle organizzate da te.</p>
-            </div>
-            <Button onClick={onCreate} type="button">
-              Crea competizione
-            </Button>
+    <div className="dashboard-main-stack">
+      <section className="dashboard-panel">
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="user-page-kicker">Manager</p>
+            <h2>Le competizioni che gestisci</h2>
+            <p className="admin-muted">Crea nuove competizioni e apri il pannello dedicato per gestire inviti, vite e round.</p>
           </div>
+          <Button onClick={onCreate} type="button">
+            Crea competizione
+          </Button>
+        </div>
 
-          {competitions.length > 0 ? (
-            <div className="friends-tournament-grid">
-              {competitions.map((competition) => (
-                <FriendsTournamentCard
-                  competition={competition}
-                  isSelected={selectedId === competition.id}
-                  key={competition.id}
-                  onSelect={() => setSelectedId(competition.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            <DashboardEmpty
-              text="Premi Crea competizione per aprire il wizard e preparare una nuova sfida privata."
-              title="Nessuna competizione creata"
-            />
-          )}
-        </section>
-
-        {selected ? (
-          <FriendsCompetitionPanel
-            competition={selected}
-            mutate={mutate}
-            showManagerTools
-            teams={teams}
-            user={user}
+        {competitions.length > 0 ? (
+          <div className="friends-horizontal-list">
+            {competitions.map((competition) => (
+              <FriendsTournamentRow
+                actionLabel="Gestisci"
+                competition={competition}
+                href={`/area-manager/torneo?id=${competition.id}`}
+                key={competition.id}
+              />
+            ))}
+          </div>
+        ) : (
+          <DashboardEmpty
+            text="Premi Crea competizione per aprire il wizard e preparare una nuova sfida privata."
+            title="Nessuna competizione creata"
           />
-        ) : null}
-      </div>
-
-      <aside className="dashboard-side-stack">
-        <section className="dashboard-panel">
-          <div className="dashboard-section-heading">
-            <div>
-              <p className="user-page-kicker">Suggerimento</p>
-              <h2>Flusso consigliato</h2>
-            </div>
-          </div>
-          <div className="dashboard-action-list">
-            <div className="dashboard-action-item">
-              <span className="dashboard-action-icon">1</span>
-              <div>
-                <strong>Crea competizione</strong>
-                <p>Imposta nome, regole, match e deadline.</p>
-              </div>
-            </div>
-            <div className="dashboard-action-item">
-              <span className="dashboard-action-icon">2</span>
-              <div>
-                <strong>Invita gli amici</strong>
-                <p>Gli inviti arrivano nella Posta con Accetta/Declina.</p>
-              </div>
-            </div>
-            <div className="dashboard-action-item">
-              <span className="dashboard-action-icon">3</span>
-              <div>
-                <strong>Gestisci il round</strong>
-                <p>Blocca scelte, inserisci risultati e calcola il round.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </aside>
+        )}
+      </section>
     </div>
   );
 }
@@ -790,12 +752,53 @@ function JoinInviteModal({
   );
 }
 
+function FriendsTournamentRow({
+  actionLabel,
+  competition,
+  href,
+}: {
+  actionLabel: string;
+  competition: FriendsCompetition;
+  href: string;
+}) {
+  const currentRound = getCurrentRound(competition);
+  const statusLabel = isFinishedCompetition(competition) ? "Concluso" : competition.can_join ? "Invito" : "In corso";
+  const roundsPlayed = competition.rounds.filter((round) => round.status === "CALCULATED").length;
+
+  return (
+    <Link className="friends-tournament-row" href={href}>
+      <span className="dashboard-action-icon">
+        <Trophy aria-hidden="true" />
+      </span>
+      <span className="friends-tournament-row-main">
+        <strong>{competition.name}</strong>
+        <small>{competition.description || "Competizione Friends privata"}</small>
+      </span>
+      <span>
+        <small>Stato</small>
+        <strong>{statusLabel}</strong>
+      </span>
+      <span>
+        <small>Round disputati</small>
+        <strong>{roundsPlayed}</strong>
+      </span>
+      <span>
+        <small>Deadline</small>
+        <strong>{formatDeadline(currentRound?.deadline_at ?? null)}</strong>
+      </span>
+      <em>{actionLabel}</em>
+    </Link>
+  );
+}
+
 function FriendsTournamentCard({
   competition,
+  href,
   isSelected,
   onSelect,
 }: {
   competition: FriendsCompetition;
+  href?: string;
   isSelected?: boolean;
   onSelect?: () => void;
 }) {
@@ -825,6 +828,14 @@ function FriendsTournamentCard({
     </>
   );
 
+  if (href) {
+    return (
+      <Link className="dashboard-arena-card friends-tournament-card" href={href}>
+        {content}
+      </Link>
+    );
+  }
+
   if (onSelect) {
     return (
       <button
@@ -840,15 +851,6 @@ function FriendsTournamentCard({
   return (
     <article className="dashboard-arena-card friends-tournament-card">
       {content}
-    </article>
-  );
-}
-
-function FriendsCompactRow({ competition }: { competition: FriendsCompetition }) {
-  return (
-    <article className="dashboard-movement-row">
-      <span>{competition.status}</span>
-      <strong>{competition.name}</strong>
     </article>
   );
 }

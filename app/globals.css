@@ -4040,6 +4040,7 @@ a {
   }
 
   .friends-tournament-grid,
+  .friends-horizontal-list,
   .friends-quick-actions,
   .friends-wizard-panel {
     display: grid;
@@ -4053,6 +4054,7 @@ a {
   .friends-tournament-card {
     width: 100%;
     color: inherit;
+    text-decoration: none;
     text-align: left;
   }
 
@@ -4063,6 +4065,62 @@ a {
   .friends-create-modal {
     position: relative;
     width: min(42rem, calc(100vw - 2rem));
+  }
+
+  .friends-tournament-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-surface) 66%, transparent);
+    color: var(--color-white);
+    padding: 0.9rem;
+    text-decoration: none;
+    transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+  }
+
+  .friends-tournament-row:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 52%, var(--color-border));
+    background: color-mix(in srgb, var(--color-surface-elevated) 72%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .friends-tournament-row span {
+    display: grid;
+    gap: 0.18rem;
+    min-width: 0;
+  }
+
+  .friends-tournament-row > span:not(.dashboard-action-icon),
+  .friends-tournament-row em {
+    grid-column: 2;
+  }
+
+  .friends-tournament-row-main strong,
+  .friends-tournament-row span strong {
+    overflow-wrap: anywhere;
+  }
+
+  .friends-tournament-row small {
+    color: var(--color-muted-soft);
+    font-size: 0.66rem;
+    font-weight: 650;
+  }
+
+  .friends-tournament-row em {
+    justify-self: start;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
+    border-radius: var(--radius-pill);
+    color: var(--color-white);
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 760;
+    letter-spacing: 0.05em;
+    padding: 0.72rem 1rem;
+    text-transform: uppercase;
+    white-space: nowrap;
   }
 
   .dashboard-action-item {
@@ -6859,6 +6917,19 @@ a {
   }
 
   @media (min-width: 64rem) {
+    .friends-tournament-row {
+      grid-template-columns: auto minmax(13rem, 1.35fr) repeat(3, minmax(7.5rem, 0.65fr)) auto;
+    }
+
+    .friends-tournament-row > span:not(.dashboard-action-icon),
+    .friends-tournament-row em {
+      grid-column: auto;
+    }
+
+    .friends-tournament-row em {
+      justify-self: end;
+    }
+
     .admin-layout-grid {
       grid-template-columns: minmax(17rem, 0.3fr) minmax(0, 1fr);
     }

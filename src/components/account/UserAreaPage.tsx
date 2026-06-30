@@ -34,10 +34,11 @@ import { getPasswordRequirements } from "@/lib/auth-validation";
 import { formatCups } from "@/lib/arena-client";
 
 type UserAreaPageProps = {
+  friendsCompetitionId?: string;
   page: UserAreaPageKey;
 };
 
-export function UserAreaPage({ page }: UserAreaPageProps) {
+export function UserAreaPage({ friendsCompetitionId, page }: UserAreaPageProps) {
   return (
     <UserLayout currentPage={page}>
       {(user) => {
@@ -50,7 +51,13 @@ export function UserAreaPage({ page }: UserAreaPageProps) {
           case "tornei":
             return user.platform_mode === "FRIENDS" ? <FriendsPage user={user} view="tournaments" /> : <DashboardPage user={user} />;
           case "area-manager":
-            return user.platform_mode === "FRIENDS" ? <FriendsPage user={user} view="manager" /> : <DashboardPage user={user} />;
+            return user.platform_mode === "FRIENDS"
+              ? <FriendsPage competitionId={friendsCompetitionId} user={user} view={friendsCompetitionId ? "manager-detail" : "manager"} />
+              : <DashboardPage user={user} />;
+          case "friends-tournament":
+            return user.platform_mode === "FRIENDS"
+              ? <FriendsPage competitionId={friendsCompetitionId} user={user} view="tournament-detail" />
+              : <DashboardPage user={user} />;
           case "arene":
             return <ArenePage />;
           case "classifiche":

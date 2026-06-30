@@ -21,6 +21,7 @@ export type UserAreaPageKey =
   | "classifiche"
   | "dashboard"
   | "friends"
+  | "friends-tournament"
   | "impostazioni"
   | "movimenti"
   | "posta"
