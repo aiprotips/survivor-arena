@@ -2,7 +2,27 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowUpRight, CheckCircle2, Clock3, Heart, Lock, Plus, Shield, Swords, Trophy, UsersRound } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  CheckCircle2,
+  Clipboard,
+  Clock3,
+  Heart,
+  History,
+  ListChecks,
+  Lock,
+  Pencil,
+  Plus,
+  Search,
+  Share2,
+  Shield,
+  Swords,
+  Trash2,
+  Trophy,
+  UserPlus,
+  UsersRound,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { AccountUser } from "@/components/account/types";
 import { Button, ButtonLink } from "@/components/ui/Button";
@@ -137,6 +157,8 @@ type DraftMatch = {
   homeTeamId: string;
   isActive: boolean;
 };
+
+type FriendsMutate = (url: string, init?: RequestInit) => Promise<FriendsCompetition | null>;
 
 const resultOptions: Array<{ label: string; value: MatchResult }> = [
   { label: "Vittoria Casa", value: "HOME_WIN" },
@@ -541,6 +563,18 @@ function FriendsDetailView({
     );
   }
 
+  if (showManagerTools) {
+    return (
+      <FriendsManagerCompetitionView
+        backHref={backHref}
+        competition={competition}
+        mutate={mutate}
+        teams={teams}
+        user={user}
+      />
+    );
+  }
+
   return (
     <div className="dashboard-main-stack">
       <div>
@@ -557,6 +591,964 @@ function FriendsDetailView({
       />
     </div>
   );
+}
+
+type FriendsManagerTab = "overview" | "participants" | "round" | "history" | "settings";
+
+const managerTabs: Array<{ label: string; value: FriendsManagerTab }> = [
+  { label: "Panoramica", value: "overview" },
+  { label: "Partecipanti", value: "participants" },
+  { label: "Round Corrente", value: "round" },
+  { label: "Storico Round", value: "history" },
+  { label: "Impostazioni", value: "settings" },
+];
+
+function FriendsManagerCompetitionView({
+  backHref,
+  competition,
+  mutate,
+  teams,
+  user,
+}: {
+  backHref: string;
+  competition: FriendsCompetition;
+  mutate: FriendsMutate;
+  teams: Team[];
+  user: AccountUser;
+}) {
+  const [activeTab, setActiveTab] = useState<FriendsManagerTab>("overview");
+  const [isCalculateOpen, setIsCalculateOpen] = useState(false);
+  const [copyMessage, setCopyMessage] = useState("");
+  const [now, setNow] = useState(0);
+  const currentRound = getCurrentRound(competition);
+  const stats = getFriendsManagerStats(competition, currentRound);
+
+  useEffect(() => {
+    window.setTimeout(() => setNow(Date.now()), 0);
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  async function copyInviteCode() {
+    await navigator.clipboard?.writeText(competition.invite_code);
+    setCopyMessage("Codice copiato");
+    window.setTimeout(() => setCopyMessage(""), 1800);
+  }
+
+  async function shareInvite() {
+    const text = `Invito a ${competition.name}. Codice: ${competition.invite_code}`;
+
+    if (navigator.share) {
+      await navigator.share({
+        text,
+        title: "Survivor Arena Friends",
+      });
+      return;
+    }
+
+    await copyInviteCode();
+  }
+
+  return (
+    <div className="dashboard-main-stack friends-manager-page">
+      <nav className="friends-manager-breadcrumb" aria-label="Percorso">
+        <Link href={backHref}>← Torna indietro</Link>
+        <span>/</span>
+        <Link href="/area-manager">Area Manager</Link>
+        <span>/</span>
+        <strong>{competition.name}</strong>
+      </nav>
+
+      <CompetitionSummaryCard
+        competition={competition}
+        countdown={formatCountdown(currentRound?.deadline_at ?? null, now)}
+        currentRound={currentRound}
+        onCopy={() => void copyInviteCode()}
+        onShare={() => void shareInvite()}
+        stats={stats}
+      />
+      {copyMessage ? <p className="friends-manager-copy-message">{copyMessage}</p> : null}
+
+      <InternalTabs activeTab={activeTab} onChange={setActiveTab} />
+
+      {activeTab === "overview" ? (
+        <>
+          <div className="friends-manager-overview-grid">
+            <QuickActionsCard
+              currentRound={currentRound}
+              onAddMatch={() => setActiveTab("round")}
+              onCalculate={() => setIsCalculateOpen(true)}
+              onChangeDeadline={() => setActiveTab("round")}
+              onDanger={() => setActiveTab("settings")}
+            />
+            <RoundStatusCard currentRound={currentRound} stats={stats} />
+            <CurrentRoundCard competition={competition} currentRound={currentRound} isPreview />
+          </div>
+          <InfoBanner currentRound={currentRound} />
+        </>
+      ) : null}
+
+      {activeTab === "participants" ? (
+        <ParticipantsManagerCard competition={competition} mutate={mutate} user={user} />
+      ) : null}
+
+      {activeTab === "round" ? (
+        <ManagerRoundCard
+          competition={competition}
+          currentRound={currentRound}
+          key={`${currentRound?.id ?? "no-round"}-${currentRound?.deadline_at ?? "no-deadline"}`}
+          mutate={mutate}
+          onCalculate={() => setIsCalculateOpen(true)}
+          teams={teams}
+        />
+      ) : null}
+
+      {activeTab === "history" ? (
+        <HistoryRoundsCard competition={competition} />
+      ) : null}
+
+      {activeTab === "settings" ? (
+        <SettingsCard competition={competition} onCalculate={() => setIsCalculateOpen(true)} />
+      ) : null}
+
+      {isCalculateOpen && currentRound ? (
+        <CalculateRoundModal
+          competition={competition}
+          currentRound={currentRound}
+          mutate={mutate}
+          onClose={() => setIsCalculateOpen(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function CompetitionSummaryCard({
+  competition,
+  countdown,
+  currentRound,
+  onCopy,
+  onShare,
+  stats,
+}: {
+  competition: FriendsCompetition;
+  countdown: string;
+  currentRound: FriendsRound | null;
+  onCopy: () => void;
+  onShare: () => void;
+  stats: FriendsManagerStats;
+}) {
+  return (
+    <Card className="friends-manager-summary">
+      <div className="friends-manager-summary-top">
+        <div className="friends-manager-title-block">
+          <span className="friends-manager-trophy">
+            <Trophy aria-hidden="true" />
+          </span>
+          <span>
+            <span className="ui-badge ui-badge-gold">{competition.status === "ACTIVE" ? "IN CORSO" : competition.status}</span>
+            <h1>{competition.name}</h1>
+            <p>{competition.description || "Competizione privata tra amici."}</p>
+          </span>
+        </div>
+
+        <div className="friends-manager-invite-box">
+          <span>Codice invito</span>
+          <strong>{competition.invite_code}</strong>
+          <div>
+            <button className="friends-manager-small-button" onClick={onCopy} type="button">
+              <Clipboard aria-hidden="true" />
+              Copia codice
+            </button>
+            <button className="friends-manager-small-button friends-manager-small-button-primary" onClick={onShare} type="button">
+              <Share2 aria-hidden="true" />
+              Condividi invito
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="friends-manager-stats-row" aria-label="Riepilogo competizione">
+        <ManagerStat label="Round corrente" value={currentRound ? `Round ${currentRound.round_number}` : "Da creare"} />
+        <ManagerStat label="Partecipanti" value={String(competition.participants.length)} />
+        <ManagerStat label="Vite totali" value={String(stats.totalLives)} />
+        <ManagerStat label="Vite vive" value={String(stats.aliveLives)} />
+        <ManagerStat label="Deadline" value={formatDeadline(currentRound?.deadline_at ?? null)} detail={countdown} />
+      </div>
+    </Card>
+  );
+}
+
+function ManagerStat({ detail, label, value }: { detail?: string; label: string; value: string }) {
+  return (
+    <span className="friends-manager-stat">
+      <small>{label}</small>
+      <strong>{value}</strong>
+      {detail ? <em>{detail}</em> : null}
+    </span>
+  );
+}
+
+function InternalTabs({
+  activeTab,
+  onChange,
+}: {
+  activeTab: FriendsManagerTab;
+  onChange: (tab: FriendsManagerTab) => void;
+}) {
+  return (
+    <div className="friends-manager-tabs" role="tablist" aria-label="Sezioni gestione competizione">
+      {managerTabs.map((tab) => (
+        <button
+          aria-selected={activeTab === tab.value}
+          className={cn("friends-manager-tab", activeTab === tab.value && "friends-manager-tab-active")}
+          key={tab.value}
+          onClick={() => onChange(tab.value)}
+          role="tab"
+          type="button"
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function QuickActionsCard({
+  currentRound,
+  onAddMatch,
+  onCalculate,
+  onChangeDeadline,
+  onDanger,
+}: {
+  currentRound: FriendsRound | null;
+  onAddMatch: () => void;
+  onCalculate: () => void;
+  onChangeDeadline: () => void;
+  onDanger: () => void;
+}) {
+  return (
+    <Card className="friends-manager-card">
+      <div className="friends-manager-card-heading">
+        <span className="user-page-kicker">Gestione</span>
+        <h2>Azioni rapide</h2>
+      </div>
+      <div className="friends-manager-action-list">
+        <button className="friends-manager-action" disabled={!currentRound} onClick={onChangeDeadline} type="button">
+          <Clock3 aria-hidden="true" />
+          Modifica Deadline
+        </button>
+        <button className="friends-manager-action" disabled={!currentRound} onClick={onAddMatch} type="button">
+          <Plus aria-hidden="true" />
+          Aggiungi Match
+        </button>
+        <button className="friends-manager-action friends-manager-action-important" disabled={!currentRound} onClick={onCalculate} type="button">
+          <ListChecks aria-hidden="true" />
+          Calcola Round
+        </button>
+        <button className="friends-manager-action friends-manager-action-danger" onClick={onDanger} type="button">
+          <AlertTriangle aria-hidden="true" />
+          Termina Competizione
+        </button>
+      </div>
+    </Card>
+  );
+}
+
+function RoundStatusCard({
+  currentRound,
+  stats,
+}: {
+  currentRound: FriendsRound | null;
+  stats: FriendsManagerStats;
+}) {
+  const steps = ["Scelte aperte", "Deadline", "Calcolo round", "Nuovo round"];
+  const activeStep = getTimelineStep(currentRound);
+
+  return (
+    <Card className="friends-manager-card">
+      <div className="friends-manager-card-heading">
+        <span className="user-page-kicker">Stato</span>
+        <h2>Riepilogo rapido</h2>
+      </div>
+      <div className="friends-manager-mini-stats">
+        <ManagerStat label="Vite sopravvissute" value={String(stats.aliveLives)} />
+        <ManagerStat label="Vite eliminate" value={String(stats.eliminatedLives)} />
+        <ManagerStat label="Vite senza scelta" value={String(stats.withoutChoice)} />
+        <ManagerStat label="Match del round" value={String(stats.matchCount)} />
+      </div>
+      <div className="friends-manager-timeline" aria-label="Timeline round">
+        {steps.map((step) => (
+          <span className={cn("friends-manager-timeline-step", step === activeStep && "friends-manager-timeline-step-active")} key={step}>
+            {step}
+          </span>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function CurrentRoundCard({
+  competition,
+  currentRound,
+  isPreview = false,
+}: {
+  competition: FriendsCompetition;
+  currentRound: FriendsRound | null;
+  isPreview?: boolean;
+}) {
+  const matches = currentRound?.matches ?? [];
+
+  return (
+    <Card className="friends-manager-card">
+      <div className="friends-manager-card-heading friends-manager-card-heading-row">
+        <span>
+          <span className="user-page-kicker">Partite</span>
+          <h2>Round corrente</h2>
+        </span>
+        {currentRound ? <span className="ui-badge">{currentRound.status}</span> : null}
+      </div>
+
+      {matches.length > 0 ? (
+        <div className="friends-manager-match-list">
+          {matches.slice(0, isPreview ? 4 : matches.length).map((match, index) => (
+            <article className="friends-manager-match-row" key={match.id}>
+              <span className="friends-manager-match-index">{index + 1}</span>
+              <strong>
+                {match.home_team} <em>vs</em> {match.away_team}
+              </strong>
+              <span>{match.is_active ? "Aperto" : "Bloccato"}</span>
+              <small>{getMatchChoiceCount(competition, currentRound!.id, match.id)}/{competition.participants.length}</small>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="admin-muted">Nessun match configurato per il round corrente.</p>
+      )}
+
+      {isPreview && matches.length > 4 ? <span className="friends-manager-muted-link">Visualizza tutti i match</span> : null}
+    </Card>
+  );
+}
+
+function InfoBanner({ currentRound }: { currentRound: FriendsRound | null }) {
+  const message =
+    currentRound?.status === "OPEN"
+      ? "Le scelte sono aperte. I partecipanti possono effettuare o modificare le proprie scelte fino alla deadline."
+      : currentRound?.status === "LOCKED"
+        ? "Le scelte sono bloccate. Ora puoi verificare i risultati e calcolare il round."
+        : "Configura il round corrente e guida la competizione passo dopo passo.";
+
+  return (
+    <div className="friends-manager-info-banner">
+      <Shield aria-hidden="true" />
+      <p>{message}</p>
+    </div>
+  );
+}
+
+function ParticipantsManagerCard({
+  competition,
+  mutate,
+  user,
+}: {
+  competition: FriendsCompetition;
+  mutate: FriendsMutate;
+  user: AccountUser;
+}) {
+  const [query, setQuery] = useState("");
+  const participants = competition.participants.filter((participant) => {
+    const haystack = `${participant.username} ${participant.email}`.toLowerCase();
+    return haystack.includes(query.toLowerCase());
+  });
+
+  return (
+    <Card className="friends-manager-section-card">
+      <div className="dashboard-section-heading">
+        <div>
+          <p className="user-page-kicker">Gestione utenti</p>
+          <h2>Partecipanti</h2>
+          <p className="admin-muted">Cerca, modifica vite o rimuovi partecipanti dalla competizione.</p>
+        </div>
+        <button className="friends-manager-small-button friends-manager-small-button-primary" type="button">
+          <UserPlus aria-hidden="true" />
+          Aggiungi partecipante
+        </button>
+      </div>
+
+      <label className="friends-manager-search">
+        <Search aria-hidden="true" />
+        <input
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Cerca username o email"
+          value={query}
+        />
+      </label>
+
+      <div className="friends-manager-participant-list">
+        {participants.length > 0 ? (
+          participants.map((participant) => (
+            <article className="friends-manager-participant-row" key={participant.id}>
+              <span>
+                <strong>{participant.username}</strong>
+                <small>{participant.email}</small>
+              </span>
+              <span>
+                <small>Vite totali</small>
+                <strong>{participant.total_lives}</strong>
+              </span>
+              <span>
+                <small>Vive</small>
+                <strong>{participant.alive_lives}</strong>
+              </span>
+              <span>
+                <small>Eliminate</small>
+                <strong>{participant.eliminated_lives}</strong>
+              </span>
+              <ParticipantCompactActions
+                competition={competition}
+                key={`${participant.id}-${participant.total_lives}`}
+                mutate={mutate}
+                participant={participant}
+                user={user}
+              />
+            </article>
+          ))
+        ) : (
+          <DashboardEmpty text="Nessun partecipante trovato con questa ricerca." title="Lista vuota" />
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function ParticipantCompactActions({
+  competition,
+  mutate,
+  participant,
+  user,
+}: {
+  competition: FriendsCompetition;
+  mutate: FriendsMutate;
+  participant: FriendsParticipant;
+  user: AccountUser;
+}) {
+  const [value, setValue] = useState(String(participant.total_lives));
+
+  async function setLives(lives: number) {
+    await mutate(`/api/friends/competitions/${competition.id}/participants`, {
+      body: JSON.stringify({ lives, participantId: participant.id }),
+      method: "PATCH",
+    });
+  }
+
+  return (
+    <span className="friends-manager-row-actions">
+      <label>
+        <span className="sr-only">Modifica vite</span>
+        <input
+          min={0}
+          onChange={(event) => setValue(event.target.value)}
+          type="number"
+          value={value}
+        />
+      </label>
+      <button onClick={() => void setLives(Number(value))} type="button">
+        <Pencil aria-hidden="true" />
+        <span>Salva</span>
+      </button>
+      <button onClick={() => void setLives(participant.total_lives + 1)} type="button">
+        <Plus aria-hidden="true" />
+        <span>+1</span>
+      </button>
+      <button
+        className="friends-manager-icon-danger"
+        disabled={participant.user_id === user.id}
+        onClick={() =>
+          void mutate(`/api/friends/competitions/${competition.id}/participants`, {
+            body: JSON.stringify({ participantId: participant.id }),
+            method: "DELETE",
+          })
+        }
+        type="button"
+      >
+        <Trash2 aria-hidden="true" />
+        <span>Rimuovi</span>
+      </button>
+    </span>
+  );
+}
+
+function ManagerRoundCard({
+  competition,
+  currentRound,
+  mutate,
+  onCalculate,
+  teams,
+}: {
+  competition: FriendsCompetition;
+  currentRound: FriendsRound | null;
+  mutate: FriendsMutate;
+  onCalculate: () => void;
+  teams: Team[];
+}) {
+  const [deadline, setDeadline] = useState(toDateTimeLocal(currentRound?.deadline_at ?? null));
+  const [newMatch, setNewMatch] = useState<DraftMatch>({ ...emptyMatch });
+
+  if (!currentRound) {
+    return (
+      <Card className="friends-manager-section-card">
+        <DashboardEmpty text="Crea o configura il primo round per iniziare la gestione." title="Round non disponibile" />
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="friends-manager-section-card">
+      <div className="dashboard-section-heading">
+        <div>
+          <p className="user-page-kicker">Gestione round</p>
+          <h2>Round {currentRound.round_number}</h2>
+          <p className="admin-muted">Gestisci deadline, stato scelte e match senza campi sparsi nella pagina.</p>
+        </div>
+        <span className="ui-badge">{currentRound.status}</span>
+      </div>
+
+      <div className="friends-manager-round-toolbar">
+        <label>
+          <span>Deadline attuale</span>
+          <input
+            className="ui-input"
+            onChange={(event) => setDeadline(event.target.value)}
+            type="datetime-local"
+            value={deadline}
+          />
+        </label>
+        <button
+          className="friends-manager-small-button"
+          onClick={() =>
+            void mutate(`/api/friends/competitions/${competition.id}/round`, {
+              body: JSON.stringify({
+                deadlineAt: fromDateTimeLocal(deadline),
+                roundId: currentRound.id,
+              }),
+              method: "PATCH",
+            })
+          }
+          type="button"
+        >
+          <Clock3 aria-hidden="true" />
+          Modifica Deadline
+        </button>
+        <button
+          className="friends-manager-small-button friends-manager-small-button-primary"
+          onClick={() =>
+            void mutate(`/api/friends/competitions/${competition.id}/round`, {
+              body: JSON.stringify({ action: currentRound.status === "OPEN" ? "lock" : "open" }),
+              method: "POST",
+            })
+          }
+          type="button"
+        >
+          <Lock aria-hidden="true" />
+          {currentRound.status === "OPEN" ? "Blocca Scelte" : "Riapri Scelte"}
+        </button>
+        <button className="friends-manager-small-button friends-manager-small-button-gold" onClick={onCalculate} type="button">
+          <ListChecks aria-hidden="true" />
+          Calcola Round
+        </button>
+      </div>
+
+      <CurrentRoundCard competition={competition} currentRound={currentRound} />
+
+      <div className="friends-manager-add-match">
+        <div>
+          <p className="user-page-kicker">Nuovo match</p>
+          <h3>Aggiungi Match</h3>
+        </div>
+        <div className="admin-form-grid">
+          <TeamSelect label="Casa" onChange={(value) => setNewMatch((current) => ({ ...current, homeTeamId: value }))} teams={teams} value={newMatch.homeTeamId} />
+          <TeamSelect label="Trasferta" onChange={(value) => setNewMatch((current) => ({ ...current, awayTeamId: value }))} teams={teams} value={newMatch.awayTeamId} />
+          <button
+            className="friends-manager-small-button friends-manager-small-button-primary"
+            disabled={!newMatch.homeTeamId || !newMatch.awayTeamId || newMatch.homeTeamId === newMatch.awayTeamId}
+            onClick={async () => {
+              const updated = await mutate(`/api/friends/competitions/${competition.id}/matches`, {
+                body: JSON.stringify({
+                  ...newMatch,
+                  roundId: currentRound.id,
+                }),
+                method: "POST",
+              });
+
+              if (updated) {
+                setNewMatch({ ...emptyMatch });
+              }
+            }}
+            type="button"
+          >
+            <Plus aria-hidden="true" />
+            Aggiungi Match
+          </button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function CalculateRoundModal({
+  competition,
+  currentRound,
+  mutate,
+  onClose,
+}: {
+  competition: FriendsCompetition;
+  currentRound: FriendsRound;
+  mutate: FriendsMutate;
+  onClose: () => void;
+}) {
+  const [step, setStep] = useState(1);
+  const [results, setResults] = useState<Record<string, MatchResult>>(() =>
+    Object.fromEntries(currentRound.matches.map((match) => [match.id, match.result])),
+  );
+  const preview = buildRoundPreview(competition, currentRound, results);
+  const canConfirm = currentRound.matches.every((match) => {
+    const result = results[match.id];
+    return result && result !== "PENDING";
+  });
+
+  async function calculate() {
+    const updated = await mutate(`/api/friends/rounds/${currentRound.id}/calculate`, {
+      body: JSON.stringify({
+        results: currentRound.matches.map((match) => ({
+          matchId: match.id,
+          result: results[match.id] ?? match.result,
+        })),
+      }),
+      method: "POST",
+    });
+
+    if (updated) {
+      onClose();
+    }
+  }
+
+  return (
+    <div className="arena-modal-backdrop" role="presentation">
+      <Card aria-modal="true" className="arena-modal-card friends-calculate-modal" role="dialog">
+        <button aria-label="Chiudi" className="modal-close-button" onClick={onClose} type="button">
+          ×
+        </button>
+        <p className="user-page-kicker">Calcolo guidato</p>
+        <h2>Calcola Round {currentRound.round_number}</h2>
+        <div className="friends-calculate-steps" aria-label="Step calcolo round">
+          {[1, 2, 3, 4].map((item) => (
+            <span className={cn(item === step && "friends-calculate-step-active")} key={item}>
+              {item}
+            </span>
+          ))}
+        </div>
+
+        {step === 1 ? (
+          <div className="friends-calculate-panel">
+            <h3>Verifica deadline e scelte</h3>
+            <p className="admin-muted">Controlla che le scelte siano pronte prima di procedere. Se necessario puoi tornare al round e bloccarle.</p>
+            <div className="friends-manager-mini-stats">
+              <ManagerStat label="Stato round" value={currentRound.status} />
+              <ManagerStat label="Deadline" value={formatDeadline(currentRound.deadline_at)} />
+              <ManagerStat label="Vite senza scelta" value={String(preview.withoutChoice)} />
+              <ManagerStat label="Match" value={String(currentRound.matches.length)} />
+            </div>
+          </div>
+        ) : null}
+
+        {step === 2 ? (
+          <div className="friends-calculate-panel">
+            <h3>Inserisci risultati</h3>
+            <div className="friends-calculate-results">
+              {currentRound.matches.map((match) => (
+                <label key={match.id}>
+                  <span>
+                    {match.home_team} vs {match.away_team}
+                  </span>
+                  <select
+                    className="admin-select"
+                    onChange={(event) =>
+                      setResults((current) => ({
+                        ...current,
+                        [match.id]: event.target.value as MatchResult,
+                      }))
+                    }
+                    value={results[match.id] ?? "PENDING"}
+                  >
+                    <option value="PENDING">Risultato</option>
+                    {resultOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {step === 3 ? (
+          <div className="friends-calculate-panel">
+            <h3>Anteprima calcolo</h3>
+            <p className="admin-muted">Anteprima basata sulle scelte registrate e sui risultati inseriti.</p>
+            <div className="friends-manager-mini-stats">
+              <ManagerStat label="Sopravvivono" value={String(preview.survived)} />
+              <ManagerStat label="Eliminate" value={String(preview.eliminated)} />
+              <ManagerStat label="Senza scelta" value={String(preview.withoutChoice)} />
+              <ManagerStat label="Esito" value={preview.willFinish ? "Competizione conclusa" : "Nuovo round"} />
+            </div>
+          </div>
+        ) : null}
+
+        {step === 4 ? (
+          <div className="friends-calculate-panel">
+            <h3>Conferma calcolo</h3>
+            <p className="admin-muted">Dopo la conferma il sistema aggiorna vite, storico e stato della competizione.</p>
+            {!canConfirm ? <p className="friends-manager-danger-note">Inserisci un risultato per tutti i match prima di confermare.</p> : null}
+          </div>
+        ) : null}
+
+        <div className="arena-modal-actions">
+          <Button disabled={step === 1} onClick={() => setStep((current) => Math.max(1, current - 1))} type="button" variant="secondary">
+            Indietro
+          </Button>
+          {step < 4 ? (
+            <Button onClick={() => setStep((current) => Math.min(4, current + 1))} type="button">
+              Continua
+            </Button>
+          ) : (
+            <Button disabled={!canConfirm} onClick={() => void calculate()} type="button" variant="gold">
+              Conferma e calcola round
+            </Button>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function HistoryRoundsCard({ competition }: { competition: FriendsCompetition }) {
+  const [selectedRoundId, setSelectedRoundId] = useState(competition.rounds[0]?.id ?? "");
+  const selectedRound = competition.rounds.find((round) => round.id === selectedRoundId) ?? competition.rounds[0] ?? null;
+
+  return (
+    <Card className="friends-manager-section-card">
+      <div className="dashboard-section-heading">
+        <div>
+          <p className="user-page-kicker">Archivio</p>
+          <h2>Storico Round</h2>
+          <p className="admin-muted">Apri un round per consultare match, risultati, scelte pubbliche e vite.</p>
+        </div>
+      </div>
+
+      <div className="friends-history-layout">
+        <div className="friends-history-round-list">
+          {competition.rounds.map((round) => (
+            <button
+              className={cn("friends-history-round-button", selectedRound?.id === round.id && "friends-history-round-button-active")}
+              key={round.id}
+              onClick={() => setSelectedRoundId(round.id)}
+              type="button"
+            >
+              <History aria-hidden="true" />
+              Round {round.round_number}
+              <span>{round.status}</span>
+            </button>
+          ))}
+        </div>
+
+        {selectedRound ? (
+          <div className="friends-history-detail">
+            <h3>Round {selectedRound.round_number}</h3>
+            <CurrentRoundCard competition={competition} currentRound={selectedRound} />
+            <div className="friends-manager-mini-stats">
+              <ManagerStat label="Vite vive" value={String(competition.participants.reduce((sum, participant) => sum + participant.alive_lives, 0))} />
+              <ManagerStat label="Vite eliminate" value={String(competition.participants.reduce((sum, participant) => sum + participant.eliminated_lives, 0))} />
+              <ManagerStat label="Scelte pubbliche" value={String(competition.public_choices.length)} />
+              <ManagerStat label="Calcolato" value={selectedRound.calculated_at ? formatDeadline(selectedRound.calculated_at) : "Non ancora"} />
+            </div>
+          </div>
+        ) : (
+          <DashboardEmpty text="Nessun round disponibile nello storico." title="Storico vuoto" />
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function SettingsCard({
+  competition,
+  onCalculate,
+}: {
+  competition: FriendsCompetition;
+  onCalculate: () => void;
+}) {
+  return (
+    <Card className="friends-manager-section-card">
+      <div className="dashboard-section-heading">
+        <div>
+          <p className="user-page-kicker">Configurazione</p>
+          <h2>Impostazioni</h2>
+          <p className="admin-muted">Informazioni essenziali della competizione e azioni sensibili separate.</p>
+        </div>
+      </div>
+
+      <div className="friends-settings-grid">
+        <ManagerStat label="Nome competizione" value={competition.name} />
+        <ManagerStat label="Descrizione" value={competition.description || "Competizione privata tra amici."} />
+        <ManagerStat label="Codice invito" value={competition.invite_code} />
+        <ManagerStat label="Stato" value={competition.status} />
+      </div>
+
+      <div className="friends-danger-zone">
+        <div>
+          <p className="user-page-kicker">Azioni pericolose</p>
+          <h3>Gestione finale</h3>
+          <p className="admin-muted">Usa queste azioni solo quando vuoi chiudere o intervenire sulla competizione.</p>
+        </div>
+        <div className="friends-manager-action-list">
+          <button className="friends-manager-action friends-manager-action-important" onClick={onCalculate} type="button">
+            <ListChecks aria-hidden="true" />
+            Calcola Round
+          </button>
+          <button className="friends-manager-action friends-manager-action-danger" disabled type="button">
+            <AlertTriangle aria-hidden="true" />
+            Termina Competizione
+          </button>
+          <button className="friends-manager-action friends-manager-action-danger" disabled type="button">
+            <Trash2 aria-hidden="true" />
+            Elimina Competizione
+          </button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+type FriendsManagerStats = {
+  aliveLives: number;
+  eliminatedLives: number;
+  matchCount: number;
+  totalLives: number;
+  withoutChoice: number;
+};
+
+function getFriendsManagerStats(competition: FriendsCompetition, currentRound: FriendsRound | null): FriendsManagerStats {
+  const lives = competition.participants.flatMap((participant) => participant.lives);
+  const aliveLives = lives.filter((life) => life.status === "ALIVE");
+  const withoutChoice = currentRound
+    ? aliveLives.filter((life) => !life.selections.some((selection) => selection.round_id === currentRound.id)).length
+    : 0;
+
+  return {
+    aliveLives: competition.participants.reduce((sum, participant) => sum + participant.alive_lives, 0),
+    eliminatedLives: competition.participants.reduce((sum, participant) => sum + participant.eliminated_lives, 0),
+    matchCount: currentRound?.matches.length ?? 0,
+    totalLives: competition.participants.reduce((sum, participant) => sum + participant.total_lives, 0),
+    withoutChoice,
+  };
+}
+
+function getMatchChoiceCount(competition: FriendsCompetition, roundId: string, matchId: string) {
+  return competition.participants.reduce((sum, participant) => {
+    return (
+      sum +
+      participant.lives.filter((life) =>
+        life.selections.some((selection) => selection.round_id === roundId && selection.match_id === matchId),
+      ).length
+    );
+  }, 0);
+}
+
+function getTimelineStep(currentRound: FriendsRound | null) {
+  if (!currentRound) {
+    return "Scelte aperte";
+  }
+
+  if (currentRound.status === "CALCULATED") {
+    return "Nuovo round";
+  }
+
+  if (currentRound.status === "LOCKED") {
+    return "Calcolo round";
+  }
+
+  if (isDeadlinePassed(currentRound.deadline_at)) {
+    return "Deadline";
+  }
+
+  return "Scelte aperte";
+}
+
+function formatCountdown(deadline: string | null, now: number) {
+  if (!deadline) {
+    return "Countdown da impostare";
+  }
+
+  if (now <= 0) {
+    return "Countdown attivo";
+  }
+
+  const diff = Date.parse(deadline) - now;
+
+  if (diff <= 0) {
+    return "Deadline scaduta";
+  }
+
+  const hours = Math.floor(diff / 3_600_000);
+  const minutes = Math.floor((diff % 3_600_000) / 60_000);
+  const seconds = Math.floor((diff % 60_000) / 1000);
+
+  return `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+}
+
+function buildRoundPreview(
+  competition: FriendsCompetition,
+  currentRound: FriendsRound,
+  results: Record<string, MatchResult>,
+) {
+  let survived = 0;
+  let eliminated = 0;
+  let withoutChoice = 0;
+
+  competition.participants.forEach((participant) => {
+    participant.lives
+      .filter((life) => life.status === "ALIVE")
+      .forEach((life) => {
+        const selection = life.selections.find((item) => item.round_id === currentRound.id);
+
+        if (!selection) {
+          withoutChoice += 1;
+          return;
+        }
+
+        const match = currentRound.matches.find((item) => item.id === selection.match_id);
+        const result = results[selection.match_id] ?? match?.result ?? "PENDING";
+        const isVoid = result === "POSTPONED" || result === "CANCELLED";
+        const winsHome = result === "HOME_WIN" && selection.selected_team_id === match?.home_team_id;
+        const winsAway = result === "AWAY_WIN" && selection.selected_team_id === match?.away_team_id;
+
+        if (isVoid || winsHome || winsAway) {
+          survived += 1;
+        } else {
+          eliminated += 1;
+        }
+      });
+  });
+
+  return {
+    eliminated,
+    survived,
+    willFinish: survived <= 1,
+    withoutChoice,
+  };
 }
 
 function TournamentsView({

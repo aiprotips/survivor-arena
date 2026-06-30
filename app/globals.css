@@ -4123,6 +4123,557 @@ a {
     white-space: nowrap;
   }
 
+  .friends-manager-page {
+    min-width: 0;
+  }
+
+  .friends-manager-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.42rem;
+    color: var(--color-muted-soft);
+    font-size: 0.78rem;
+    font-weight: 620;
+  }
+
+  .friends-manager-breadcrumb a {
+    color: var(--color-muted);
+    text-decoration: none;
+    transition: color 160ms ease;
+  }
+
+  .friends-manager-breadcrumb a:hover {
+    color: var(--color-white);
+  }
+
+  .friends-manager-breadcrumb strong {
+    color: var(--color-white);
+    font-weight: 650;
+  }
+
+  .friends-manager-summary,
+  .friends-manager-card,
+  .friends-manager-section-card {
+    display: grid;
+    gap: 1rem;
+    border-color: color-mix(in srgb, var(--color-border) 76%, transparent);
+    background:
+      radial-gradient(circle at top right, color-mix(in srgb, var(--color-blue) 10%, transparent), transparent 38%),
+      color-mix(in srgb, var(--color-surface) 74%, transparent);
+    box-shadow: 0 18px 52px color-mix(in srgb, var(--color-ink) 34%, transparent);
+  }
+
+  .friends-manager-summary {
+    padding: clamp(1rem, 4vw, 1.35rem);
+  }
+
+  .friends-manager-summary-top {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .friends-manager-title-block {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.9rem;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .friends-manager-trophy {
+    display: grid;
+    width: 3.35rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 34%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-gold) 10%, transparent);
+    color: var(--color-gold-strong);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--color-gold) 10%, transparent);
+  }
+
+  .friends-manager-trophy svg {
+    width: 1.42rem;
+    height: 1.42rem;
+  }
+
+  .friends-manager-title-block h1 {
+    margin-top: 0.42rem;
+    color: var(--color-white);
+    font-size: clamp(1.55rem, 7vw, 2.55rem);
+    font-weight: 720;
+    line-height: 0.96;
+  }
+
+  .friends-manager-title-block p,
+  .friends-manager-info-banner p {
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  .friends-manager-invite-box {
+    display: grid;
+    gap: 0.62rem;
+    min-width: 0;
+    border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-surface-elevated) 58%, transparent);
+    padding: 0.85rem;
+  }
+
+  .friends-manager-invite-box > span,
+  .friends-manager-stat small,
+  .friends-manager-row-actions input,
+  .friends-manager-round-toolbar label span,
+  .friends-calculate-results label span {
+    color: var(--color-muted-soft);
+    font-size: 0.66rem;
+    font-weight: 760;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .friends-manager-invite-box strong {
+    overflow-wrap: anywhere;
+    color: var(--color-gold-strong);
+    font-size: 1.15rem;
+    font-weight: 760;
+  }
+
+  .friends-manager-invite-box div,
+  .friends-manager-round-toolbar,
+  .friends-manager-row-actions,
+  .friends-calculate-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    align-items: center;
+  }
+
+  .friends-manager-small-button,
+  .friends-manager-action,
+  .friends-manager-tab,
+  .friends-history-round-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-surface-elevated) 58%, transparent);
+    color: var(--color-white);
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: 720;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    padding: 0.76rem 1rem;
+    text-transform: uppercase;
+    transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+  }
+
+  .friends-manager-small-button:hover,
+  .friends-manager-action:hover,
+  .friends-manager-tab:hover,
+  .friends-history-round-button:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 48%, var(--color-border));
+    background: color-mix(in srgb, var(--color-blue) 9%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .friends-manager-small-button svg,
+  .friends-manager-action svg,
+  .friends-manager-row-actions svg {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+
+  .friends-manager-small-button-primary,
+  .friends-manager-action-important,
+  .friends-manager-tab-active {
+    border-color: color-mix(in srgb, var(--color-primary) 50%, var(--color-border));
+    background: linear-gradient(180deg, var(--color-blue), var(--color-blue-hover));
+    color: var(--color-white);
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--color-blue) 16%, transparent);
+  }
+
+  .friends-manager-small-button-gold {
+    border-color: color-mix(in srgb, var(--color-gold) 42%, var(--color-border));
+    background: color-mix(in srgb, var(--color-gold) 12%, transparent);
+    color: var(--color-gold-strong);
+  }
+
+  .friends-manager-action-danger,
+  .friends-manager-icon-danger {
+    border-color: color-mix(in srgb, var(--color-danger) 34%, transparent);
+    color: color-mix(in srgb, var(--color-danger) 82%, var(--color-white));
+  }
+
+  .friends-manager-action:disabled,
+  .friends-manager-small-button:disabled,
+  .friends-manager-row-actions button:disabled {
+    cursor: not-allowed;
+    opacity: 0.46;
+    transform: none;
+  }
+
+  .friends-manager-copy-message {
+    justify-self: end;
+    color: var(--color-survival);
+    font-size: 0.78rem;
+    font-weight: 650;
+  }
+
+  .friends-manager-stats-row,
+  .friends-manager-mini-stats,
+  .friends-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+    gap: 0.65rem;
+  }
+
+  .friends-manager-stat {
+    display: grid;
+    gap: 0.24rem;
+    min-width: 0;
+    border: 1px solid color-mix(in srgb, var(--color-border) 58%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-ink) 18%, transparent);
+    padding: 0.78rem;
+  }
+
+  .friends-manager-stat strong {
+    overflow-wrap: anywhere;
+    color: var(--color-white);
+    font-size: clamp(1rem, 4vw, 1.25rem);
+    font-weight: 720;
+    line-height: 1.08;
+  }
+
+  .friends-manager-stat em {
+    color: var(--color-gold-strong);
+    font-size: 0.72rem;
+    font-style: normal;
+    font-weight: 670;
+  }
+
+  .friends-manager-tabs {
+    display: flex;
+    gap: 0.52rem;
+    overflow-x: auto;
+    padding-bottom: 0.15rem;
+    scrollbar-width: none;
+  }
+
+  .friends-manager-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .friends-manager-tab {
+    flex: 0 0 auto;
+    min-height: 2.65rem;
+    padding-inline: 1.05rem;
+  }
+
+  .friends-manager-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: 0.9rem;
+  }
+
+  .friends-manager-card {
+    align-content: start;
+    padding: 0.95rem;
+  }
+
+  .friends-manager-card-heading,
+  .friends-manager-add-match,
+  .friends-danger-zone {
+    display: grid;
+    gap: 0.48rem;
+  }
+
+  .friends-manager-card-heading h2,
+  .friends-manager-section-card h2,
+  .friends-manager-add-match h3,
+  .friends-danger-zone h3,
+  .friends-calculate-panel h3,
+  .friends-history-detail h3 {
+    color: var(--color-white);
+    font-size: clamp(1.12rem, 5vw, 1.46rem);
+    font-weight: 720;
+    line-height: 1.05;
+  }
+
+  .friends-manager-card-heading-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .friends-manager-action-list {
+    display: grid;
+    gap: 0.56rem;
+  }
+
+  .friends-manager-action {
+    justify-content: flex-start;
+    min-height: 2.75rem;
+    padding-inline: 0.9rem;
+    text-align: left;
+  }
+
+  .friends-manager-timeline {
+    display: grid;
+    gap: 0.48rem;
+  }
+
+  .friends-manager-timeline-step {
+    position: relative;
+    border: 1px solid color-mix(in srgb, var(--color-border) 58%, transparent);
+    border-radius: var(--radius-pill);
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 680;
+    padding: 0.55rem 0.7rem;
+  }
+
+  .friends-manager-timeline-step-active {
+    border-color: color-mix(in srgb, var(--color-gold) 44%, var(--color-border));
+    color: var(--color-gold-strong);
+    background: color-mix(in srgb, var(--color-gold) 8%, transparent);
+  }
+
+  .friends-manager-match-list,
+  .friends-manager-participant-list,
+  .friends-calculate-results,
+  .friends-history-layout {
+    display: grid;
+    gap: 0.62rem;
+  }
+
+  .friends-manager-match-row,
+  .friends-manager-participant-row {
+    display: grid;
+    gap: 0.55rem;
+    align-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-border) 56%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-surface-elevated) 42%, transparent);
+    padding: 0.72rem;
+  }
+
+  .friends-manager-match-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .friends-manager-match-row strong,
+  .friends-manager-participant-row strong {
+    min-width: 0;
+    color: var(--color-white);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .friends-manager-match-row em {
+    color: var(--color-muted-soft);
+    font-size: 0.72rem;
+    font-style: normal;
+    font-weight: 650;
+  }
+
+  .friends-manager-match-row span:not(.friends-manager-match-index),
+  .friends-manager-match-row small,
+  .friends-manager-participant-row small {
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 620;
+  }
+
+  .friends-manager-match-index {
+    display: grid;
+    width: 1.85rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-blue) 13%, transparent);
+    color: var(--color-blue-soft);
+    font-size: 0.76rem;
+    font-weight: 760;
+  }
+
+  .friends-manager-muted-link {
+    color: var(--color-blue-soft);
+    font-size: 0.74rem;
+    font-weight: 720;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .friends-manager-info-banner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 22%, var(--color-border));
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-gold) 6%, transparent);
+    padding: 0.85rem 0.95rem;
+  }
+
+  .friends-manager-info-banner svg {
+    width: 1.05rem;
+    height: 1.05rem;
+    color: var(--color-gold-strong);
+  }
+
+  .friends-manager-search {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.62rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-surface-elevated) 54%, transparent);
+    padding: 0.84rem 1rem;
+  }
+
+  .friends-manager-search svg {
+    width: 1rem;
+    height: 1rem;
+    color: var(--color-blue-soft);
+  }
+
+  .friends-manager-search input,
+  .friends-manager-row-actions input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-white);
+    font: inherit;
+    outline: 0;
+  }
+
+  .friends-manager-participant-row > span {
+    display: grid;
+    gap: 0.18rem;
+    min-width: 0;
+  }
+
+  .friends-manager-row-actions {
+    justify-content: start;
+  }
+
+  .friends-manager-row-actions label {
+    width: 4.6rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 58%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-ink) 18%, transparent);
+    padding: 0.58rem 0.7rem;
+  }
+
+  .friends-manager-row-actions button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.34rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 62%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-surface) 68%, transparent);
+    color: var(--color-white);
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 710;
+    padding: 0.62rem 0.72rem;
+  }
+
+  .friends-manager-round-toolbar {
+    align-items: end;
+  }
+
+  .friends-manager-round-toolbar label {
+    display: grid;
+    gap: 0.38rem;
+    min-width: min(100%, 16rem);
+  }
+
+  .friends-manager-add-match {
+    border: 1px solid color-mix(in srgb, var(--color-border) 58%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-surface-elevated) 36%, transparent);
+    padding: 0.9rem;
+  }
+
+  .friends-calculate-modal {
+    width: min(44rem, calc(100vw - 2rem));
+  }
+
+  .friends-calculate-steps span {
+    display: grid;
+    width: 2rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-border) 66%, transparent);
+    border-radius: var(--radius-pill);
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-weight: 760;
+  }
+
+  .friends-calculate-step-active {
+    border-color: color-mix(in srgb, var(--color-primary) 52%, var(--color-border)) !important;
+    background: var(--color-blue);
+    color: var(--color-white) !important;
+  }
+
+  .friends-calculate-panel {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .friends-calculate-results label {
+    display: grid;
+    gap: 0.42rem;
+  }
+
+  .friends-manager-danger-note {
+    border: 1px solid color-mix(in srgb, var(--color-danger) 36%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+    color: color-mix(in srgb, var(--color-danger) 78%, var(--color-white));
+    font-size: 0.84rem;
+    font-weight: 650;
+    padding: 0.82rem;
+  }
+
+  .friends-history-round-button {
+    justify-content: flex-start;
+    width: 100%;
+    text-align: left;
+  }
+
+  .friends-history-round-button span {
+    margin-left: auto;
+    color: var(--color-muted);
+    font-size: 0.62rem;
+  }
+
+  .friends-history-round-button-active {
+    border-color: color-mix(in srgb, var(--color-primary) 52%, var(--color-border));
+    background: color-mix(in srgb, var(--color-blue) 10%, transparent);
+  }
+
+  .friends-history-detail,
+  .friends-danger-zone {
+    display: grid;
+    gap: 0.85rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 58%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-ink) 15%, transparent);
+    padding: 0.9rem;
+  }
+
   .dashboard-action-item {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -6917,6 +7468,23 @@ a {
   }
 
   @media (min-width: 64rem) {
+    .friends-manager-summary-top {
+      grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.42fr);
+      align-items: stretch;
+    }
+
+    .friends-manager-participant-row {
+      grid-template-columns: minmax(13rem, 1.4fr) repeat(3, minmax(5.4rem, 0.48fr)) minmax(20rem, 1fr);
+    }
+
+    .friends-manager-match-row {
+      grid-template-columns: auto minmax(15rem, 1fr) minmax(5.5rem, 0.32fr) minmax(4.5rem, 0.25fr);
+    }
+
+    .friends-history-layout {
+      grid-template-columns: minmax(13rem, 0.32fr) minmax(0, 1fr);
+    }
+
     .friends-tournament-row {
       grid-template-columns: auto minmax(13rem, 1.35fr) repeat(3, minmax(7.5rem, 0.65fr)) auto;
     }
