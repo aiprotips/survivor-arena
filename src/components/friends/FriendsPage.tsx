@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import {
-  AlertTriangle,
   ArrowUpRight,
   CheckCircle2,
   Clipboard,
@@ -13,6 +12,7 @@ import {
   History,
   ListChecks,
   Lock,
+  Minus,
   Pencil,
   Plus,
   Search,
@@ -84,7 +84,7 @@ type FriendsParticipant = {
   email: string;
   id: string;
   lives: FriendsLife[];
-  status: string;
+  status: "ACTIVE" | "PENDING" | "REMOVED" | "ELIMINATED" | "WINNER";
   total_lives: number;
   user_id: string;
   username: string;
@@ -601,9 +601,9 @@ type FriendsManagerModal =
   | { action: "lock" | "open"; type: "round-status" }
   | { type: "calculate" }
   | { type: "history" }
+  | { participant: FriendsParticipant; type: "approve-participant" }
   | { participant: FriendsParticipant; type: "edit-lives" }
   | { participant: FriendsParticipant; type: "remove-participant" }
-  | { type: "terminate" }
   | { type: "delete" }
   | null;
 
@@ -694,7 +694,6 @@ function FriendsManagerCompetitionView({
           onDelete={() => setModal({ type: "delete" })}
           onHistory={() => setModal({ type: "history" })}
           onToggleChoices={() => setModal({ action: currentRound?.status === "OPEN" ? "lock" : "open", type: "round-status" })}
-          onTerminate={() => setModal({ type: "terminate" })}
         />
         <RoundStatusCard currentRound={currentRound} stats={stats} />
         <CurrentRoundCard competition={competition} currentRound={currentRound} isPreview />
@@ -706,6 +705,7 @@ function FriendsManagerCompetitionView({
         competition={competition}
         mutate={mutate}
         onAdd={() => setModal({ type: "add-participant" })}
+        onApprove={(participant) => setModal({ participant, type: "approve-participant" })}
         onEditLives={(participant) => setModal({ participant, type: "edit-lives" })}
         onRemove={(participant) => setModal({ participant, type: "remove-participant" })}
         user={user}
@@ -762,6 +762,26 @@ function FriendsManagerCompetitionView({
         <EditLivesModal competition={competition} mutate={mutate} onClose={() => setModal(null)} participant={modal.participant} />
       ) : null}
 
+      {modal?.type === "approve-participant" ? (
+        <ConfirmActionModal
+          confirmLabel="Accetta"
+          message={`Vuoi accettare ${modal.participant.username} nella competizione? Partirà con le vite assegnate e potrà giocare dal round corrente.`}
+          onClose={() => setModal(null)}
+          onConfirm={async () => {
+            const updated = await mutate(`/api/friends/competitions/${competition.id}/participants`, {
+              body: JSON.stringify({ action: "approve", participantId: modal.participant.id }),
+              method: "PATCH",
+            });
+
+            if (updated) {
+              setModal(null);
+            }
+          }}
+          tone="normal"
+          title="Accetta partecipante"
+        />
+      ) : null}
+
       {modal?.type === "remove-participant" ? (
         <ConfirmActionModal
           confirmLabel="Elimina"
@@ -779,26 +799,6 @@ function FriendsManagerCompetitionView({
           }}
           tone="danger"
           title="Rimuovi partecipante"
-        />
-      ) : null}
-
-      {modal?.type === "terminate" ? (
-        <ConfirmActionModal
-          confirmLabel="Termina"
-          message="Vuoi terminare questa competizione? Il torneo verrà chiuso e non sarà più giocabile."
-          onClose={() => setModal(null)}
-          onConfirm={async () => {
-            const updated = await mutate(`/api/friends/competitions/${competition.id}`, {
-              body: JSON.stringify({ action: "terminate" }),
-              method: "PATCH",
-            });
-
-            if (updated) {
-              setModal(null);
-            }
-          }}
-          tone="danger"
-          title="Termina competizione"
         />
       ) : null}
 
@@ -863,7 +863,7 @@ function CompetitionSummaryCard({
 
       <div className="friends-manager-stats-row" aria-label="Riepilogo competizione">
         <ManagerStat label="Round corrente" value={currentRound ? `Round ${currentRound.round_number}` : "Da creare"} />
-        <ManagerStat label="Partecipanti" value={String(getActiveFriendsParticipants(competition).length)} />
+        <ManagerStat label="Partecipanti" value={String(getConfirmedFriendsParticipants(competition).length)} />
         <ManagerStat label="Vite totali" value={String(stats.totalLives)} />
         <ManagerStat label="Vite vive" value={String(stats.aliveLives)} />
         <ManagerStat label="Deadline" value={formatDeadline(currentRound?.deadline_at ?? null)} detail={countdown} />
@@ -890,7 +890,6 @@ function QuickActionsCard({
   onChangeDeadline,
   onDelete,
   onHistory,
-  onTerminate,
   onToggleChoices,
 }: {
   currentRound: FriendsRound | null;
@@ -900,7 +899,6 @@ function QuickActionsCard({
   onChangeDeadline: () => void;
   onDelete: () => void;
   onHistory: () => void;
-  onTerminate: () => void;
   onToggleChoices: () => void;
 }) {
   return (
@@ -934,10 +932,6 @@ function QuickActionsCard({
         <button className="friends-manager-action" onClick={onHistory} type="button">
           <History aria-hidden="true" />
           Storico Round
-        </button>
-        <button className="friends-manager-action friends-manager-action-danger" onClick={onTerminate} type="button">
-          <AlertTriangle aria-hidden="true" />
-          Termina Competizione
         </button>
         <button className="friends-manager-action friends-manager-action-danger" onClick={onDelete} type="button">
           <Trash2 aria-hidden="true" />
@@ -1011,7 +1005,7 @@ function CurrentRoundCard({
                 {match.home_team} <em>vs</em> {match.away_team}
               </strong>
               <span>{match.is_active ? "Aperto" : "Bloccato"}</span>
-              <small>{getMatchChoiceCount(competition, currentRound!.id, match.id)}/{getActiveFriendsParticipants(competition).length}</small>
+              <small>{getMatchChoiceCount(competition, currentRound!.id, match.id)}/{getConfirmedFriendsParticipants(competition).length}</small>
             </article>
           ))}
         </div>
@@ -1044,6 +1038,7 @@ function ParticipantsManagerCard({
   competition,
   mutate,
   onAdd,
+  onApprove,
   onEditLives,
   onRemove,
   user,
@@ -1051,12 +1046,13 @@ function ParticipantsManagerCard({
   competition: FriendsCompetition;
   mutate: FriendsMutate;
   onAdd: () => void;
+  onApprove: (participant: FriendsParticipant) => void;
   onEditLives: (participant: FriendsParticipant) => void;
   onRemove: (participant: FriendsParticipant) => void;
   user: AccountUser;
 }) {
   const [query, setQuery] = useState("");
-  const participants = getActiveFriendsParticipants(competition).filter((participant) => {
+  const participants = getVisibleFriendsParticipants(competition).filter((participant) => {
     const haystack = `${participant.username} ${participant.email}`.toLowerCase();
     return haystack.includes(query.toLowerCase());
   });
@@ -1091,6 +1087,9 @@ function ParticipantsManagerCard({
               <span>
                 <strong>{participant.username}</strong>
                 <small>{participant.email}</small>
+                <em className={cn("friends-manager-participant-status", participant.status === "PENDING" && "friends-manager-participant-status-pending")}>
+                  {getParticipantStatusLabel(participant.status)}
+                </em>
               </span>
               <span>
                 <small>Vite totali</small>
@@ -1111,8 +1110,15 @@ function ParticipantsManagerCard({
                     method: "PATCH",
                   })
                 }
+                onApprove={() => onApprove(participant)}
                 onEdit={() => onEditLives(participant)}
                 onRemove={() => onRemove(participant)}
+                onSubtractLife={() =>
+                  void mutate(`/api/friends/competitions/${competition.id}/participants`, {
+                    body: JSON.stringify({ lives: Math.max(0, participant.total_lives - 1), participantId: participant.id }),
+                    method: "PATCH",
+                  })
+                }
                 participant={participant}
                 user={user}
               />
@@ -1128,24 +1134,36 @@ function ParticipantsManagerCard({
 
 function ParticipantCompactActions({
   onAddLife,
+  onApprove,
   onEdit,
   onRemove,
+  onSubtractLife,
   participant,
   user,
 }: {
   onAddLife: () => void;
+  onApprove: () => void;
   onEdit: () => void;
   onRemove: () => void;
+  onSubtractLife: () => void;
   participant: FriendsParticipant;
   user: AccountUser;
 }) {
   return (
     <span className="friends-manager-row-actions">
+      {participant.status === "PENDING" ? (
+        <button aria-label={`Accetta ${participant.username}`} className="friends-manager-icon-positive" onClick={onApprove} type="button">
+          <CheckCircle2 aria-hidden="true" />
+        </button>
+      ) : null}
       <button aria-label={`Modifica vite di ${participant.username}`} onClick={onEdit} type="button">
         <Pencil aria-hidden="true" />
       </button>
       <button aria-label={`Aggiungi una vita a ${participant.username}`} onClick={onAddLife} type="button">
         <Plus aria-hidden="true" />
+      </button>
+      <button aria-label={`Togli una vita a ${participant.username}`} disabled={participant.total_lives <= 0} onClick={onSubtractLife} type="button">
+        <Minus aria-hidden="true" />
       </button>
       <button
         aria-label={`Rimuovi ${participant.username}`}
@@ -1221,7 +1239,6 @@ function AddParticipantModal({
   onClose: () => void;
 }) {
   const [identifier, setIdentifier] = useState("");
-  const [lives, setLives] = useState("1");
   const [error, setError] = useState("");
 
   async function submit() {
@@ -1229,7 +1246,7 @@ function AddParticipantModal({
     const updated = await mutate(`/api/friends/competitions/${competition.id}/participants`, {
       body: JSON.stringify({
         identifier,
-        lives: Number(lives),
+        lives: 1,
       }),
       method: "POST",
     });
@@ -1248,17 +1265,14 @@ function AddParticipantModal({
           Username o Email
           <input className="ui-input" onChange={(event) => setIdentifier(event.target.value)} placeholder="username o email" value={identifier} />
         </label>
-        <label>
-          Numero vite
-          <input className="ui-input" min={1} onChange={(event) => setLives(event.target.value)} type="number" value={lives} />
-        </label>
+        <p className="friends-manager-form-note">Il partecipante verrà aggiunto in attesa con 1 vita. Potrai accettarlo e modificare le vite dalla lista.</p>
       </div>
       {error ? <p className="friends-manager-danger-note">{error}</p> : null}
       <div className="arena-modal-actions">
         <Button onClick={onClose} type="button" variant="secondary">
           Annulla
         </Button>
-        <Button disabled={identifier.trim().length < 3 || Number(lives) < 1} onClick={() => void submit()} type="button">
+        <Button disabled={identifier.trim().length < 3} onClick={() => void submit()} type="button">
           Conferma
         </Button>
       </div>
@@ -1622,7 +1636,7 @@ type FriendsManagerStats = {
 };
 
 function getFriendsManagerStats(competition: FriendsCompetition, currentRound: FriendsRound | null): FriendsManagerStats {
-  const participants = getActiveFriendsParticipants(competition);
+  const participants = getConfirmedFriendsParticipants(competition);
   const lives = participants.flatMap((participant) => participant.lives);
   const aliveLives = lives.filter((life) => life.status === "ALIVE");
   const withoutChoice = currentRound
@@ -1639,7 +1653,7 @@ function getFriendsManagerStats(competition: FriendsCompetition, currentRound: F
 }
 
 function getMatchChoiceCount(competition: FriendsCompetition, roundId: string, matchId: string) {
-  return getActiveFriendsParticipants(competition).reduce((sum, participant) => {
+  return getConfirmedFriendsParticipants(competition).reduce((sum, participant) => {
     return (
       sum +
       participant.lives.filter((life) =>
@@ -1649,8 +1663,28 @@ function getMatchChoiceCount(competition: FriendsCompetition, roundId: string, m
   }, 0);
 }
 
-function getActiveFriendsParticipants(competition: FriendsCompetition) {
+function getVisibleFriendsParticipants(competition: FriendsCompetition) {
   return competition.participants.filter((participant) => participant.status !== "REMOVED");
+}
+
+function getConfirmedFriendsParticipants(competition: FriendsCompetition) {
+  return getVisibleFriendsParticipants(competition).filter((participant) => participant.status !== "PENDING");
+}
+
+function getParticipantStatusLabel(status: FriendsParticipant["status"]) {
+  if (status === "PENDING") {
+    return "In attesa";
+  }
+
+  if (status === "WINNER") {
+    return "Vincitore";
+  }
+
+  if (status === "ELIMINATED") {
+    return "Eliminato";
+  }
+
+  return "Confermato";
 }
 
 function getTimelineStep(currentRound: FriendsRound | null) {
@@ -1704,7 +1738,7 @@ function buildRoundPreview(
   let eliminated = 0;
   let withoutChoice = 0;
 
-  competition.participants.forEach((participant) => {
+  getConfirmedFriendsParticipants(competition).forEach((participant) => {
     participant.lives
       .filter((life) => life.status === "ALIVE")
       .forEach((life) => {
@@ -2233,7 +2267,8 @@ function FriendsCompetitionPanel({
 }) {
   const currentRound = competition.rounds.find((round) => round.round_number === competition.current_round_number) ?? null;
   const participant = competition.participant;
-  const aliveLives = participant?.lives.filter((life) => life.status === "ALIVE") ?? [];
+  const isPendingParticipant = participant?.status === "PENDING";
+  const aliveLives = participant && !isPendingParticipant ? participant.lives.filter((life) => life.status === "ALIVE") : [];
   const [selectedLifeId, setSelectedLifeId] = useState("");
   const [inviteIdentifier, setInviteIdentifier] = useState("");
   const [deadlineEdits, setDeadlineEdits] = useState<Record<string, string>>({});
@@ -2297,6 +2332,13 @@ function FriendsCompetitionPanel({
               Declina
             </Button>
           </div>
+        </div>
+      ) : null}
+
+      {isPendingParticipant ? (
+        <div className="admin-tool-card">
+          <strong>Partecipazione in attesa</strong>
+          <p className="admin-muted">La tua richiesta è arrivata all&apos;organizzatore. Potrai giocare appena verrà confermata.</p>
         </div>
       ) : null}
 

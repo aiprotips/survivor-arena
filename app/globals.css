@@ -4127,6 +4127,7 @@ a {
     width: min(100%, 76rem);
     margin-inline: auto;
     min-width: 0;
+    padding-inline: clamp(0.45rem, 2vw, 1rem);
   }
 
   .friends-manager-breadcrumb {
@@ -4160,7 +4161,7 @@ a {
     display: grid;
     gap: 1rem;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
     border-color: color-mix(in srgb, var(--color-border) 76%, transparent);
     background:
       radial-gradient(circle at top right, color-mix(in srgb, var(--color-blue) 10%, transparent), transparent 38%),
@@ -4399,6 +4400,11 @@ a {
     padding: 0.95rem;
   }
 
+  .friends-manager-section-card {
+    align-content: start;
+    padding: clamp(1rem, 3vw, 1.2rem);
+  }
+
   .friends-manager-card-heading,
   .friends-manager-add-match,
   .friends-danger-zone {
@@ -4474,6 +4480,7 @@ a {
     border-radius: var(--radius-base);
     background: color-mix(in srgb, var(--color-surface-elevated) 42%, transparent);
     padding: 0.72rem;
+    overflow: hidden;
   }
 
   .friends-manager-match-row {
@@ -4590,11 +4597,32 @@ a {
     min-width: 0;
   }
 
+  .friends-manager-participant-status {
+    justify-self: start;
+    border: 1px solid color-mix(in srgb, var(--color-survival) 36%, transparent);
+    border-radius: var(--radius-pill);
+    color: color-mix(in srgb, var(--color-survival) 78%, var(--color-white));
+    font-size: 0.58rem;
+    font-style: normal;
+    font-weight: 780;
+    letter-spacing: 0.08em;
+    margin-top: 0.18rem;
+    padding: 0.28rem 0.52rem;
+    text-transform: uppercase;
+  }
+
+  .friends-manager-participant-status-pending {
+    border-color: color-mix(in srgb, var(--color-gold) 36%, transparent);
+    color: var(--color-gold-strong);
+    background: color-mix(in srgb, var(--color-gold) 7%, transparent);
+  }
+
   .friends-manager-row-actions {
-    display: grid;
-    grid-template-columns: repeat(3, 2.45rem);
+    display: flex;
+    flex-wrap: wrap;
     justify-content: start;
-    width: fit-content;
+    width: 100%;
+    min-width: 0;
   }
 
   .friends-manager-row-actions label {
@@ -4621,6 +4649,11 @@ a {
     aspect-ratio: 1;
     min-width: 0;
     padding: 0;
+  }
+
+  .friends-manager-icon-positive {
+    border-color: color-mix(in srgb, var(--color-survival) 42%, transparent) !important;
+    color: color-mix(in srgb, var(--color-survival) 78%, var(--color-white)) !important;
   }
 
   .friends-manager-round-toolbar {
@@ -4669,6 +4702,16 @@ a {
     font-weight: 760;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+  }
+
+  .friends-manager-form-note {
+    border: 1px solid color-mix(in srgb, var(--color-border) 62%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-surface-elevated) 38%, transparent);
+    color: var(--color-muted);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    padding: 0.8rem;
   }
 
   .friends-manager-events-card .dashboard-movement-list {
@@ -7572,7 +7615,7 @@ a {
     }
 
     .friends-manager-participant-row {
-      grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(4.4rem, 0.36fr)) auto;
+      grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(4rem, 0.3fr)) minmax(9rem, auto);
     }
 
     .friends-manager-participant-row .friends-manager-row-actions {

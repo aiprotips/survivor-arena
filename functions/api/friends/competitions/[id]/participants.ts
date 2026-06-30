@@ -1,7 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
 import { requireUser } from "../../../../_shared/access";
-import { addFriendsParticipantByIdentifier, getFriendsError, removeFriendsParticipant, updateFriendsParticipantLives } from "../../../../_shared/friends";
+import { addFriendsParticipantByIdentifier, approveFriendsParticipant, getFriendsError, removeFriendsParticipant, updateFriendsParticipantLives } from "../../../../_shared/friends";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../../../_shared/http";
 
 type Env = {
@@ -28,6 +28,17 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
   }
 
   try {
+    const action = String(body.action ?? "");
+    if (action === "approve") {
+      const competition = await approveFriendsParticipant(context.env.DB, {
+        competitionId: getParam(context.params.id),
+        organizerId: auth.user.id,
+        participantId: String(body.participantId ?? body.participant_id ?? ""),
+      });
+
+      return json({ competition, ok: true });
+    }
+
     const competition = await updateFriendsParticipantLives(context.env.DB, {
       competitionId: getParam(context.params.id),
       lives: Number(body.lives),

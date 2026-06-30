@@ -65,7 +65,7 @@ export type FriendsParticipantRow = {
   id: string;
   joined_at: string;
   removed_at: string | null;
-  status: "ACTIVE" | "REMOVED" | "ELIMINATED" | "WINNER";
+  status: "ACTIVE" | "PENDING" | "REMOVED" | "ELIMINATED" | "WINNER";
   total_lives: number;
   user_code: string;
   user_id: string;
@@ -874,23 +874,33 @@ export async function getFriendsCompetitionBundle(
   };
 }
 
-async function addFriendsParticipant(db: D1Database, competitionId: string, userId: string, livesToAssign = 1) {
+async function addFriendsParticipant(
+  db: D1Database,
+  competitionId: string,
+  userId: string,
+  livesToAssign = 1,
+  status: FriendsParticipantRow["status"] = "ACTIVE",
+) {
   const existing = await getFriendsParticipant(db, competitionId, userId);
   const now = nowIso();
   const participantId = existing?.id ?? crypto.randomUUID();
 
+  if (existing && existing.status !== "REMOVED") {
+    return existing.id;
+  }
+
   if (existing) {
     await db
-      .prepare("UPDATE friends_participants SET status = 'ACTIVE', removed_at = NULL WHERE id = ?1")
-      .bind(existing.id)
+      .prepare("UPDATE friends_participants SET status = ?1, removed_at = NULL WHERE id = ?2")
+      .bind(status, existing.id)
       .run();
   } else {
     await db
       .prepare(
         `INSERT INTO friends_participants (id, competition_id, user_id, status, joined_at, removed_at)
-         VALUES (?1, ?2, ?3, 'ACTIVE', ?4, NULL)`,
+         VALUES (?1, ?2, ?3, ?4, ?5, NULL)`,
       )
-      .bind(participantId, competitionId, userId, now)
+      .bind(participantId, competitionId, userId, status, now)
       .run();
   }
 
@@ -906,8 +916,10 @@ export async function joinFriendsCompetition(db: D1Database, competitionId: stri
   assertFriends(competition, "Competizione Friends non trovata.", 404);
   assertFriends(competition.status === "ACTIVE", "Competizione non attiva.", 409);
   assertFriends(await canUserJoin(db, competition, userId), "Serve un invito per partecipare.", 403);
+  const existing = await getFriendsParticipant(db, competitionId, userId);
+  assertFriends(!existing || existing.status === "REMOVED", existing?.status === "PENDING" ? "Richiesta già in attesa di conferma." : "Sei già in questa competizione.", 409);
 
-  const participantId = await addFriendsParticipant(db, competitionId, userId, 1);
+  const participantId = await addFriendsParticipant(db, competitionId, userId, 1, "PENDING");
 
   await db
     .prepare(
@@ -926,10 +938,11 @@ export async function joinFriendsCompetition(db: D1Database, competitionId: stri
   await logFriendsEvent(db, {
     competitionId,
     eventType: "friends_join",
-    message: "Partecipante entrato nella competizione.",
+    message: "Partecipante in attesa di conferma organizzatore.",
     participantId,
     userId,
   });
+  await notifyFriendsOwnerPendingParticipant(db, competition, userId);
 
   return getFriendsCompetitionBundle(db, competitionId, userId);
 }
@@ -1001,18 +1014,36 @@ export async function joinFriendsCompetitionByCode(db: D1Database, inviteCode: s
     .first<FriendsCompetitionRow>();
   assertFriends(competition, "Codice invito non trovato.", 404);
   assertFriends(competition.status === "ACTIVE", "Competizione non attiva.", 409);
+  const existing = await getFriendsParticipant(db, competition.id, userId);
+  assertFriends(!existing || existing.status === "REMOVED", existing?.status === "PENDING" ? "Richiesta già in attesa di conferma." : "Sei già in questa competizione.", 409);
 
-  const participantId = await addFriendsParticipant(db, competition.id, userId, 1);
+  const participantId = await addFriendsParticipant(db, competition.id, userId, 1, "PENDING");
 
   await logFriendsEvent(db, {
     competitionId: competition.id,
     eventType: "friends_join_code",
-    message: "Partecipante entrato con codice invito.",
+    message: "Partecipante entrato con codice invito, in attesa di conferma.",
     participantId,
     userId,
   });
+  await notifyFriendsOwnerPendingParticipant(db, competition, userId);
 
   return getFriendsCompetitionBundle(db, competition.id, userId);
+}
+
+async function notifyFriendsOwnerPendingParticipant(db: D1Database, competition: FriendsCompetitionRow, userId: string) {
+  if (competition.owner_user_id === userId) {
+    return;
+  }
+
+  const user = await db.prepare("SELECT username FROM users WHERE id = ?1 LIMIT 1").bind(userId).first<{ username: string }>();
+
+  await createUserInboxMessage(db, {
+    body: `${user?.username ?? "Un utente"} ha richiesto di partecipare a "${competition.name}".\n\nApri Area Manager per accettarlo o rimuoverlo.`,
+    createdBy: userId,
+    title: "Richiesta Friends da approvare",
+    userId: competition.owner_user_id,
+  });
 }
 
 async function assertOwner(db: D1Database, competitionId: string, userId: string) {
@@ -1086,32 +1117,80 @@ export async function addFriendsParticipantByIdentifier(
   await ensureFriendsSchema(db);
   const competition = await assertOwner(db, input.competitionId, input.organizerId);
   assertFriends(competition.status !== "COMPLETED" && competition.status !== "CANCELLED", "Competizione già chiusa.", 409);
-  assertFriends(Number.isInteger(input.lives) && input.lives >= 1, "Numero vite non valido.");
-
   const identifier = input.identifier.trim();
   assertFriends(identifier.length >= 3, "Inserisci username o email del partecipante.");
 
   const user = await findUserByIdentifier(db, identifier);
   assertFriends(user, "Utente non trovato.", 404);
+  const existing = await getFriendsParticipant(db, competition.id, user.id);
+  assertFriends(!existing || existing.status === "REMOVED", existing?.status === "PENDING" ? "Utente già in attesa di conferma." : "Utente già presente nella competizione.", 409);
 
-  const participantId = await addFriendsParticipant(db, competition.id, user.id, input.lives);
+  const participantId = await addFriendsParticipant(db, competition.id, user.id, 1, "PENDING");
 
   await logFriendsEvent(db, {
     competitionId: competition.id,
     eventType: "friends_participant_added",
-    message: `${user.username} aggiunto alla competizione con ${input.lives} vite.`,
+    message: `${user.username} aggiunto in attesa con 1 vita.`,
     participantId,
     userId: input.organizerId,
   });
 
   await createUserInboxMessage(db, {
-    body: `${competition.owner_username ?? "Un amico"} ti ha aggiunto alla competizione "${competition.name}".\n\nPuoi aprirla dalla sezione Tornei.`,
+    body: `${competition.owner_username ?? "Un amico"} ti ha aggiunto alla competizione "${competition.name}".\n\nLa partecipazione è in attesa di conferma organizzatore.`,
     createdBy: input.organizerId,
-    title: "Sei dentro una competizione Friends",
+    title: "Invito Friends in attesa",
     userId: user.id,
   });
 
   return getFriendsCompetitionBundle(db, competition.id, input.organizerId);
+}
+
+export async function approveFriendsParticipant(
+  db: D1Database,
+  input: {
+    competitionId: string;
+    organizerId: string;
+    participantId: string;
+  },
+) {
+  await ensureFriendsSchema(db);
+  const competition = await assertOwner(db, input.competitionId, input.organizerId);
+  const participant = await db
+    .prepare("SELECT id, user_id, status FROM friends_participants WHERE id = ?1 AND competition_id = ?2 LIMIT 1")
+    .bind(input.participantId, input.competitionId)
+    .first<{ id: string; status: FriendsParticipantRow["status"]; user_id: string }>();
+  assertFriends(participant, "Partecipante non trovato.", 404);
+  assertFriends(participant.status === "PENDING", "Questo partecipante è già confermato.", 409);
+
+  await db
+    .prepare("UPDATE friends_participants SET status = 'ACTIVE', removed_at = NULL WHERE id = ?1")
+    .bind(participant.id)
+    .run();
+
+  const lives = await db
+    .prepare("SELECT COUNT(*) AS count FROM friends_lives WHERE participant_id = ?1")
+    .bind(participant.id)
+    .first<{ count: number }>();
+  if (Number(lives?.count ?? 0) < 1) {
+    await setParticipantLives(db, participant.id, 1);
+  }
+
+  await logFriendsEvent(db, {
+    competitionId: input.competitionId,
+    eventType: "friends_participant_approved",
+    message: "Partecipante accettato nella competizione.",
+    participantId: participant.id,
+    userId: input.organizerId,
+  });
+
+  await createUserInboxMessage(db, {
+    body: `La tua partecipazione a "${competition.name}" è stata confermata. Ora puoi giocare.`,
+    createdBy: input.organizerId,
+    title: "Partecipazione Friends confermata",
+    userId: participant.user_id,
+  });
+
+  return getFriendsCompetitionBundle(db, input.competitionId, input.organizerId);
 }
 
 export async function updateFriendsParticipantLives(
@@ -1225,10 +1304,19 @@ async function setParticipantLives(db: D1Database, participantId: string, desire
   if (desiredLives < lives.length) {
     const removable = [...lives].sort((a, b) => b.life_number - a.life_number).slice(0, lives.length - desiredLives);
     for (const life of removable) {
-      await db
-        .prepare("UPDATE friends_lives SET status = 'ELIMINATED', eliminated_at = COALESCE(eliminated_at, ?1) WHERE id = ?2")
-        .bind(nowIso(), life.id)
-        .run();
+      const selections = await db
+        .prepare("SELECT COUNT(*) AS count FROM friends_selections WHERE life_id = ?1")
+        .bind(life.id)
+        .first<{ count: number }>();
+
+      if (Number(selections?.count ?? 0) > 0) {
+        await db
+          .prepare("UPDATE friends_lives SET status = 'ELIMINATED', eliminated_at = COALESCE(eliminated_at, ?1) WHERE id = ?2")
+          .bind(nowIso(), life.id)
+          .run();
+      } else {
+        await db.prepare("DELETE FROM friends_lives WHERE id = ?1").bind(life.id).run();
+      }
     }
   }
 }
@@ -1428,6 +1516,11 @@ export async function chooseFriendsLifeTeam(
   const life = await getUserLife(db, input.lifeId, input.userId);
   assertFriends(life, "Vita non trovata.", 404);
   assertFriends(life.status === "ALIVE", "Questa vita non è più attiva.", 409);
+  const participant = await db
+    .prepare("SELECT status FROM friends_participants WHERE id = ?1 LIMIT 1")
+    .bind(life.participant_id)
+    .first<{ status: FriendsParticipantRow["status"] }>();
+  assertFriends(participant?.status === "ACTIVE", "Partecipazione in attesa di conferma.", 403);
 
   const competition = await getFriendsCompetition(db, life.competition_id);
   assertFriends(competition, "Competizione non trovata.", 404);
@@ -1533,10 +1626,11 @@ export async function calculateFriendsRound(
 
   const aliveRows = await db
     .prepare(
-      `SELECT id, participant_id, competition_id, user_id, life_number, status, current_cycle, created_at, eliminated_at
-       FROM friends_lives
-       WHERE competition_id = ?1 AND status = 'ALIVE'
-       ORDER BY created_at ASC`,
+      `SELECT l.id, l.participant_id, l.competition_id, l.user_id, l.life_number, l.status, l.current_cycle, l.created_at, l.eliminated_at
+       FROM friends_lives l
+       INNER JOIN friends_participants p ON p.id = l.participant_id
+       WHERE l.competition_id = ?1 AND l.status = 'ALIVE' AND p.status = 'ACTIVE'
+       ORDER BY l.created_at ASC`,
     )
     .bind(competition.id)
     .all<FriendsLifeRow>();
@@ -1594,10 +1688,11 @@ export async function calculateFriendsRound(
 async function getAliveFriendsLives(db: D1Database, competitionId: string) {
   const rows = await db
     .prepare(
-      `SELECT id, participant_id, competition_id, user_id, life_number, status, current_cycle, created_at, eliminated_at
-       FROM friends_lives
-       WHERE competition_id = ?1 AND status = 'ALIVE'
-       ORDER BY created_at ASC`,
+      `SELECT l.id, l.participant_id, l.competition_id, l.user_id, l.life_number, l.status, l.current_cycle, l.created_at, l.eliminated_at
+       FROM friends_lives l
+       INNER JOIN friends_participants p ON p.id = l.participant_id
+       WHERE l.competition_id = ?1 AND l.status = 'ALIVE' AND p.status = 'ACTIVE'
+       ORDER BY l.created_at ASC`,
     )
     .bind(competitionId)
     .all<FriendsLifeRow>();
