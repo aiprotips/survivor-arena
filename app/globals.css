@@ -4386,6 +4386,13 @@ a {
     gap: 0.9rem;
   }
 
+  .friends-manager-control-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: 0.9rem;
+    align-items: stretch;
+  }
+
   .friends-manager-card {
     align-content: start;
     min-width: 0;
@@ -4585,9 +4592,9 @@ a {
 
   .friends-manager-row-actions {
     display: grid;
-    grid-template-columns: minmax(3.8rem, 0.65fr) repeat(3, minmax(4.5rem, 1fr));
-    width: 100%;
-    justify-content: stretch;
+    grid-template-columns: repeat(3, 2.45rem);
+    justify-content: start;
+    width: fit-content;
   }
 
   .friends-manager-row-actions label {
@@ -4610,8 +4617,10 @@ a {
     font-size: 0.7rem;
     font-weight: 710;
     justify-content: center;
+    width: 2.45rem;
+    aspect-ratio: 1;
     min-width: 0;
-    padding: 0.62rem 0.72rem;
+    padding: 0;
   }
 
   .friends-manager-round-toolbar {
@@ -4641,6 +4650,57 @@ a {
 
   .friends-calculate-modal {
     width: min(44rem, calc(100vw - 2rem));
+  }
+
+  .friends-manager-modal {
+    width: min(42rem, calc(100vw - 2rem));
+  }
+
+  .friends-manager-form-grid {
+    display: grid;
+    gap: 0.78rem;
+  }
+
+  .friends-manager-form-grid label {
+    display: grid;
+    gap: 0.42rem;
+    color: var(--color-muted-soft);
+    font-size: 0.66rem;
+    font-weight: 760;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .friends-manager-events-card .dashboard-movement-list {
+    grid-template-columns: 1fr;
+  }
+
+  .friends-life-history-list {
+    display: grid;
+    gap: 0.62rem;
+    max-height: min(42vh, 24rem);
+    overflow: auto;
+    padding-right: 0.2rem;
+  }
+
+  .friends-life-history-list article {
+    display: grid;
+    gap: 0.35rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 56%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-surface) 58%, transparent);
+    padding: 0.78rem;
+  }
+
+  .friends-life-history-list strong {
+    color: var(--color-white);
+    font-size: 0.9rem;
+  }
+
+  .friends-life-history-list span {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    line-height: 1.35;
   }
 
   .friends-calculate-steps span {
@@ -7512,11 +7572,12 @@ a {
     }
 
     .friends-manager-participant-row {
-      grid-template-columns: minmax(0, 1.1fr) repeat(3, minmax(4.5rem, 0.42fr));
+      grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(4.4rem, 0.36fr)) auto;
     }
 
     .friends-manager-participant-row .friends-manager-row-actions {
-      grid-column: 1 / -1;
+      grid-column: auto;
+      justify-content: end;
     }
 
     .friends-manager-match-row {

@@ -1074,6 +1074,46 @@ export async function inviteFriend(
   return getFriendsCompetitionBundle(db, competition.id, input.organizerId);
 }
 
+export async function addFriendsParticipantByIdentifier(
+  db: D1Database,
+  input: {
+    competitionId: string;
+    identifier: string;
+    lives: number;
+    organizerId: string;
+  },
+) {
+  await ensureFriendsSchema(db);
+  const competition = await assertOwner(db, input.competitionId, input.organizerId);
+  assertFriends(competition.status !== "COMPLETED" && competition.status !== "CANCELLED", "Competizione già chiusa.", 409);
+  assertFriends(Number.isInteger(input.lives) && input.lives >= 1, "Numero vite non valido.");
+
+  const identifier = input.identifier.trim();
+  assertFriends(identifier.length >= 3, "Inserisci username o email del partecipante.");
+
+  const user = await findUserByIdentifier(db, identifier);
+  assertFriends(user, "Utente non trovato.", 404);
+
+  const participantId = await addFriendsParticipant(db, competition.id, user.id, input.lives);
+
+  await logFriendsEvent(db, {
+    competitionId: competition.id,
+    eventType: "friends_participant_added",
+    message: `${user.username} aggiunto alla competizione con ${input.lives} vite.`,
+    participantId,
+    userId: input.organizerId,
+  });
+
+  await createUserInboxMessage(db, {
+    body: `${competition.owner_username ?? "Un amico"} ti ha aggiunto alla competizione "${competition.name}".\n\nPuoi aprirla dalla sezione Tornei.`,
+    createdBy: input.organizerId,
+    title: "Sei dentro una competizione Friends",
+    userId: user.id,
+  });
+
+  return getFriendsCompetitionBundle(db, competition.id, input.organizerId);
+}
+
 export async function updateFriendsParticipantLives(
   db: D1Database,
   input: {
@@ -1103,6 +1143,51 @@ export async function updateFriendsParticipantLives(
   });
 
   return getFriendsCompetitionBundle(db, input.competitionId, input.organizerId);
+}
+
+export async function terminateFriendsCompetition(db: D1Database, competitionId: string, organizerId: string) {
+  await ensureFriendsSchema(db);
+  const competition = await assertOwner(db, competitionId, organizerId);
+  assertFriends(competition.status !== "COMPLETED" && competition.status !== "CANCELLED", "Competizione già chiusa.", 409);
+
+  const now = nowIso();
+  await db
+    .prepare("UPDATE friends_competitions SET status = 'COMPLETED', completed_at = ?1, updated_at = ?1 WHERE id = ?2")
+    .bind(now, competition.id)
+    .run();
+
+  await db
+    .prepare("UPDATE friends_rounds SET status = 'CALCULATED', calculated_at = COALESCE(calculated_at, ?1), updated_at = ?1 WHERE competition_id = ?2 AND status != 'CALCULATED'")
+    .bind(now, competition.id)
+    .run();
+
+  await logFriendsEvent(db, {
+    competitionId: competition.id,
+    eventType: "friends_competition_terminated",
+    message: "Competizione terminata manualmente dall'organizzatore.",
+    userId: organizerId,
+  });
+
+  return getFriendsCompetitionBundle(db, competition.id, organizerId);
+}
+
+export async function deleteFriendsCompetition(db: D1Database, competitionId: string, organizerId: string) {
+  await ensureFriendsSchema(db);
+  const competition = await assertOwner(db, competitionId, organizerId);
+
+  await db.prepare("DELETE FROM friends_events WHERE competition_id = ?1").bind(competition.id).run();
+  await db.prepare("DELETE FROM friends_selections WHERE competition_id = ?1").bind(competition.id).run();
+  await db.prepare("DELETE FROM friends_lives WHERE competition_id = ?1").bind(competition.id).run();
+  await db.prepare("DELETE FROM friends_participants WHERE competition_id = ?1").bind(competition.id).run();
+  await db.prepare("DELETE FROM friends_invitations WHERE competition_id = ?1").bind(competition.id).run();
+  await db.prepare("DELETE FROM friends_matches WHERE competition_id = ?1").bind(competition.id).run();
+  await db.prepare("DELETE FROM friends_rounds WHERE competition_id = ?1").bind(competition.id).run();
+  await db.prepare("DELETE FROM friends_competitions WHERE id = ?1").bind(competition.id).run();
+
+  return {
+    deleted: true,
+    id: competition.id,
+  };
 }
 
 async function setParticipantLives(db: D1Database, participantId: string, desiredLives: number) {
