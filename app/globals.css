@@ -4487,18 +4487,61 @@ a {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
-  .friends-manager-match-row strong {
+  .friends-manager-match-teams {
+    display: flex;
     grid-column: 2;
+    align-items: center;
+    gap: 0.52rem;
+    min-width: 0;
   }
 
-  .friends-manager-match-row span:not(.friends-manager-match-index) {
+  .friends-manager-team-pill {
+    display: inline-flex;
+    flex: 1 1 0;
+    align-items: center;
+    gap: 0.42rem;
+    min-width: 0;
+  }
+
+  .friends-manager-team-logo {
+    display: grid;
+    flex: 0 0 auto;
+    width: 1.58rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-border) 58%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-ink) 22%, transparent);
+    overflow: hidden;
+  }
+
+  .friends-manager-team-logo-image {
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+  }
+
+  .friends-manager-team-logo span {
+    color: var(--color-gold-strong);
+    font-size: 0.58rem;
+    font-weight: 760;
+    line-height: 1;
+  }
+
+  .friends-manager-team-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .friends-manager-match-status {
     grid-column: 3;
     grid-row: 1;
     justify-self: end;
     white-space: nowrap;
   }
 
-  .friends-manager-match-row small {
+  .friends-manager-match-count {
     grid-column: 2 / -1;
     justify-self: start;
   }
@@ -4511,15 +4554,15 @@ a {
     overflow-wrap: anywhere;
   }
 
-  .friends-manager-match-row em {
+  .friends-manager-match-vs {
+    flex: 0 0 auto;
     color: var(--color-muted-soft);
     font-size: 0.72rem;
-    font-style: normal;
     font-weight: 650;
   }
 
-  .friends-manager-match-row span:not(.friends-manager-match-index),
-  .friends-manager-match-row small,
+  .friends-manager-match-status,
+  .friends-manager-match-count,
   .friends-manager-participant-row small {
     color: var(--color-muted);
     font-size: 0.72rem;
@@ -4619,10 +4662,18 @@ a {
 
   .friends-manager-row-actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    gap: 0.45rem;
     justify-content: start;
     width: 100%;
     min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .friends-manager-row-actions::-webkit-scrollbar {
+    display: none;
   }
 
   .friends-manager-row-actions label {
@@ -7615,12 +7666,13 @@ a {
     }
 
     .friends-manager-participant-row {
-      grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(4rem, 0.3fr)) minmax(9rem, auto);
+      grid-template-columns: minmax(12rem, 1.25fr) repeat(3, minmax(4.6rem, 0.28fr)) minmax(14.6rem, auto);
     }
 
     .friends-manager-participant-row .friends-manager-row-actions {
       grid-column: auto;
       justify-content: end;
+      overflow-x: visible;
     }
 
     .friends-manager-match-row {

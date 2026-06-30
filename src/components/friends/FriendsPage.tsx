@@ -198,6 +198,15 @@ function getCurrentRound(competition: FriendsCompetition) {
   return competition.rounds.find((round) => round.round_number === competition.current_round_number) ?? competition.current_round;
 }
 
+function getTeamInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "SA";
+}
+
 function getSelectionStats(competitions: FriendsCompetition[]) {
   const teamCounts = new Map<string, number>();
   let selections = 0;
@@ -925,7 +934,7 @@ function QuickActionsCard({
           <Lock aria-hidden="true" />
           {currentRound?.status === "OPEN" ? "Blocca Scelte" : "Riapri Scelte"}
         </button>
-        <button className="friends-manager-action friends-manager-action-important" disabled={!currentRound} onClick={onCalculate} type="button">
+        <button className="friends-manager-action" disabled={!currentRound} onClick={onCalculate} type="button">
           <ListChecks aria-hidden="true" />
           Calcola Round
         </button>
@@ -1001,11 +1010,13 @@ function CurrentRoundCard({
           {matches.slice(0, isPreview ? 4 : matches.length).map((match, index) => (
             <article className="friends-manager-match-row" key={match.id}>
               <span className="friends-manager-match-index">{index + 1}</span>
-              <strong>
-                {match.home_team} <em>vs</em> {match.away_team}
-              </strong>
-              <span>{match.is_active ? "Aperto" : "Bloccato"}</span>
-              <small>{getMatchChoiceCount(competition, currentRound!.id, match.id)}/{getConfirmedFriendsParticipants(competition).length}</small>
+              <div className="friends-manager-match-teams">
+                <MatchTeamLabel logoUrl={match.home_team_logo_url} name={match.home_team} />
+                <span className="friends-manager-match-vs">vs</span>
+                <MatchTeamLabel logoUrl={match.away_team_logo_url} name={match.away_team} />
+              </div>
+              <span className="friends-manager-match-status">{match.is_active ? "Aperto" : "Bloccato"}</span>
+              <small className="friends-manager-match-count">{getMatchChoiceCount(competition, currentRound!.id, match.id)}/{getConfirmedFriendsParticipants(competition).length}</small>
             </article>
           ))}
         </div>
@@ -1015,6 +1026,21 @@ function CurrentRoundCard({
 
       {isPreview && matches.length > 4 ? <span className="friends-manager-muted-link">Visualizza tutti i match</span> : null}
     </Card>
+  );
+}
+
+function MatchTeamLabel({ logoUrl, name }: { logoUrl: string | null; name: string }) {
+  return (
+    <span className="friends-manager-team-pill">
+      <span
+        className={cn("friends-manager-team-logo", logoUrl && "friends-manager-team-logo-image")}
+        style={logoUrl ? { backgroundImage: `url("${logoUrl}")` } : undefined}
+        aria-hidden="true"
+      >
+        {logoUrl ? null : <span>{getTeamInitials(name)}</span>}
+      </span>
+      <strong className="friends-manager-team-name">{name}</strong>
+    </span>
   );
 }
 
