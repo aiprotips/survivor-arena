@@ -9,6 +9,7 @@ import {
   type MatchResult,
   type SelectionSide,
 } from "./arena";
+import { createUserInboxMessage } from "./messages";
 import { findUserByIdentifier } from "./users";
 
 export type FriendsCompetitionStatus = "PENDING" | "ACTIVE" | "LOCKED" | "COMPLETED" | "CANCELLED";
@@ -133,7 +134,6 @@ export type FriendsCompetitionInput = {
   description: string | null;
   matches: FriendsMatchInput[];
   name: string;
-  publish: boolean;
   rules: string | null;
 };
 
@@ -353,7 +353,6 @@ export function parseFriendsCompetitionInput(body: Record<string, unknown>): Fri
     description: toOptionalText(body.description),
     matches,
     name,
-    publish: body.publish === true,
     rules: toOptionalText(body.rules),
   };
 }
@@ -414,13 +413,13 @@ async function logFriendsEvent(
 
 export async function createFriendsCompetition(db: D1Database, input: FriendsCompetitionInput, ownerUserId: string) {
   await ensureFriendsSchema(db);
-  assertFriends(!input.publish || input.deadlineAt, "Imposta una deadline prima di pubblicare.");
+  assertFriends(input.deadlineAt, "Imposta una deadline per creare la competizione.");
 
   const now = nowIso();
   const competitionId = crypto.randomUUID();
   const roundId = crypto.randomUUID();
-  const status: FriendsCompetitionStatus = input.publish ? "ACTIVE" : "PENDING";
-  const roundStatus: FriendsRoundStatus = input.publish ? "OPEN" : "PENDING";
+  const status: FriendsCompetitionStatus = "ACTIVE";
+  const roundStatus: FriendsRoundStatus = "OPEN";
 
   await db
     .prepare(
@@ -438,7 +437,7 @@ export async function createFriendsCompetition(db: D1Database, input: FriendsCom
       createInviteCode(),
       status,
       now,
-      input.publish ? now : null,
+      now,
     )
     .run();
 
@@ -935,6 +934,62 @@ export async function joinFriendsCompetition(db: D1Database, competitionId: stri
   return getFriendsCompetitionBundle(db, competitionId, userId);
 }
 
+export async function declineFriendsInvitation(db: D1Database, competitionId: string, userId: string) {
+  await ensureFriendsSchema(db);
+
+  const competition = await getFriendsCompetition(db, competitionId);
+  assertFriends(competition, "Competizione Friends non trovata.", 404);
+  assertFriends(competition.status === "ACTIVE", "Competizione non attiva.", 409);
+  assertFriends(competition.owner_user_id !== userId, "L'organizzatore non può declinare la propria competizione.", 409);
+
+  const participant = await getFriendsParticipant(db, competitionId, userId);
+  assertFriends(!participant || participant.status === "REMOVED", "Sei già partecipante a questa competizione.", 409);
+
+  const invitation = await db
+    .prepare(
+      `SELECT i.id
+       FROM friends_invitations i
+       INNER JOIN users u ON u.id = ?2
+       WHERE i.competition_id = ?1
+         AND i.accepted_at IS NULL
+         AND (
+          i.invited_user_id = ?2
+          OR LOWER(i.invited_username) = LOWER(u.username)
+          OR LOWER(i.invited_email) = LOWER(u.email)
+         )
+       LIMIT 1`,
+    )
+    .bind(competitionId, userId)
+    .first<{ id: string }>();
+  assertFriends(invitation, "Invito non trovato.", 404);
+
+  await db
+    .prepare(
+      `DELETE FROM friends_invitations
+       WHERE competition_id = ?1
+         AND accepted_at IS NULL
+         AND (
+          invited_user_id = ?2
+          OR LOWER(invited_username) = LOWER((SELECT username FROM users WHERE id = ?2))
+          OR LOWER(invited_email) = LOWER((SELECT email FROM users WHERE id = ?2))
+         )`,
+    )
+    .bind(competitionId, userId)
+    .run();
+
+  await logFriendsEvent(db, {
+    competitionId,
+    eventType: "friends_invite_declined",
+    message: "Invito Friends declinato.",
+    userId,
+  });
+
+  return {
+    competition_id: competitionId,
+    ok: true,
+  };
+}
+
 export async function joinFriendsCompetitionByCode(db: D1Database, inviteCode: string, userId: string) {
   await ensureFriendsSchema(db);
   const code = inviteCode.trim().toUpperCase();
@@ -1006,6 +1061,15 @@ export async function inviteFriend(
     message: `Invito creato per ${identifier}.`,
     userId: input.organizerId,
   });
+
+  if (user?.id) {
+    await createUserInboxMessage(db, {
+      body: `${competition.owner_username ?? "Un amico"} ti ha invitato a "${competition.name}".\n\nPuoi accettare o declinare l'invito direttamente da qui, oppure aprire la pagina Tornei.\n[friends-invite:${competition.id}]`,
+      createdBy: input.organizerId,
+      title: "Nuovo invito Friends",
+      userId: user.id,
+    });
+  }
 
   return getFriendsCompetitionBundle(db, competition.id, input.organizerId);
 }

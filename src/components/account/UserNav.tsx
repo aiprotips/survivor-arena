@@ -44,9 +44,9 @@ export const friendsUserNavItems: Array<{
     label: "Dashboard",
   },
   {
-    href: "/friends",
+    href: "/tornei",
     icon: UsersRound,
-    label: "Friends",
+    label: "Tornei",
   },
 ];
 

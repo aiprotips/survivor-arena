@@ -24,4 +24,5 @@ export type UserAreaPageKey =
   | "movimenti"
   | "posta"
   | "premi"
-  | "profilo";
+  | "profilo"
+  | "tornei";

@@ -49,6 +49,7 @@ export function UserAreaPage({ page }: UserAreaPageProps) {
 
         switch (page) {
           case "friends":
+          case "tornei":
             return user.platform_mode === "FRIENDS" ? <FriendsPage user={user} /> : <DashboardPage user={user} />;
           case "arene":
             return <ArenePage />;
@@ -1056,6 +1057,7 @@ type UserInboxMessage = {
 function PostaPage() {
   const [messages, setMessages] = useState<UserInboxMessage[]>([]);
   const [activeMessageId, setActiveMessageId] = useState("");
+  const [mailActionMessage, setMailActionMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -1100,6 +1102,7 @@ function PostaPage() {
   }, []);
 
   async function openMessage(message: UserInboxMessage) {
+    setMailActionMessage("");
     setActiveMessageId(message.id);
 
     if (message.read_at) {
@@ -1125,6 +1128,55 @@ function PostaPage() {
 
   const activeMessage = messages.find((message) => message.id === activeMessageId) ?? messages[0] ?? null;
   const unreadCount = messages.filter((message) => !message.read_at).length;
+  const friendsInviteMatch = activeMessage?.body.match(/\[friends-invite:([^\]]+)\]/);
+  const friendsInviteId = friendsInviteMatch?.[1] ?? "";
+  const activeMessageBody = activeMessage ? activeMessage.body.replace(/\n?\[friends-invite:[^\]]+\]/, "").trim() : "";
+
+  async function handleFriendsInvite(action: "accept" | "decline") {
+    if (!friendsInviteId || !activeMessage) {
+      return;
+    }
+
+    setMailActionMessage("");
+
+    const response = await fetch(
+      action === "accept"
+        ? `/api/friends/competitions/${friendsInviteId}`
+        : `/api/friends/competitions/${friendsInviteId}/decline`,
+      {
+        credentials: "include",
+        method: "POST",
+      },
+    );
+    const data = (await response.json()) as { message?: string; ok: boolean };
+
+    if (!data.ok) {
+      setMailActionMessage(data.message ?? "Invito non aggiornato. Riprova tra poco.");
+      return;
+    }
+
+    await fetch(`/api/messages/${activeMessage.id}`, {
+      credentials: "include",
+      method: "PATCH",
+    }).catch(() => undefined);
+
+    if (action === "accept") {
+      window.location.href = "/tornei";
+      return;
+    }
+
+    setMessages((current) =>
+      current.map((message) =>
+        message.id === activeMessage.id
+          ? {
+              ...message,
+              read_at: message.read_at ?? new Date().toISOString(),
+            }
+          : message,
+      ),
+    );
+    setMailActionMessage("Invito declinato.");
+  }
 
   return (
     <>
@@ -1176,7 +1228,20 @@ function PostaPage() {
                   <h2>{activeMessage.title}</h2>
                 </div>
               </div>
-              <p>{activeMessage.body}</p>
+              <p>{activeMessageBody}</p>
+              {friendsInviteId ? (
+                <div className="arena-modal-actions">
+                  <Button onClick={() => void handleFriendsInvite("accept")} type="button">
+                    Accetta invito
+                  </Button>
+                  <Button onClick={() => void handleFriendsInvite("decline")} type="button" variant="secondary">
+                    Declina
+                  </Button>
+                </div>
+              ) : null}
+              {mailActionMessage ? (
+                <p className="auth-form-message auth-form-message-success">{mailActionMessage}</p>
+              ) : null}
               <span>
                 {new Date(activeMessage.created_at).toLocaleString("it-IT", {
                   dateStyle: "medium",

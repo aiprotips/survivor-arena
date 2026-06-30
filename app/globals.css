@@ -5150,6 +5150,24 @@ a {
     padding: 0.9rem;
   }
 
+  .friends-management-step {
+    display: grid;
+    gap: 0.7rem;
+    padding-block: 0.32rem 0.9rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-border) 46%, transparent);
+  }
+
+  .friends-management-step:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .friends-management-step > strong {
+    color: var(--color-white);
+    font-size: 0.94rem;
+    font-weight: 650;
+  }
+
   .admin-data-item span {
     color: var(--color-muted-soft);
     font-size: 0.65rem;

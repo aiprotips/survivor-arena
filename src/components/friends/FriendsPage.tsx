@@ -356,7 +356,6 @@ function CreateFriendsWizard({
     deadline: "",
     description: "",
     name: "",
-    publish: true,
     rules: "",
   });
   const [matches, setMatches] = useState<DraftMatch[]>([{ ...emptyMatch }]);
@@ -368,7 +367,6 @@ function CreateFriendsWizard({
         description: draft.description,
         matches,
         name: draft.name,
-        publish: draft.publish,
         rules: draft.rules,
       }),
       method: "POST",
@@ -380,7 +378,6 @@ function CreateFriendsWizard({
         deadline: "",
         description: "",
         name: "",
-        publish: true,
         rules: "",
       });
       setMatches([{ ...emptyMatch }]);
@@ -496,15 +493,10 @@ function CreateFriendsWizard({
       {step === 5 ? (
         <div className="admin-tool-card">
           <h3>{draft.name || "Competizione Friends"}</h3>
-          <p className="admin-muted">{draft.description || "Pronta per essere pubblicata."}</p>
-          <label className="admin-checkbox-row">
-            <input
-              checked={draft.publish}
-              onChange={(event) => setDraft((current) => ({ ...current, publish: event.target.checked }))}
-              type="checkbox"
-            />
-            Pubblica subito la competizione
-          </label>
+          <p className="admin-muted">{draft.description || "Pronta per partire."}</p>
+          <p className="admin-muted">
+            La competizione verrà creata attiva subito. Sarà visibile solo a te, agli utenti invitati e ai partecipanti.
+          </p>
         </div>
       ) : null}
 
@@ -518,7 +510,7 @@ function CreateFriendsWizard({
           </Button>
         ) : (
           <Button onClick={() => void submit()} type="button">
-            Pubblica
+            Crea competizione
           </Button>
         )}
       </div>
@@ -585,9 +577,24 @@ function FriendsCompetitionPanel({
         <div className="admin-tool-card">
           <strong>Hai ricevuto un invito</strong>
           <p className="admin-muted">Entra nella competizione per ricevere le vite assegnate.</p>
-          <Button onClick={() => mutate(`/api/friends/competitions/${competition.id}`, { method: "POST" })} type="button">
-            Partecipa
-          </Button>
+          <div className="arena-modal-actions">
+            <Button onClick={() => mutate(`/api/friends/competitions/${competition.id}`, { method: "POST" })} type="button">
+              Accetta invito
+            </Button>
+            <Button
+              onClick={async () => {
+                await fetch(`/api/friends/competitions/${competition.id}/decline`, {
+                  credentials: "include",
+                  method: "POST",
+                });
+                window.location.reload();
+              }}
+              type="button"
+              variant="secondary"
+            >
+              Declina
+            </Button>
+          </div>
         </div>
       ) : null}
 
@@ -603,10 +610,23 @@ function FriendsCompetitionPanel({
           <section className="admin-tool-card">
             <div className="dashboard-section-heading">
               <div>
+                <p className="user-page-kicker">Centro gestione</p>
+                <h3>Organizza la competizione</h3>
+              </div>
+            </div>
+            <p className="admin-muted">
+              Invita amici, assegna vite e gestisci il round corrente da un unico pannello. Gli invitati riceveranno un messaggio nella Posta.
+            </p>
+          </section>
+
+          <section className="admin-tool-card">
+            <div className="dashboard-section-heading">
+              <div>
                 <p className="user-page-kicker">Inviti</p>
                 <h3>Invita amici</h3>
               </div>
             </div>
+            <p className="admin-muted">Cerca per username o email. Se l&apos;utente esiste, riceverà un invito con Accetta/Declina nella Posta.</p>
             <div className="admin-form-grid">
               <input
                 className="ui-input"
@@ -671,12 +691,15 @@ function FriendsCompetitionPanel({
             <section className="admin-tool-card">
               <div className="dashboard-section-heading">
                 <div>
-                  <p className="user-page-kicker">Round</p>
+                  <p className="user-page-kicker">Round corrente</p>
                   <h3>Round {currentRound.round_number}</h3>
                 </div>
                 <span className="ui-badge">{currentRound.status}</span>
               </div>
 
+              <div className="friends-management-step">
+                <strong>1. Deadline e stato scelte</strong>
+                <p className="admin-muted">Aggiorna la scadenza o blocca le scelte quando vuoi chiudere il round.</p>
               <div className="admin-form-grid">
                 <input
                   className="ui-input"
@@ -735,7 +758,11 @@ function FriendsCompetitionPanel({
                   Blocca scelte
                 </Button>
               </div>
+              </div>
 
+              <div className="friends-management-step">
+                <strong>2. Match e risultati</strong>
+                <p className="admin-muted">Imposta l&apos;esito di ogni match prima di calcolare il round.</p>
               <div className="admin-stack">
                 {currentRound.matches.map((match) => (
                   <article className="arena-match-choice-card" key={match.id}>
@@ -764,7 +791,10 @@ function FriendsCompetitionPanel({
                   </article>
                 ))}
               </div>
+              </div>
 
+              <div className="friends-management-step">
+                <strong>3. Aggiungi match</strong>
               <div className="admin-form-grid">
                 <TeamSelect label="Casa" onChange={(value) => setNewMatch((current) => ({ ...current, homeTeamId: value }))} teams={teams} value={newMatch.homeTeamId} />
                 <TeamSelect label="Trasferta" onChange={(value) => setNewMatch((current) => ({ ...current, awayTeamId: value }))} teams={teams} value={newMatch.awayTeamId} />
@@ -784,7 +814,11 @@ function FriendsCompetitionPanel({
                   Aggiungi match
                 </Button>
               </div>
+              </div>
 
+              <div className="friends-management-step">
+                <strong>4. Calcolo round</strong>
+                <p className="admin-muted">Quando tutti gli esiti sono pronti, il sistema aggiorna vite vive, vite eliminate e storico.</p>
               <Button
                 onClick={() =>
                   mutate(`/api/friends/rounds/${currentRound.id}/calculate`, {
@@ -802,6 +836,7 @@ function FriendsCompetitionPanel({
               >
                 Calcola Round
               </Button>
+              </div>
             </section>
           ) : null}
         </div>
