@@ -4124,6 +4124,8 @@ a {
   }
 
   .friends-manager-page {
+    width: min(100%, 76rem);
+    margin-inline: auto;
     min-width: 0;
   }
 
@@ -4157,6 +4159,8 @@ a {
   .friends-manager-section-card {
     display: grid;
     gap: 1rem;
+    min-width: 0;
+    overflow: hidden;
     border-color: color-mix(in srgb, var(--color-border) 76%, transparent);
     background:
       radial-gradient(circle at top right, color-mix(in srgb, var(--color-blue) 10%, transparent), transparent 38%),
@@ -4243,7 +4247,6 @@ a {
   }
 
   .friends-manager-invite-box div,
-  .friends-manager-round-toolbar,
   .friends-manager-row-actions,
   .friends-calculate-steps {
     display: flex;
@@ -4330,7 +4333,7 @@ a {
   .friends-manager-mini-stats,
   .friends-settings-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.8rem), 1fr));
     gap: 0.65rem;
   }
 
@@ -4379,12 +4382,13 @@ a {
 
   .friends-manager-overview-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
     gap: 0.9rem;
   }
 
   .friends-manager-card {
     align-content: start;
+    min-width: 0;
     padding: 0.95rem;
   }
 
@@ -4458,6 +4462,7 @@ a {
     display: grid;
     gap: 0.55rem;
     align-items: center;
+    min-width: 0;
     border: 1px solid color-mix(in srgb, var(--color-border) 56%, transparent);
     border-radius: var(--radius-base);
     background: color-mix(in srgb, var(--color-surface-elevated) 42%, transparent);
@@ -4465,7 +4470,23 @@ a {
   }
 
   .friends-manager-match-row {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .friends-manager-match-row strong {
+    grid-column: 2;
+  }
+
+  .friends-manager-match-row span:not(.friends-manager-match-index) {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    white-space: nowrap;
+  }
+
+  .friends-manager-match-row small {
+    grid-column: 2 / -1;
+    justify-self: start;
   }
 
   .friends-manager-match-row strong,
@@ -4563,7 +4584,10 @@ a {
   }
 
   .friends-manager-row-actions {
-    justify-content: start;
+    display: grid;
+    grid-template-columns: minmax(3.8rem, 0.65fr) repeat(3, minmax(4.5rem, 1fr));
+    width: 100%;
+    justify-content: stretch;
   }
 
   .friends-manager-row-actions label {
@@ -4585,10 +4609,15 @@ a {
     font: inherit;
     font-size: 0.7rem;
     font-weight: 710;
+    justify-content: center;
+    min-width: 0;
     padding: 0.62rem 0.72rem;
   }
 
   .friends-manager-round-toolbar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: 0.62rem;
     align-items: end;
   }
 
@@ -4596,6 +4625,11 @@ a {
     display: grid;
     gap: 0.38rem;
     min-width: min(100%, 16rem);
+  }
+
+  .friends-manager-round-toolbar .friends-manager-small-button {
+    width: 100%;
+    min-width: 0;
   }
 
   .friends-manager-add-match {
@@ -7469,16 +7503,24 @@ a {
 
   @media (min-width: 64rem) {
     .friends-manager-summary-top {
-      grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.42fr);
+      grid-template-columns: minmax(0, 1fr) minmax(15.5rem, 19rem);
       align-items: stretch;
     }
 
+    .friends-manager-stats-row {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
     .friends-manager-participant-row {
-      grid-template-columns: minmax(13rem, 1.4fr) repeat(3, minmax(5.4rem, 0.48fr)) minmax(20rem, 1fr);
+      grid-template-columns: minmax(0, 1.1fr) repeat(3, minmax(4.5rem, 0.42fr));
+    }
+
+    .friends-manager-participant-row .friends-manager-row-actions {
+      grid-column: 1 / -1;
     }
 
     .friends-manager-match-row {
-      grid-template-columns: auto minmax(15rem, 1fr) minmax(5.5rem, 0.32fr) minmax(4.5rem, 0.25fr);
+      grid-template-columns: auto minmax(0, 1fr) auto;
     }
 
     .friends-history-layout {
