@@ -2489,11 +2489,11 @@ function FriendsCompetitionPanel({
             <p className="user-page-kicker">Torneo Friends</p>
             <h1>{competition.name}</h1>
             <div className="arena-game-hero-badges">
-              <span className="arena-game-state">
+              <span className="arena-game-state arena-game-state-status">
                 <Trophy aria-hidden="true" />
                 {competition.status === "ACTIVE" ? "In corso" : competition.status}
               </span>
-              <span className="arena-game-state arena-game-state-muted">
+              <span className="arena-game-state arena-game-state-muted arena-game-state-code">
                 Codice {competition.invite_code}
               </span>
             </div>
