@@ -6932,7 +6932,10 @@ a {
     font-weight: 800;
     letter-spacing: 0.08em;
     line-height: 0.95;
-    text-shadow: 0 0 26px color-mix(in srgb, var(--color-gold) 26%, transparent);
+    filter:
+      drop-shadow(0 0 0.14rem color-mix(in srgb, var(--color-gold) 46%, transparent))
+      drop-shadow(0 0 0.48rem color-mix(in srgb, var(--color-gold) 18%, transparent));
+    text-shadow: 0 0 0.32rem color-mix(in srgb, var(--color-gold) 18%, transparent);
   }
 
   .arena-game-countdown small {
@@ -6960,7 +6963,10 @@ a {
 
   .arena-game-countdown-pulse .arena-game-countdown-timer {
     color: var(--color-gold-strong);
-    text-shadow: 0 0 32px color-mix(in srgb, var(--color-gold) 36%, transparent);
+    filter:
+      drop-shadow(0 0 0.18rem color-mix(in srgb, var(--color-gold) 52%, transparent))
+      drop-shadow(0 0 0.62rem color-mix(in srgb, var(--color-gold) 24%, transparent));
+    text-shadow: 0 0 0.42rem color-mix(in srgb, var(--color-gold) 22%, transparent);
   }
 
   .arena-game-hero-stats {
