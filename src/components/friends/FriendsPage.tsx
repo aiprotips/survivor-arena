@@ -210,7 +210,11 @@ function getTeamInitials(name: string) {
 function formatFriendsGameCountdown(deadline: string | null, now: number) {
   if (!deadline) {
     return {
+      days: "--",
+      hours: "--",
       label: "Deadline da impostare",
+      minutes: "--",
+      seconds: "--",
       tone: "idle" as const,
     };
   }
@@ -219,7 +223,11 @@ function formatFriendsGameCountdown(deadline: string | null, now: number) {
 
   if (diff <= 0) {
     return {
+      days: "00",
+      hours: "00",
       label: "Scelte chiuse",
+      minutes: "00",
+      seconds: "00",
       tone: "locked" as const,
     };
   }
@@ -235,7 +243,11 @@ function formatFriendsGameCountdown(deadline: string | null, now: number) {
   const tone = diff <= 10_000 ? "pulse" : diff <= 3_600_000 ? "danger" : diff <= 86_400_000 ? "warning" : "normal";
 
   return {
+    days: String(days).padStart(2, "0"),
+    hours: String(hours).padStart(2, "0"),
     label,
+    minutes: String(minutes).padStart(2, "0"),
+    seconds: String(seconds).padStart(2, "0"),
     tone,
   };
 }
@@ -269,6 +281,70 @@ function getFriendsSelectionVisual(life: FriendsLife, round: FriendsRound | null
         selection,
       }
     : null;
+}
+
+function getFriendsTeamKey(teamId: string, teamName: string) {
+  return teamId || teamName.trim().toLowerCase();
+}
+
+function getFriendsRoundTeamKeys(round: FriendsRound | null) {
+  if (!round) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      round.matches.flatMap((match) => [
+        getFriendsTeamKey(match.home_team_id, match.home_team),
+        getFriendsTeamKey(match.away_team_id, match.away_team),
+      ]),
+    ),
+  );
+}
+
+function getFriendsCurrentCycle(life: FriendsLife | null) {
+  if (!life || life.selections.length === 0) {
+    return 1;
+  }
+
+  return Math.max(...life.selections.map((selection) => selection.cycle_number));
+}
+
+function getFriendsLifeCycleSelections(life: FriendsLife | null) {
+  if (!life) {
+    return [];
+  }
+
+  const cycle = getFriendsCurrentCycle(life);
+
+  return life.selections.filter((selection) => selection.cycle_number === cycle);
+}
+
+function isFriendsTeamUsedByLife(life: FriendsLife | null, round: FriendsRound | null, teamId: string, teamName: string) {
+  if (!life || !round) {
+    return false;
+  }
+
+  const teamKey = getFriendsTeamKey(teamId, teamName);
+
+  return getFriendsLifeCycleSelections(life).some((selection) => {
+    if (selection.round_id === round.id) {
+      return false;
+    }
+
+    return getFriendsTeamKey(selection.selected_team_id, selection.selected_team) === teamKey;
+  });
+}
+
+function getFriendsLifeChoiceProgress(life: FriendsLife | null, round: FriendsRound | null) {
+  const total = getFriendsRoundTeamKeys(round).length;
+  const used = new Set(getFriendsLifeCycleSelections(life).map((selection) => getFriendsTeamKey(selection.selected_team_id, selection.selected_team))).size;
+
+  return {
+    percent: total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0,
+    total,
+    used,
+  };
 }
 
 function buildFriendsPopularChoices(competition: FriendsCompetition, round: FriendsRound | null) {
@@ -2403,6 +2479,7 @@ function FriendsCompetitionPanel({
   const deadline = currentRound ? deadlineEdits[currentRound.id] ?? toDateTimeLocal(currentRound.deadline_at) : "";
   const countdown = formatFriendsGameCountdown(currentRound?.deadline_at ?? null, now);
   const popularChoices = currentRound ? buildFriendsPopularChoices(competition, currentRound) : [];
+  const selectedLifeProgress = getFriendsLifeChoiceProgress(selectedLife, currentRound);
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 1000);
@@ -2438,16 +2515,17 @@ function FriendsCompetitionPanel({
           <div className="arena-game-hero-copy">
             <p className="user-page-kicker">Torneo Friends</p>
             <h1>{competition.name}</h1>
-            <span className="arena-game-state">
-              <Trophy aria-hidden="true" />
-              {competition.status === "ACTIVE" ? "In corso" : competition.status}
-            </span>
+            <div className="arena-game-hero-badges">
+              <span className="arena-game-state">
+                <Trophy aria-hidden="true" />
+                {competition.status === "ACTIVE" ? "In corso" : competition.status}
+              </span>
+              <span className="arena-game-state arena-game-state-muted">
+                Codice {competition.invite_code}
+              </span>
+            </div>
           </div>
-          <div className={cn("arena-game-countdown", `arena-game-countdown-${countdown.tone}`)} aria-live="polite">
-            <span>Le scelte si chiudono tra</span>
-            <strong className="arena-game-countdown-timer" key={countdown.label}>{countdown.label}</strong>
-            <em>Deadline {formatDeadline(currentRound?.deadline_at ?? null)}</em>
-          </div>
+          <FriendsEpicCountdown countdown={countdown} deadline={formatDeadline(currentRound?.deadline_at ?? null)} round={currentRound?.round_number ?? competition.current_round_number} />
           <div className="arena-game-hero-stats" aria-label="Riepilogo torneo">
             <span>
               <UsersRound aria-hidden="true" />
@@ -2511,7 +2589,7 @@ function FriendsCompetitionPanel({
             <div className="arena-section-heading">
               <div>
                 <p className="user-page-kicker">Le tue vite</p>
-                <h2>Scegli quale vita giocare</h2>
+                <h2>{selectedLife ? `Scegli per Vita ${selectedLife.life_number}` : "Scegli quale vita giocare"}</h2>
               </div>
               {choicesLocked ? (
                 <span className="arena-locked-pill">
@@ -2538,20 +2616,34 @@ function FriendsCompetitionPanel({
                 <div className="arena-section-heading">
                   <div>
                     <p className="user-page-kicker">Scelta partite</p>
-                    <h2>Clicca direttamente uno stemma</h2>
+                    <h2>{selectedLife ? "Scegli per questa vita" : "Seleziona una vita"}</h2>
                   </div>
                   {selectedLife ? <span className="ui-badge">Vita {selectedLife.life_number}</span> : null}
                 </div>
+                {selectedLife ? (
+                  <div className="arena-choice-progress">
+                    <div>
+                      <strong>Vita {selectedLife.life_number}</strong>
+                      <span>
+                        Scelte effettuate: {selectedLifeProgress.used} / {selectedLifeProgress.total}
+                      </span>
+                    </div>
+                    <i style={{ inlineSize: `${selectedLifeProgress.percent}%` }} />
+                  </div>
+                ) : null}
                 <div className="arena-game-match-list">
                   {currentRound.matches.map((match) => {
                     const selection = selectedLife ? getFriendsLifeSelection(selectedLife, currentRound) : null;
+                    const homeUsed = isFriendsTeamUsedByLife(selectedLife, currentRound, match.home_team_id, match.home_team);
+                    const awayUsed = isFriendsTeamUsedByLife(selectedLife, currentRound, match.away_team_id, match.away_team);
 
                     return (
                       <article className={cn("arena-game-match-card", choiceEffectKey.startsWith(`${match.id}:`) && "arena-game-match-card-pop")} key={match.id}>
                         <FriendsGameTeamButton
                           choiceEffectKey={choiceEffectKey}
-                          disabled={!match.is_active || !selectedLife}
+                          disabled={!match.is_active || !selectedLife || homeUsed}
                           isSelected={selection?.selected_team_id === match.home_team_id}
+                          isUsed={homeUsed}
                           logoUrl={match.home_team_logo_url}
                           onClick={() => choose(match, match.home_team_id)}
                           team={match.home_team}
@@ -2560,8 +2652,9 @@ function FriendsCompetitionPanel({
                         <span className="arena-game-vs">VS</span>
                         <FriendsGameTeamButton
                           choiceEffectKey={choiceEffectKey}
-                          disabled={!match.is_active || !selectedLife}
+                          disabled={!match.is_active || !selectedLife || awayUsed}
                           isSelected={selection?.selected_team_id === match.away_team_id}
+                          isUsed={awayUsed}
                           logoUrl={match.away_team_logo_url}
                           onClick={() => choose(match, match.away_team_id)}
                           team={match.away_team}
@@ -2597,6 +2690,7 @@ function FriendsCompetitionPanel({
                     <FriendsTeamMark logoUrl={choice.logoUrl} name={choice.name} />
                     <strong>{choice.name}</strong>
                     <span>{choice.percent}%</span>
+                    <i style={{ inlineSize: `${choice.percent}%` }} />
                   </article>
                 ))
               ) : (
@@ -2616,27 +2710,12 @@ function FriendsCompetitionPanel({
             <Swords aria-hidden="true" />
             <p>{competition.rules}</p>
           </section>
-        ) : null}
-
-        {competition.public_choices.length > 0 ? (
-          <section className="arena-public-choices">
-            <div className="arena-section-heading">
-              <div>
-                <p className="user-page-kicker">Trasparenza</p>
-                <h2>Scelte pubbliche</h2>
-              </div>
-            </div>
-            <div className="arena-public-list">
-              {competition.public_choices.map((choice) => (
-                <article key={`${choice.username}-${choice.life_number}-${choice.selected_team}`}>
-                  <strong>{choice.username}</strong>
-                  <span>Vita {choice.life_number}</span>
-                  <em>{choice.selected_team}</em>
-                </article>
-              ))}
-            </div>
+        ) : (
+          <section className="arena-game-info-banner">
+            <Swords aria-hidden="true" />
+            <p>{choicesLocked ? "Le scelte sono chiuse: attendi il risultato del round." : "Scegli bene: nelle Friends ogni vita racconta la sua storia."}</p>
           </section>
-        ) : null}
+        )}
       </div>
     );
   }
@@ -3176,6 +3255,45 @@ function FriendsTeamMark({ logoUrl, name }: { logoUrl: string | null; name: stri
   );
 }
 
+function FriendsEpicCountdown({
+  countdown,
+  deadline,
+  round,
+}: {
+  countdown: ReturnType<typeof formatFriendsGameCountdown>;
+  deadline: string;
+  round: number;
+}) {
+  const units = countdown.days !== "00"
+    ? [
+        { label: "Giorni", value: countdown.days },
+        { label: "Ore", value: countdown.hours },
+        { label: "Min", value: countdown.minutes },
+        { label: "Sec", value: countdown.seconds },
+      ]
+    : [
+        { label: "Ore", value: countdown.hours },
+        { label: "Min", value: countdown.minutes },
+        { label: "Sec", value: countdown.seconds },
+      ];
+
+  return (
+    <div className={cn("arena-game-countdown", `arena-game-countdown-${countdown.tone}`)} aria-live="polite">
+      <span>Deadline Round {round}</span>
+      <div className="arena-game-countdown-digits arena-game-countdown-timer" key={countdown.label}>
+        {units.map((unit, index) => (
+          <span className="arena-game-countdown-unit" key={unit.label}>
+            <strong>{unit.value}</strong>
+            <em>{unit.label}</em>
+            {index < units.length - 1 ? <b aria-hidden="true">:</b> : null}
+          </span>
+        ))}
+      </div>
+      <small>{deadline}</small>
+    </div>
+  );
+}
+
 function FriendsGameLifeButton({
   isSelected,
   life,
@@ -3213,6 +3331,7 @@ function FriendsGameTeamButton({
   choiceEffectKey,
   disabled,
   isSelected,
+  isUsed,
   logoUrl,
   onClick,
   team,
@@ -3221,6 +3340,7 @@ function FriendsGameTeamButton({
   choiceEffectKey: string;
   disabled: boolean;
   isSelected: boolean;
+  isUsed: boolean;
   logoUrl: string | null;
   onClick: () => void;
   team: string;
@@ -3230,14 +3350,27 @@ function FriendsGameTeamButton({
 
   return (
     <button
-      className={cn("arena-game-team-button", isSelected && "arena-game-team-button-selected", isBursting && "arena-game-team-button-burst")}
+      aria-label={isUsed ? `${team} già usata da questa vita` : `Scegli ${team}`}
+      className={cn(
+        "arena-game-team-button",
+        isSelected && "arena-game-team-button-selected",
+        isUsed && "arena-game-team-button-used",
+        isBursting && "arena-game-team-button-burst",
+      )}
       disabled={disabled}
       onClick={onClick}
+      title={isUsed ? "Già usata da questa vita" : undefined}
       type="button"
     >
       <FriendsTeamMark logoUrl={logoUrl} name={team} />
       <span>{team}</span>
       {isSelected ? <CheckCircle2 aria-label="Squadra scelta" /> : null}
+      {isUsed ? (
+        <small>
+          <Lock aria-hidden="true" />
+          Già usata
+        </small>
+      ) : null}
       {isBursting ? <FriendsChoiceParticles /> : null}
     </button>
   );

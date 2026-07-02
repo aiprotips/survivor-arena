@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Flame, Heart, Lock, Search, Shield, Sparkles, Users } from "lucide-react";
+import { CheckCircle2, Flame, Heart, Lock, Shield, Sparkles, Users } from "lucide-react";
 import { UserLayout } from "@/components/account/UserLayout";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -56,7 +56,11 @@ function getSelectionForRound(life: ArenaLife, round: ArenaRound | null) {
 function formatGameCountdown(deadline: string | null, now: number) {
   if (!deadline) {
     return {
+      days: "--",
+      hours: "--",
       label: "Deadline da impostare",
+      minutes: "--",
+      seconds: "--",
       tone: "idle" as const,
     };
   }
@@ -65,7 +69,11 @@ function formatGameCountdown(deadline: string | null, now: number) {
 
   if (diff <= 0) {
     return {
+      days: "00",
+      hours: "00",
       label: "Scelte chiuse",
+      minutes: "00",
+      seconds: "00",
       tone: "locked" as const,
     };
   }
@@ -81,7 +89,11 @@ function formatGameCountdown(deadline: string | null, now: number) {
   const tone = diff <= 10_000 ? "pulse" : diff <= 3_600_000 ? "danger" : diff <= 86_400_000 ? "warning" : "normal";
 
   return {
+    days: String(days).padStart(2, "0"),
+    hours: String(hours).padStart(2, "0"),
     label,
+    minutes: String(minutes).padStart(2, "0"),
+    seconds: String(seconds).padStart(2, "0"),
     tone,
   };
 }
@@ -116,6 +128,60 @@ function getSelectionVisual(life: ArenaLife, round: ArenaRound | null) {
         selection,
       }
     : null;
+}
+
+function getTeamKey(teamId: string | null, teamName: string) {
+  return teamId || teamName.trim().toLowerCase();
+}
+
+function getRoundTeamKeys(round: ArenaRound | null) {
+  if (!round) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      round.matches.flatMap((match) => [
+        getTeamKey(match.home_team_id, match.home_team),
+        getTeamKey(match.away_team_id, match.away_team),
+      ]),
+    ),
+  );
+}
+
+function getLifeCycleSelections(life: ArenaLife | null) {
+  if (!life) {
+    return [];
+  }
+
+  return life.selections.filter((selection) => selection.cycle_number === life.current_cycle);
+}
+
+function isTeamUsedByLife(life: ArenaLife | null, round: ArenaRound | null, teamId: string | null, teamName: string) {
+  if (!life || !round) {
+    return false;
+  }
+
+  const teamKey = getTeamKey(teamId, teamName);
+
+  return getLifeCycleSelections(life).some((selection) => {
+    if (selection.round_id === round.id) {
+      return false;
+    }
+
+    return getTeamKey(selection.selected_team_id, selection.selected_team) === teamKey;
+  });
+}
+
+function getLifeChoiceProgress(life: ArenaLife | null, round: ArenaRound | null) {
+  const total = getRoundTeamKeys(round).length;
+  const used = new Set(getLifeCycleSelections(life).map((selection) => getTeamKey(selection.selected_team_id, selection.selected_team))).size;
+
+  return {
+    percent: total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0,
+    total,
+    used,
+  };
 }
 
 function buildPopularChoices(tournament: ArenaTournamentDetails, round: ArenaRound | null) {
@@ -168,7 +234,6 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
   const router = useRouter();
   const [tournament, setTournament] = useState<ArenaTournamentDetails | null>(null);
   const [selectedLifeId, setSelectedLifeId] = useState("");
-  const [publicQuery, setPublicQuery] = useState("");
   const [choiceEffectKey, setChoiceEffectKey] = useState("");
   const [savedChoice, setSavedChoice] = useState("");
   const [message, setMessage] = useState("");
@@ -187,21 +252,7 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
   const shouldShowRoundSummary = !!latestCalculatedRound && dismissedRoundId !== latestCalculatedRound.id;
   const countdown = formatGameCountdown(currentRound?.deadline_at ?? null, now);
   const popularChoices = tournament && currentRound ? buildPopularChoices(tournament, currentRound) : [];
-
-  const filteredPublicChoices = useMemo(() => {
-    const query = publicQuery.trim().toLowerCase();
-
-    if (!query || !tournament) {
-      return tournament?.public_choices ?? [];
-    }
-
-    return tournament.public_choices.filter(
-      (choice) =>
-        choice.username.toLowerCase().includes(query) ||
-        choice.email.toLowerCase().includes(query) ||
-        choice.selected_team.toLowerCase().includes(query),
-    );
-  }, [publicQuery, tournament]);
+  const selectedLifeProgress = getLifeChoiceProgress(selectedLife, currentRound);
 
   useEffect(() => {
     if (!tournamentId) {
@@ -314,16 +365,15 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
         <div className="arena-game-hero-copy">
           <p className="user-page-kicker">Torneo</p>
           <h1>{tournament.name}</h1>
-          <span className="arena-game-state">
-            <Sparkles aria-hidden="true" />
-            {tournament.status === "ACTIVE" ? "In corso" : tournament.status}
-          </span>
+          <div className="arena-game-hero-badges">
+            <span className="arena-game-state">
+              <Sparkles aria-hidden="true" />
+              {tournament.status === "ACTIVE" ? "In corso" : tournament.status}
+            </span>
+            <span className="arena-game-state arena-game-state-muted">Round {tournament.current_round_number}</span>
+          </div>
         </div>
-        <div className={cn("arena-game-countdown", `arena-game-countdown-${countdown.tone}`)} aria-live="polite">
-          <span>Le scelte si chiudono tra</span>
-          <strong className="arena-game-countdown-timer" key={countdown.label}>{countdown.label}</strong>
-          <em>Deadline {formatDeadline(currentRound?.deadline_at ?? null)}</em>
-        </div>
+        <EpicCountdown countdown={countdown} deadline={formatDeadline(currentRound?.deadline_at ?? null)} round={tournament.current_round_number} />
         <div className="arena-game-hero-stats" aria-label="Riepilogo torneo">
           <span>
             <Users aria-hidden="true" />
@@ -355,7 +405,7 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
           <div className="arena-section-heading">
             <div>
               <p className="user-page-kicker">Le tue vite</p>
-              <h2>Scegli quale vita giocare</h2>
+              <h2>{selectedLife ? `Scegli per Vita ${selectedLife.life_number}` : "Scegli quale vita giocare"}</h2>
             </div>
             {choicesLocked ? (
               <span className="arena-locked-pill">
@@ -388,24 +438,38 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
                   <div className="arena-section-heading">
                     <div>
                       <p className="user-page-kicker">Scelta partite</p>
-                      <h2>Clicca direttamente uno stemma</h2>
+                      <h2>{selectedLife ? `Scegli per questa vita` : "Seleziona una vita"}</h2>
                     </div>
                     {selectedLife ? <span className="ui-badge">Vita {selectedLife.life_number}</span> : null}
                   </div>
+                  {selectedLife ? (
+                    <div className="arena-choice-progress">
+                      <div>
+                        <strong>Vita {selectedLife.life_number}</strong>
+                        <span>
+                          Scelte effettuate: {selectedLifeProgress.used} / {selectedLifeProgress.total}
+                        </span>
+                      </div>
+                      <i style={{ inlineSize: `${selectedLifeProgress.percent}%` }} />
+                    </div>
+                  ) : null}
                   <div className="arena-game-match-list">
                   {currentRound.matches.map((match) => {
                     const selection = selectedLife ? getSelectionForRound(selectedLife, currentRound) : null;
+                    const homeUsed = isTeamUsedByLife(selectedLife, currentRound, match.home_team_id, match.home_team);
+                    const awayUsed = isTeamUsedByLife(selectedLife, currentRound, match.away_team_id, match.away_team);
 
                     return (
                       <article className={cn("arena-game-match-card", choiceEffectKey.startsWith(`${match.id}:`) && "arena-game-match-card-pop")} key={match.id}>
                         <GameTeamButton
                             choiceEffectKey={choiceEffectKey}
-                            disabled={!match.is_selectable || !!match.is_locked || !selectedLife}
+                            disabled={!match.is_selectable || !!match.is_locked || !selectedLife || homeUsed}
                             isSelected={
                               selection?.selected_team_id
                                 ? selection.selected_team_id === match.home_team_id
                                 : selection?.selected_team.toLowerCase() === match.home_team.toLowerCase()
                             }
+                            isUsed={homeUsed}
                             logoUrl={match.home_team_logo_url}
                             onClick={() => chooseTeam(match, match.home_team, match.home_team_id)}
                             teamId={match.home_team_id}
@@ -414,12 +478,13 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
                           <span className="arena-game-vs">VS</span>
                           <GameTeamButton
                             choiceEffectKey={choiceEffectKey}
-                            disabled={!match.is_selectable || !!match.is_locked || !selectedLife}
+                            disabled={!match.is_selectable || !!match.is_locked || !selectedLife || awayUsed}
                             isSelected={
                               selection?.selected_team_id
                                 ? selection.selected_team_id === match.away_team_id
                                 : selection?.selected_team.toLowerCase() === match.away_team.toLowerCase()
                             }
+                            isUsed={awayUsed}
                             logoUrl={match.away_team_logo_url}
                             onClick={() => chooseTeam(match, match.away_team, match.away_team_id)}
                             teamId={match.away_team_id}
@@ -462,6 +527,7 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
                   <TeamMark logoUrl={choice.logoUrl} name={choice.name} />
                   <strong>{choice.name}</strong>
                   <span>{choice.percent}%</span>
+                  <i style={{ inlineSize: `${choice.percent}%` }} />
                 </article>
               ))
             ) : (
@@ -493,40 +559,12 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
             </button>
           </div>
         </section>
-      ) : null}
-
-      {choicesLocked ? (
-        <section className="arena-public-choices">
-          <div className="arena-section-heading">
-            <div>
-              <p className="user-page-kicker">Trasparenza</p>
-              <h2>Scelte pubbliche</h2>
-            </div>
-          </div>
-          <label className="arena-public-search">
-            <Search aria-hidden="true" />
-            <input
-              className="ui-input"
-              onChange={(event) => setPublicQuery(event.target.value)}
-              placeholder="Cerca utenti o squadre"
-              value={publicQuery}
-            />
-          </label>
-          <div className="arena-public-list">
-            {filteredPublicChoices.length > 0 ? (
-              filteredPublicChoices.map((choice) => (
-                <article key={`${choice.username}-${choice.life_number}-${choice.selected_team}`}>
-                  <strong>{choice.username}</strong>
-                  <span>Vita {choice.life_number}</span>
-                  <em>{choice.selected_team}</em>
-                </article>
-              ))
-            ) : (
-              <p>Nessuna scelta pubblica disponibile.</p>
-            )}
-          </div>
+      ) : (
+        <section className="arena-game-info-banner">
+          <Flame aria-hidden="true" />
+          <p>{choicesLocked ? "Le scelte sono chiuse: attendi il calcolo del round." : "Scegli con attenzione: ogni vita può cambiare il destino del torneo."}</p>
         </section>
-      ) : null}
+      )}
 
       {shouldShowRoundSummary && latestCalculatedRound ? (
         <RoundSummaryModal
@@ -536,6 +574,45 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
           tournamentStatus={tournament.status}
         />
       ) : null}
+    </div>
+  );
+}
+
+function EpicCountdown({
+  countdown,
+  deadline,
+  round,
+}: {
+  countdown: ReturnType<typeof formatGameCountdown>;
+  deadline: string;
+  round: number;
+}) {
+  const units = countdown.days !== "00"
+    ? [
+        { label: "Giorni", value: countdown.days },
+        { label: "Ore", value: countdown.hours },
+        { label: "Min", value: countdown.minutes },
+        { label: "Sec", value: countdown.seconds },
+      ]
+    : [
+        { label: "Ore", value: countdown.hours },
+        { label: "Min", value: countdown.minutes },
+        { label: "Sec", value: countdown.seconds },
+      ];
+
+  return (
+    <div className={cn("arena-game-countdown", `arena-game-countdown-${countdown.tone}`)} aria-live="polite">
+      <span>Deadline Round {round}</span>
+      <div className="arena-game-countdown-digits arena-game-countdown-timer" key={countdown.label}>
+        {units.map((unit, index) => (
+          <span className="arena-game-countdown-unit" key={unit.label}>
+            <strong>{unit.value}</strong>
+            <em>{unit.label}</em>
+            {index < units.length - 1 ? <b aria-hidden="true">:</b> : null}
+          </span>
+        ))}
+      </div>
+      <small>{deadline}</small>
     </div>
   );
 }
@@ -589,6 +666,7 @@ function GameTeamButton({
   choiceEffectKey,
   disabled,
   isSelected,
+  isUsed,
   logoUrl,
   onClick,
   team,
@@ -597,6 +675,7 @@ function GameTeamButton({
   choiceEffectKey: string;
   disabled: boolean;
   isSelected: boolean;
+  isUsed: boolean;
   logoUrl: string | null;
   onClick: () => void;
   team: string;
@@ -607,14 +686,27 @@ function GameTeamButton({
 
   return (
     <button
-      className={cn("arena-game-team-button", isSelected && "arena-game-team-button-selected", isBursting && "arena-game-team-button-burst")}
+      aria-label={isUsed ? `${team} già usata da questa vita` : `Scegli ${team}`}
+      className={cn(
+        "arena-game-team-button",
+        isSelected && "arena-game-team-button-selected",
+        isUsed && "arena-game-team-button-used",
+        isBursting && "arena-game-team-button-burst",
+      )}
       disabled={disabled}
       onClick={onClick}
+      title={isUsed ? "Già usata da questa vita" : undefined}
       type="button"
     >
       <TeamMark logoUrl={logoUrl} name={team} />
       <span>{team}</span>
       {isSelected ? <CheckCircle2 aria-label="Squadra scelta" /> : null}
+      {isUsed ? (
+        <small>
+          <Lock aria-hidden="true" />
+          Già usata
+        </small>
+      ) : null}
       {isBursting ? <ChoiceParticles /> : null}
     </button>
   );
