@@ -1032,9 +1032,11 @@ function CompetitionSummaryCard({
         </div>
 
         <div className="friends-manager-invite-box">
-          <span>Codice invito</span>
-          <strong>{competition.invite_code}</strong>
-          <div>
+          <div className="friends-manager-invite-code">
+            <span>Codice invito</span>
+            <strong>{competition.invite_code}</strong>
+          </div>
+          <div className="friends-manager-invite-actions">
             <button className="friends-manager-small-button" onClick={onCopy} type="button">
               <Clipboard aria-hidden="true" />
               Copia codice
