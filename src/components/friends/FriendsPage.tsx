@@ -753,6 +753,7 @@ type FriendsManagerModal =
   | { type: "add-participant" }
   | { type: "add-match" }
   | { type: "deadline" }
+  | { match: FriendsMatch; type: "toggle-match-active" }
   | { action: "lock" | "open"; type: "round-status" }
   | { type: "calculate" }
   | { type: "history" }
@@ -862,7 +863,12 @@ function FriendsManagerCompetitionView({
           onToggleChoices={() => setModal({ action: currentRound?.status === "OPEN" ? "lock" : "open", type: "round-status" })}
         />
         <RoundStatusCard currentRound={currentRound} stats={stats} />
-        <CurrentRoundCard competition={competition} currentRound={currentRound} isPreview />
+        <CurrentRoundCard
+          competition={competition}
+          currentRound={currentRound}
+          isPreview
+          onToggleMatch={(match) => setModal({ match, type: "toggle-match-active" })}
+        />
       </div>
 
       <InfoBanner currentRound={currentRound} />
@@ -889,6 +895,16 @@ function FriendsManagerCompetitionView({
 
       {modal?.type === "deadline" && currentRound ? (
         <DeadlineModal competition={competition} currentRound={currentRound} mutate={mutate} onClose={() => setModal(null)} />
+      ) : null}
+
+      {modal?.type === "toggle-match-active" ? (
+        <ToggleMatchActiveModal
+          competition={competition}
+          match={modal.match}
+          mutate={mutate}
+          onClose={() => setModal(null)}
+          selectionCount={currentRound ? getMatchChoiceCount(competition, currentRound.id, modal.match.id) : 0}
+        />
       ) : null}
 
       {modal?.type === "round-status" && currentRound ? (
@@ -1160,12 +1176,16 @@ function CurrentRoundCard({
   competition,
   currentRound,
   isPreview = false,
+  onToggleMatch,
 }: {
   competition: FriendsCompetition;
   currentRound: FriendsRound | null;
   isPreview?: boolean;
+  onToggleMatch?: (match: FriendsMatch) => void;
 }) {
   const matches = currentRound?.matches ?? [];
+  const canToggleMatches = !!onToggleMatch && currentRound?.status !== "CALCULATED";
+  const visibleMatches = isPreview && !onToggleMatch ? matches.slice(0, 4) : matches;
 
   return (
     <Card className="friends-manager-card">
@@ -1179,8 +1199,8 @@ function CurrentRoundCard({
 
       {matches.length > 0 ? (
         <div className="friends-manager-match-list">
-          {matches.slice(0, isPreview ? 4 : matches.length).map((match, index) => (
-            <article className="friends-manager-match-row" key={match.id}>
+          {visibleMatches.map((match, index) => (
+            <article className={cn("friends-manager-match-row", !match.is_active && "friends-manager-match-row-disabled")} key={match.id}>
               <span className="friends-manager-match-index">{index + 1}</span>
               <div className="friends-manager-match-teams">
                 <MatchTeamLabel logoUrl={match.home_team_logo_url} name={match.home_team} />
@@ -1188,6 +1208,16 @@ function CurrentRoundCard({
                 <MatchTeamLabel logoUrl={match.away_team_logo_url} name={match.away_team} />
               </div>
               <span className="friends-manager-match-status">{match.is_active ? "Aperto" : "Bloccato"}</span>
+              {onToggleMatch ? (
+                <button
+                  className="friends-manager-match-toggle"
+                  disabled={!canToggleMatches}
+                  onClick={() => onToggleMatch(match)}
+                  type="button"
+                >
+                  {match.is_active ? "Disabilita" : "Abilita"}
+                </button>
+              ) : null}
               <small className="friends-manager-match-count">{getMatchChoiceCount(competition, currentRound!.id, match.id)}/{getConfirmedFriendsParticipants(competition).length}</small>
             </article>
           ))}
@@ -1196,7 +1226,7 @@ function CurrentRoundCard({
         <p className="admin-muted">Nessun match configurato per il round corrente.</p>
       )}
 
-      {isPreview && matches.length > 4 ? <span className="friends-manager-muted-link">Visualizza tutti i match</span> : null}
+      {isPreview && !onToggleMatch && matches.length > 4 ? <span className="friends-manager-muted-link">Visualizza tutti i match</span> : null}
     </Card>
   );
 }
@@ -1519,6 +1549,99 @@ function AddMatchModal({
         </Button>
         <Button disabled={!newMatch.homeTeamId || !newMatch.awayTeamId || newMatch.homeTeamId === newMatch.awayTeamId} onClick={() => void submit()} type="button">
           Aggiungi
+        </Button>
+      </div>
+    </ManagerModalShell>
+  );
+}
+
+function ToggleMatchActiveModal({
+  competition,
+  match,
+  mutate,
+  onClose,
+  selectionCount,
+}: {
+  competition: FriendsCompetition;
+  match: FriendsMatch;
+  mutate: FriendsMutate;
+  onClose: () => void;
+  selectionCount: number;
+}) {
+  const isDisabling = match.is_active === 1;
+  const [invalidateExistingChoices, setInvalidateExistingChoices] = useState(false);
+
+  async function submit() {
+    const updated = await mutate(`/api/friends/competitions/${competition.id}/matches`, {
+      body: JSON.stringify({
+        action: "toggle-active",
+        invalidateExistingChoices: isDisabling && invalidateExistingChoices,
+        isActive: !isDisabling,
+        matchId: match.id,
+      }),
+      method: "PATCH",
+    });
+
+    if (updated) {
+      onClose();
+    }
+  }
+
+  return (
+    <ManagerModalShell
+      kicker="Scelte evento"
+      onClose={onClose}
+      title={isDisabling ? "Disabilita evento" : "Abilita evento"}
+    >
+      <div className="friends-manager-form-grid">
+        <div className="friends-match-toggle-summary">
+          <MatchTeamLabel logoUrl={match.home_team_logo_url} name={match.home_team} />
+          <span className="friends-manager-match-vs">vs</span>
+          <MatchTeamLabel logoUrl={match.away_team_logo_url} name={match.away_team} />
+        </div>
+
+        {isDisabling ? (
+          <>
+            <p className="admin-muted">
+              Disabilitando questo evento, nessuno potrà sceglierlo da ora in poi. Al momento ci sono {selectionCount} scelte su questo evento.
+            </p>
+            <div className="friends-match-choice-options" role="radiogroup" aria-label="Gestione scelte esistenti">
+              <label className={cn("friends-match-choice-option", !invalidateExistingChoices && "friends-match-choice-option-active")}>
+                <input
+                  checked={!invalidateExistingChoices}
+                  name="match-choice-action"
+                  onChange={() => setInvalidateExistingChoices(false)}
+                  type="radio"
+                />
+                <span>
+                  <strong>Mantieni scelte valide</strong>
+                  <small>Chi l&apos;ha già scelto resta coperto. Gli altri non potranno più selezionarlo.</small>
+                </span>
+              </label>
+              <label className={cn("friends-match-choice-option", invalidateExistingChoices && "friends-match-choice-option-active")}>
+                <input
+                  checked={invalidateExistingChoices}
+                  name="match-choice-action"
+                  onChange={() => setInvalidateExistingChoices(true)}
+                  type="radio"
+                />
+                <span>
+                  <strong>Annulla scelte esistenti</strong>
+                  <small>Le scelte già fatte vengono rimosse e gli utenti dovranno scegliere di nuovo.</small>
+                </span>
+              </label>
+            </div>
+          </>
+        ) : (
+          <p className="admin-muted">Riabilitando questo evento, gli utenti potranno sceglierlo di nuovo fino alla deadline.</p>
+        )}
+      </div>
+      <div className="arena-modal-actions">
+        <Button onClick={onClose} type="button" variant="secondary">
+          Annulla
+        </Button>
+        <Button onClick={() => void submit()} type="button" variant={isDisabling ? "gold" : "primary"}>
+          {isDisabling ? "Disabilita evento" : "Abilita evento"}
         </Button>
       </div>
     </ManagerModalShell>

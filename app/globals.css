@@ -4524,7 +4524,11 @@ a {
   }
 
   .friends-manager-match-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+  }
+
+  .friends-manager-match-row-disabled {
+    opacity: 0.76;
   }
 
   .friends-manager-match-teams {
@@ -4581,6 +4585,36 @@ a {
     white-space: nowrap;
   }
 
+  .friends-manager-match-toggle {
+    grid-column: 4;
+    grid-row: 1;
+    justify-self: end;
+    border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-surface-elevated) 58%, transparent);
+    color: var(--color-white);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 760;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    padding: 0.52rem 0.66rem;
+    text-transform: uppercase;
+    transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+    white-space: nowrap;
+  }
+
+  .friends-manager-match-toggle:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 50%, var(--color-border));
+    background: color-mix(in srgb, var(--color-blue) 9%, transparent);
+  }
+
+  .friends-manager-match-toggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+  }
+
   .friends-manager-match-count {
     grid-column: 2 / -1;
     justify-self: start;
@@ -4602,11 +4636,68 @@ a {
   }
 
   .friends-manager-match-status,
+  .friends-manager-match-toggle,
   .friends-manager-match-count,
   .friends-manager-participant-row small {
     color: var(--color-muted);
     font-size: 0.72rem;
     font-weight: 620;
+  }
+
+  .friends-match-toggle-summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 62%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-ink) 18%, transparent);
+    padding: 0.85rem;
+  }
+
+  .friends-match-choice-options {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .friends-match-choice-option {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 62%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-surface-elevated) 36%, transparent);
+    cursor: pointer;
+    padding: 0.82rem;
+  }
+
+  .friends-match-choice-option-active {
+    border-color: color-mix(in srgb, var(--color-gold) 44%, var(--color-border));
+    background: color-mix(in srgb, var(--color-gold) 8%, transparent);
+  }
+
+  .friends-match-choice-option input {
+    margin-top: 0.18rem;
+    accent-color: var(--color-gold);
+  }
+
+  .friends-match-choice-option span {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .friends-match-choice-option strong {
+    color: var(--color-white);
+    font-size: 0.86rem;
+    font-weight: 720;
+  }
+
+  .friends-match-choice-option small {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    line-height: 1.45;
   }
 
   .friends-manager-match-index {
@@ -8533,7 +8624,7 @@ a {
     }
 
     .friends-manager-match-row {
-      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
     }
 
     .friends-history-layout {

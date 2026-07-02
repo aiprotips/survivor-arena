@@ -1,7 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
 import { requireUser } from "../../../../_shared/access";
-import { deleteFriendsMatch, getFriendsError, updateFriendsMatch } from "../../../../_shared/friends";
+import { deleteFriendsMatch, getFriendsError, updateFriendsMatch, updateFriendsMatchActiveState } from "../../../../_shared/friends";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../../../_shared/http";
 
 type Env = {
@@ -61,6 +61,18 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
   }
 
   try {
+    if (body.action === "toggle-active") {
+      const competition = await updateFriendsMatchActiveState(context.env.DB, {
+        competitionId: getParam(context.params.id),
+        invalidateExistingChoices: body.invalidateExistingChoices === true,
+        isActive: body.isActive === true,
+        matchId: String(body.matchId ?? body.match_id ?? ""),
+        organizerId: auth.user.id,
+      });
+
+      return json({ competition, ok: true });
+    }
+
     const competition = await updateFriendsMatch(context.env.DB, {
       awayTeamId: String(body.awayTeamId ?? body.away_team_id ?? ""),
       competitionId: getParam(context.params.id),

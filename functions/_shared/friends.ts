@@ -1481,6 +1481,53 @@ export async function updateFriendsMatch(
   return getFriendsCompetitionBundle(db, input.competitionId, input.organizerId);
 }
 
+export async function updateFriendsMatchActiveState(
+  db: D1Database,
+  input: {
+    competitionId: string;
+    invalidateExistingChoices: boolean;
+    isActive: boolean;
+    matchId: string;
+    organizerId: string;
+  },
+) {
+  await ensureFriendsSchema(db);
+  await assertOwner(db, input.competitionId, input.organizerId);
+  const match = await getFriendsMatch(db, input.matchId);
+  assertFriends(match && match.competition_id === input.competitionId, "Match non trovato.", 404);
+  const round = await getFriendsRound(db, match.round_id);
+  assertFriends(round && round.competition_id === input.competitionId, "Round non trovato.", 404);
+  assertFriends(round.status !== "CALCULATED", "Round già calcolato.", 409);
+
+  const now = nowIso();
+  await db
+    .prepare("UPDATE friends_matches SET is_active = ?1, updated_at = ?2 WHERE id = ?3")
+    .bind(input.isActive ? 1 : 0, now, match.id)
+    .run();
+
+  if (!input.isActive && input.invalidateExistingChoices) {
+    await db
+      .prepare("DELETE FROM friends_selections WHERE competition_id = ?1 AND round_id = ?2 AND match_id = ?3 AND status = 'PENDING'")
+      .bind(input.competitionId, round.id, match.id)
+      .run();
+  }
+
+  await logFriendsEvent(db, {
+    competitionId: input.competitionId,
+    eventType: input.isActive ? "friends_match_enabled" : "friends_match_disabled",
+    matchId: match.id,
+    message: input.isActive
+      ? `Match riabilitato: ${match.home_team} vs ${match.away_team}.`
+      : input.invalidateExistingChoices
+        ? `Match disabilitato e scelte annullate: ${match.home_team} vs ${match.away_team}.`
+        : `Match disabilitato mantenendo le scelte esistenti: ${match.home_team} vs ${match.away_team}.`,
+    roundId: round.id,
+    userId: input.organizerId,
+  });
+
+  return getFriendsCompetitionBundle(db, input.competitionId, input.organizerId);
+}
+
 export async function deleteFriendsMatch(
   db: D1Database,
   input: {
