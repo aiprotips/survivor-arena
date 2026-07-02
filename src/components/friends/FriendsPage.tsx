@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
@@ -177,6 +177,13 @@ const emptyMatch: DraftMatch = {
   homeTeamId: "",
   isActive: true,
 };
+
+const dashboardHeroBackgrounds = [
+  "/assets/dashboard-hero-banners.png",
+  "/assets/dashboard-hero-trophy.png",
+  "/assets/dashboard-hero-tunnel.png",
+  "/assets/dashboard-hero-stadium.png",
+];
 
 async function fetchJson<TResponse>(url: string, init?: RequestInit) {
   const response = await fetch(url, {
@@ -466,6 +473,14 @@ export function FriendsDashboardContent({ user }: { user: AccountUser }) {
   return (
     <div className="dashboard-page-content friends-dashboard-home">
       <section className="dashboard-hero-card friends-dashboard-hero-card" aria-labelledby="friends-dashboard-title">
+        <div className="friends-dashboard-hero-background" aria-hidden="true">
+          {dashboardHeroBackgrounds.map((background) => (
+            <span
+              key={background}
+              style={{ "--dashboard-hero-bg": `url("${background}")` } as CSSProperties}
+            />
+          ))}
+        </div>
         <div className="dashboard-hero-copy">
           <p className="user-page-kicker">Bentornato,</p>
           <h1 id="friends-dashboard-title">{user.username}</h1>
