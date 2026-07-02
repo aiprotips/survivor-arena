@@ -1,11 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
+  CalendarDays,
   CheckCircle2,
+  ChevronRight,
   Clipboard,
   Clock3,
   Heart,
@@ -2103,65 +2106,293 @@ function TournamentsView({
   finishedCompetitions: FriendsCompetition[];
   onJoin: () => void;
 }) {
-  return (
-    <div className="dashboard-main-stack">
-      <section className="dashboard-panel">
-        <div className="dashboard-section-heading">
-          <div>
-            <p className="user-page-kicker">In corso</p>
-            <h2>Tornei in corso</h2>
-            <p className="admin-muted">Solo competizioni a cui puoi partecipare, sei iscritto o sei invitato.</p>
-          </div>
-          <Button onClick={onJoin} type="button" variant="secondary">
-            Partecipa con codice
-          </Button>
-        </div>
+  const [now, setNow] = useState(() => Date.now());
+  const activeTournament = buildActiveTournamentShowcase(activeCompetitions[0], now);
+  const archivedTournaments = buildArchivedTournamentRows(finishedCompetitions);
 
-        {activeCompetitions.length > 0 ? (
-          <div className="friends-horizontal-list">
-            {activeCompetitions.map((competition) => (
-              <FriendsTournamentRow
-                actionLabel={competition.can_join ? "Accetta invito" : "Apri torneo"}
-                competition={competition}
-                href={`/tornei/dettaglio?id=${competition.id}`}
-                key={competition.id}
-              />
-            ))}
-          </div>
-        ) : (
-          <DashboardEmpty
-            text="Qui appariranno solo i tornei Friends in cui sei invitato, iscritto o organizzatore."
-            title="Nessun torneo in corso"
-          />
-        )}
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="tournaments-stage">
+      <div className="tournaments-page-actions">
+        <Button onClick={onJoin} type="button" variant="secondary">
+          Partecipa con codice
+        </Button>
+      </div>
+
+      <section className="tournaments-showcase-section" aria-labelledby="active-tournaments-title">
+        <TournamentSectionTitle id="active-tournaments-title">Tornei in corso</TournamentSectionTitle>
+        <TournamentActiveShowcaseCard tournament={activeTournament} />
       </section>
 
-      <section className="dashboard-panel">
-        <div className="dashboard-section-heading">
-          <div>
-            <p className="user-page-kicker">Archivio</p>
-            <h2>Tornei conclusi</h2>
-            <p className="admin-muted">Storico delle competizioni terminate, con round disputati e riepilogo scelte.</p>
-          </div>
+      <section className="tournaments-archive-section" aria-labelledby="archive-tournaments-title">
+        <TournamentSectionTitle id="archive-tournaments-title">Archivio tornei conclusi</TournamentSectionTitle>
+        <div className="tournaments-archive-list">
+          {archivedTournaments.map((tournament) => (
+            <TournamentArchiveRow key={tournament.id} tournament={tournament} />
+          ))}
         </div>
-
-        {finishedCompetitions.length > 0 ? (
-          <div className="friends-horizontal-list">
-            {finishedCompetitions.map((competition) => (
-              <FriendsTournamentRow
-                actionLabel="Rivedi le scelte"
-                competition={competition}
-                href={`/tornei/dettaglio?id=${competition.id}`}
-                key={competition.id}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="admin-muted">Nessun torneo concluso.</p>
-        )}
       </section>
     </div>
   );
+}
+
+type TournamentShowcase = {
+  actionLabel: string;
+  completedLabel: string;
+  deadlineDate: string;
+  description: string;
+  href: string;
+  id: string;
+  isDemo: boolean;
+  name: string;
+  participants: string;
+  round: string;
+  timer: {
+    hours: string;
+    minutes: string;
+    seconds: string;
+  };
+  totalLives: string;
+};
+
+function TournamentSectionTitle({ children, id }: { children: ReactNode; id: string }) {
+  return (
+    <h2 className="tournaments-premium-title" id={id}>
+      <span aria-hidden="true" />
+      {children}
+      <span aria-hidden="true" />
+    </h2>
+  );
+}
+
+function TournamentActiveShowcaseCard({ tournament }: { tournament: TournamentShowcase }) {
+  return (
+    <article className="tournaments-active-card">
+      <div className="tournaments-active-content">
+        <div className="tournaments-active-copy">
+          <span className="tournaments-active-badge">{tournament.isDemo ? "Anteprima torneo" : "Torneo in corso"}</span>
+          <h3>{tournament.name}</h3>
+          <p>{tournament.description}</p>
+
+          <div className="tournaments-active-stats" aria-label="Riepilogo torneo">
+            <TournamentMiniStat icon={UsersRound} label="Partecipanti" value={tournament.participants} />
+            <TournamentMiniStat icon={Shield} label="Vite totali" value={tournament.totalLives} />
+            <TournamentMiniStat icon={Swords} label="In corso" value={tournament.round} />
+            <TournamentMiniStat icon={CalendarDays} label="Scadenza" value={tournament.deadlineDate} />
+          </div>
+        </div>
+
+        <div className="tournaments-active-emblem" aria-hidden="true">
+          <Image alt="" height={320} src="/assets/survivor-arena-logo.png" width={320} />
+        </div>
+
+        <div className="tournaments-active-deadline">
+          <span className="tournaments-deadline-kicker">Prossima deadline</span>
+          <div className="tournaments-countdown" aria-label="Countdown prossima deadline">
+            <span>
+              <strong>{tournament.timer.hours}</strong>
+              <small>Ore</small>
+            </span>
+            <em>:</em>
+            <span>
+              <strong>{tournament.timer.minutes}</strong>
+              <small>Min</small>
+            </span>
+            <em>:</em>
+            <span>
+              <strong>{tournament.timer.seconds}</strong>
+              <small>Sec</small>
+            </span>
+          </div>
+          <small className="tournaments-deadline-date">
+            <CalendarDays aria-hidden="true" />
+            {tournament.deadlineDate}
+          </small>
+          <Link className="tournaments-gold-cta" href={tournament.href}>
+            {tournament.actionLabel}
+            <ChevronRight aria-hidden="true" />
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function TournamentMiniStat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+  return (
+    <span className="tournaments-mini-stat">
+      <Icon aria-hidden="true" />
+      <strong>{value}</strong>
+      <small>{label}</small>
+    </span>
+  );
+}
+
+function TournamentArchiveRow({ tournament }: { tournament: TournamentShowcase }) {
+  return (
+    <Link className="tournaments-archive-row" href={tournament.href}>
+      <span className="tournaments-archive-trophy" aria-hidden="true">
+        <Trophy />
+      </span>
+      <span className="tournaments-archive-main">
+        <strong>{tournament.name}</strong>
+        <small>{tournament.completedLabel}</small>
+      </span>
+      <TournamentArchiveMetric label="Partecipanti" value={tournament.participants} />
+      <TournamentArchiveMetric label="Vite" value={tournament.totalLives} />
+      <TournamentArchiveMetric label="Round" value={tournament.round.replace("Round ", "")} />
+      <em>
+        Visualizza risultati
+        <ChevronRight aria-hidden="true" />
+      </em>
+    </Link>
+  );
+}
+
+function TournamentArchiveMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="tournaments-archive-metric">
+      <strong>{value}</strong>
+      <small>{label}</small>
+    </span>
+  );
+}
+
+function buildActiveTournamentShowcase(competition: FriendsCompetition | undefined, now: number): TournamentShowcase {
+  if (!competition) {
+    const demoDeadline = new Date(now + 23 * 3_600_000 + 41 * 60_000 + 27_000);
+
+    return {
+      actionLabel: "Accedi al torneo",
+      completedLabel: "",
+      deadlineDate: formatTournamentShowcaseDate(demoDeadline.toISOString()),
+      description: "La sopravvivenza è una scelta.",
+      href: "/tornei/dettaglio",
+      id: "demo-active-tournament",
+      isDemo: true,
+      name: "Survivor Arena Summer Cup 2026",
+      participants: "128",
+      round: "Round 3",
+      timer: getTournamentTimerParts(demoDeadline.toISOString(), now),
+      totalLives: "5",
+    };
+  }
+
+  const currentRound = getCurrentRound(competition);
+  const participants = getConfirmedFriendsParticipants(competition);
+  const totalLives = participants.reduce((sum, participant) => sum + participant.total_lives, 0);
+  const fallbackDeadline = new Date(now + 23 * 3_600_000 + 41 * 60_000 + 27_000).toISOString();
+  const deadline = currentRound?.deadline_at ?? fallbackDeadline;
+
+  return {
+    actionLabel: competition.can_join ? "Accetta invito" : "Accedi al torneo",
+    completedLabel: "",
+    deadlineDate: formatTournamentShowcaseDate(deadline),
+    description: competition.description || "La sopravvivenza è una scelta.",
+    href: `/tornei/dettaglio?id=${competition.id}`,
+    id: competition.id,
+    isDemo: false,
+    name: competition.name,
+    participants: String(Math.max(participants.length, competition.participants.length)),
+    round: `Round ${currentRound?.round_number ?? competition.current_round_number}`,
+    timer: getTournamentTimerParts(deadline, now),
+    totalLives: String(totalLives || competition.participants.reduce((sum, participant) => sum + participant.total_lives, 0) || 1),
+  };
+}
+
+function buildArchivedTournamentRows(competitions: FriendsCompetition[]): TournamentShowcase[] {
+  if (competitions.length === 0) {
+    return [
+      buildDemoArchiveTournament("winter", "Survivor Arena Winter Cup 2026", "28/06/2026", "90", "5", "10"),
+      buildDemoArchiveTournament("spring", "Survivor Arena Spring Cup 2026", "15/05/2026", "112", "7", "12"),
+      buildDemoArchiveTournament("classic", "Survivor Arena Classic Cup 2026", "03/04/2026", "75", "5", "8"),
+      buildDemoArchiveTournament("open", "Survivor Arena Open Cup 2026", "22/03/2026", "64", "3", "6"),
+    ];
+  }
+
+  return competitions.map((competition) => {
+    const participants = getConfirmedFriendsParticipants(competition);
+    const totalLives = participants.reduce((sum, participant) => sum + participant.total_lives, 0);
+    const roundsPlayed = competition.rounds.filter((round) => round.status === "CALCULATED").length || competition.current_round_number;
+
+    return {
+      actionLabel: "Visualizza risultati",
+      completedLabel: `Concluso il ${formatTournamentArchiveDate(competition.completed_at)}`,
+      deadlineDate: formatTournamentArchiveDate(competition.completed_at),
+      description: competition.description || "Competizione Friends conclusa",
+      href: `/tornei/dettaglio?id=${competition.id}`,
+      id: competition.id,
+      isDemo: false,
+      name: competition.name,
+      participants: String(Math.max(participants.length, competition.participants.length)),
+      round: `Round ${roundsPlayed}`,
+      timer: { hours: "00", minutes: "00", seconds: "00" },
+      totalLives: String(totalLives || competition.participants.reduce((sum, participant) => sum + participant.total_lives, 0) || 1),
+    };
+  });
+}
+
+function buildDemoArchiveTournament(id: string, name: string, date: string, participants: string, lives: string, rounds: string): TournamentShowcase {
+  return {
+    actionLabel: "Visualizza risultati",
+    completedLabel: `Concluso il ${date}`,
+    deadlineDate: date,
+    description: "Competizione conclusa",
+    href: "/tornei/dettaglio",
+    id: `demo-${id}`,
+    isDemo: true,
+    name,
+    participants,
+    round: `Round ${rounds}`,
+    timer: { hours: "00", minutes: "00", seconds: "00" },
+    totalLives: lives,
+  };
+}
+
+function getTournamentTimerParts(deadline: string | null, now: number) {
+  const diff = deadline ? Math.max(0, Date.parse(deadline) - now) : 0;
+  const hours = Math.floor(diff / 3_600_000);
+  const minutes = Math.floor((diff % 3_600_000) / 60_000);
+  const seconds = Math.floor((diff % 60_000) / 1000);
+
+  return {
+    hours: String(hours).padStart(2, "0"),
+    minutes: String(minutes).padStart(2, "0"),
+    seconds: String(seconds).padStart(2, "0"),
+  };
+}
+
+function formatTournamentShowcaseDate(value: string | null) {
+  if (!value) {
+    return "Deadline da impostare";
+  }
+
+  return new Intl.DateTimeFormat("it-IT", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  })
+    .format(new Date(value))
+    .replace(",", " -");
+}
+
+function formatTournamentArchiveDate(value: string | null) {
+  if (!value) {
+    return "da definire";
+  }
+
+  return new Intl.DateTimeFormat("it-IT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 function ManagerView({
