@@ -7083,24 +7083,24 @@ a {
   .arena-game-heart::before {
     content: "";
     position: absolute;
-    inset: 12%;
+    inset: 22%;
     z-index: -1;
     border-radius: 50%;
     background:
-      radial-gradient(circle, color-mix(in srgb, var(--color-danger) 48%, transparent), transparent 68%);
-    filter: blur(0.42rem);
-    opacity: 0.92;
+      radial-gradient(circle, color-mix(in srgb, currentColor 20%, transparent), transparent 62%);
+    filter: blur(0.28rem);
+    opacity: 0.38;
   }
 
   .arena-game-life-card-picked .arena-game-heart::before {
     background:
-      radial-gradient(circle, color-mix(in srgb, var(--color-button-blue-hover) 54%, transparent), transparent 68%);
+      radial-gradient(circle, color-mix(in srgb, var(--color-button-blue-hover) 20%, transparent), transparent 62%);
   }
 
   .arena-game-life-card-dead .arena-game-heart::before {
     background:
-      radial-gradient(circle, color-mix(in srgb, var(--color-muted-soft) 34%, transparent), transparent 68%);
-    opacity: 0.56;
+      radial-gradient(circle, color-mix(in srgb, var(--color-muted-soft) 16%, transparent), transparent 62%);
+    opacity: 0.24;
   }
 
   .arena-game-heart > svg {
@@ -7108,9 +7108,8 @@ a {
     height: 100%;
     fill: currentColor;
     filter:
-      drop-shadow(0 0 0.38rem color-mix(in srgb, currentColor 62%, transparent))
-      drop-shadow(0 0 1rem color-mix(in srgb, currentColor 38%, transparent))
-      drop-shadow(0 0 1.55rem color-mix(in srgb, currentColor 20%, transparent));
+      drop-shadow(0 0 0.16rem color-mix(in srgb, currentColor 54%, transparent))
+      drop-shadow(0 0 0.52rem color-mix(in srgb, currentColor 24%, transparent));
     stroke: color-mix(in srgb, var(--color-white) 58%, currentColor);
     stroke-width: 1.15;
   }
@@ -7122,8 +7121,8 @@ a {
   .arena-game-life-card-dead .arena-game-heart > svg {
     filter:
       grayscale(1)
-      drop-shadow(0 0 0.48rem color-mix(in srgb, var(--color-muted-soft) 34%, transparent))
-      drop-shadow(0 0 1.1rem color-mix(in srgb, var(--color-white) 8%, transparent));
+      drop-shadow(0 0 0.18rem color-mix(in srgb, var(--color-muted-soft) 22%, transparent))
+      drop-shadow(0 0 0.5rem color-mix(in srgb, var(--color-white) 5%, transparent));
     stroke: color-mix(in srgb, var(--color-white) 36%, var(--color-muted-soft));
   }
 
