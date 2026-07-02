@@ -4222,6 +4222,7 @@ a {
     display: grid;
     gap: 0.58rem;
     min-width: 0;
+    overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
     border-radius: var(--radius-base);
     background: color-mix(in srgb, var(--color-surface-elevated) 58%, transparent);
@@ -4260,6 +4261,7 @@ a {
     flex-wrap: wrap;
     gap: 0.48rem;
     align-items: center;
+    min-width: 0;
   }
 
   .friends-manager-invite-actions .friends-manager-small-button {
@@ -4271,13 +4273,11 @@ a {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
-    gap: 0.68rem;
-    border: 1px solid color-mix(in srgb, var(--color-border) 66%, transparent);
-    border-radius: var(--radius-base);
-    background: color-mix(in srgb, var(--color-ink) 18%, transparent);
+    gap: 0.52rem;
+    min-width: 0;
     color: var(--color-white);
     cursor: pointer;
-    padding: 0.62rem 0.68rem;
+    padding: 0.1rem 0;
   }
 
   .friends-manager-visibility-toggle input {
@@ -4294,7 +4294,7 @@ a {
 
   .friends-manager-visibility-toggle strong {
     color: var(--color-white);
-    font-size: 0.76rem;
+    font-size: 0.72rem;
     font-weight: 720;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -4302,9 +4302,9 @@ a {
 
   .friends-manager-visibility-toggle small {
     color: var(--color-muted);
-    font-size: 0.74rem;
+    font-size: 0.68rem;
     font-weight: 560;
-    line-height: 1.35;
+    line-height: 1.25;
   }
 
   .friends-manager-small-button,
@@ -8632,7 +8632,7 @@ a {
     }
 
     .friends-manager-invite-box .friends-manager-small-button {
-      padding: 0.66rem 0.78rem;
+      padding: 0.62rem 0.7rem;
     }
 
     .friends-manager-visibility-toggle {
@@ -8766,7 +8766,7 @@ a {
     }
 
     .friends-manager-invite-box {
-      grid-template-columns: minmax(8.75rem, 0.55fr) auto minmax(12.5rem, 0.65fr);
+      grid-template-columns: minmax(8.3rem, 0.55fr) auto minmax(10.5rem, 0.58fr);
     }
 
     .friends-manager-visibility-toggle {
