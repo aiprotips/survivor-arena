@@ -6901,25 +6901,13 @@ a {
   .arena-game-countdown {
     position: relative;
     display: grid;
-    gap: 0.24rem;
+    justify-items: center;
+    gap: 0.28rem;
     overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
-    border-radius: var(--radius-card);
-    background:
-      linear-gradient(135deg, color-mix(in srgb, var(--color-blue) 18%, transparent), transparent 48%),
-      color-mix(in srgb, var(--color-ink) 42%, var(--color-card));
-    padding: clamp(0.74rem, 2.5vw, 1rem);
-  }
-
-  .arena-game-countdown::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent),
-      repeating-linear-gradient(180deg, color-mix(in srgb, var(--color-white) 4%, transparent) 0 1px, transparent 1px 0.62rem);
-    opacity: 0.5;
-    pointer-events: none;
+    border: 0;
+    background: transparent;
+    padding: clamp(0.44rem, 1.8vw, 0.72rem);
+    text-align: center;
   }
 
   .arena-game-countdown > * {
@@ -6929,7 +6917,6 @@ a {
 
   .arena-game-countdown span,
   .arena-game-hero-stats span,
-  .arena-game-life-card > span,
   .arena-popular-card strong {
     color: var(--color-muted-soft);
     font-size: 0.72rem;
@@ -6938,51 +6925,14 @@ a {
     text-transform: uppercase;
   }
 
-  .arena-game-countdown-digits {
-    display: flex;
-    align-items: end;
-    gap: clamp(0.26rem, 1.2vw, 0.5rem);
-  }
-
-  .arena-game-countdown-unit {
-    position: relative;
-    display: grid;
-    gap: 0.1rem;
-    min-width: clamp(3.1rem, 13vw, 4.35rem);
-    border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
-    border-radius: var(--radius-base);
-    background: color-mix(in srgb, var(--color-surface) 44%, transparent);
-    padding: 0.48rem 0.42rem 0.38rem;
-    text-align: center;
-  }
-
-  .arena-game-countdown-unit strong {
-    color: var(--color-white);
-    font-size: clamp(1.35rem, 6vw, 2.42rem);
+  .arena-game-countdown > strong {
+    color: var(--color-gold-strong);
+    font-size: clamp(1.9rem, 8vw, 3.55rem);
     font-variant-numeric: tabular-nums;
     font-weight: 800;
-    letter-spacing: 0.02em;
-    line-height: 0.95;
-    text-shadow: 0 0 28px color-mix(in srgb, var(--color-primary) 28%, transparent);
-  }
-
-  .arena-game-countdown-unit em {
-    color: var(--color-muted-soft);
-    font-size: 0.56rem;
-    font-style: normal;
-    font-weight: 780;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .arena-game-countdown-unit b {
-    position: absolute;
-    right: -0.48rem;
-    top: 41%;
-    color: var(--color-gold-strong);
-    font-size: clamp(1.2rem, 5vw, 1.8rem);
-    line-height: 1;
-    text-shadow: 0 0 18px color-mix(in srgb, var(--color-gold) 34%, transparent);
+    line-height: 0.95;
+    text-shadow: 0 0 26px color-mix(in srgb, var(--color-gold) 26%, transparent);
   }
 
   .arena-game-countdown small {
@@ -6992,32 +6942,25 @@ a {
   }
 
   .arena-game-countdown-timer {
-    animation: arena-countdown-tick 360ms ease-out;
+    animation: arena-countdown-breathe 2.8s ease-in-out infinite;
   }
 
   .arena-game-countdown-warning {
-    border-color: color-mix(in srgb, var(--color-gold) 44%, var(--color-border));
-    background: color-mix(in srgb, var(--color-gold) 8%, transparent);
+    background: transparent;
   }
 
   .arena-game-countdown-danger,
   .arena-game-countdown-pulse {
-    border-color: color-mix(in srgb, var(--color-danger) 54%, var(--color-border));
-    background: color-mix(in srgb, var(--color-danger) 9%, transparent);
+    background: transparent;
   }
 
   .arena-game-countdown-pulse {
-    animation: arena-countdown-pulse 0.72s ease-in-out infinite;
+    animation: arena-countdown-pulse 1.8s ease-in-out infinite;
   }
 
   .arena-game-countdown-pulse .arena-game-countdown-timer {
-    color: var(--color-danger);
-    text-shadow: 0 0 32px color-mix(in srgb, var(--color-danger) 36%, transparent);
-  }
-
-  .arena-game-countdown-pulse .arena-game-countdown-unit strong {
-    color: var(--color-danger);
-    text-shadow: 0 0 32px color-mix(in srgb, var(--color-danger) 42%, transparent);
+    color: var(--color-gold-strong);
+    text-shadow: 0 0 32px color-mix(in srgb, var(--color-gold) 36%, transparent);
   }
 
   .arena-game-hero-stats {
@@ -7090,16 +7033,18 @@ a {
   }
 
   .arena-game-life-card {
-    display: grid;
-    flex: 0 0 5.95rem;
-    justify-items: center;
-    gap: 0.32rem;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
     border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
-    border-radius: var(--radius-card);
+    border-radius: var(--radius-pill);
     background: color-mix(in srgb, var(--color-surface) 56%, transparent);
     color: var(--color-white);
     font: inherit;
-    padding: 0.66rem 0.5rem;
+    min-width: 4.25rem;
+    min-height: 3.55rem;
+    padding: 0.5rem 0.58rem;
     scroll-snap-align: start;
     transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
   }
@@ -7107,7 +7052,11 @@ a {
   .arena-game-life-card-selected {
     border-color: color-mix(in srgb, var(--color-gold) 48%, var(--color-border));
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-gold) 16%, transparent), 0 0 18px color-mix(in srgb, var(--color-gold) 12%, transparent);
-    transform: translateY(-1px) scale(1.02);
+    transform: translateY(-1px);
+  }
+
+  .arena-game-life-card-selected .arena-game-heart {
+    animation: arena-life-heartbeat 2.8s ease-in-out infinite;
   }
 
   .arena-game-life-card-dead {
@@ -7117,19 +7066,19 @@ a {
   .arena-game-heart {
     position: relative;
     display: grid;
-    width: 3.2rem;
+    width: 2.65rem;
     aspect-ratio: 1;
     place-items: center;
     color: var(--color-danger);
   }
 
   .arena-game-life-card-picked .arena-game-heart {
-    color: color-mix(in srgb, var(--color-ink) 68%, var(--color-blue));
+    color: var(--color-danger);
   }
 
   .arena-game-heart > svg {
-    width: 3rem;
-    height: 3rem;
+    width: 2.55rem;
+    height: 2.55rem;
     fill: currentColor;
     filter: drop-shadow(0 8px 16px color-mix(in srgb, currentColor 20%, transparent));
     stroke-width: 1.35;
@@ -7160,73 +7109,16 @@ a {
     font-weight: 800;
   }
 
-  .arena-game-heart .arena-team-mark {
-    position: absolute;
-    width: 1.55rem;
-    border: 0;
-    background-color: transparent;
-    background-size: contain;
-  }
-
-  .arena-game-life-card strong {
-    overflow: hidden;
-    max-width: 100%;
-    color: var(--color-white);
-    font-size: 0.76rem;
-    font-weight: 750;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .arena-choice-progress {
-    position: relative;
-    display: grid;
-    gap: 0.56rem;
-    overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--color-border) 64%, transparent);
-    border-radius: var(--radius-pill);
-    background: color-mix(in srgb, var(--color-surface) 48%, transparent);
-    padding: 0.68rem 0.82rem;
-  }
-
-  .arena-choice-progress div {
-    display: flex;
+  .arena-game-life-pair {
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.7rem;
-    min-width: 0;
+    justify-content: center;
+    gap: 0.36rem;
   }
 
-  .arena-choice-progress strong {
-    color: var(--color-white);
-    font-size: 0.88rem;
-  }
-
-  .arena-choice-progress span {
-    color: var(--color-muted-soft);
-    font-size: 0.76rem;
-    font-weight: 650;
-  }
-
-  .arena-choice-progress::after,
-  .arena-choice-progress > i {
-    content: "";
-    display: block;
-    height: 0.32rem;
-    border-radius: var(--radius-pill);
-  }
-
-  .arena-choice-progress::after {
-    background: color-mix(in srgb, var(--color-border) 38%, transparent);
-  }
-
-  .arena-choice-progress > i {
-    position: absolute;
-    bottom: 0.68rem;
-    left: 0.82rem;
-    max-width: calc(100% - 1.64rem);
-    background: linear-gradient(90deg, var(--color-primary), var(--color-gold));
-    box-shadow: 0 0 18px color-mix(in srgb, var(--color-primary) 18%, transparent);
+  .arena-game-life-pair .arena-team-mark {
+    width: 1.86rem;
+    background-size: contain;
   }
 
   .arena-game-match-list {
@@ -7444,23 +7336,38 @@ a {
     gap: 0.55rem;
   }
 
-  @keyframes arena-countdown-pulse {
+  @keyframes arena-countdown-breathe {
     0%, 100% {
-      box-shadow: 0 0 0 color-mix(in srgb, var(--color-danger) 0%, transparent);
+      opacity: 0.92;
+      transform: scale(1);
     }
     50% {
-      box-shadow: 0 0 32px color-mix(in srgb, var(--color-danger) 18%, transparent);
+      opacity: 1;
+      transform: scale(1.018);
     }
   }
 
-  @keyframes arena-countdown-tick {
-    0% {
-      opacity: 0.72;
-      transform: translateY(0.16rem) scale(0.985);
+  @keyframes arena-countdown-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 color-mix(in srgb, var(--color-gold) 0%, transparent);
     }
-    100% {
-      opacity: 1;
-      transform: translateY(0) scale(1);
+    50% {
+      box-shadow: 0 0 28px color-mix(in srgb, var(--color-gold) 14%, transparent);
+    }
+  }
+
+  @keyframes arena-life-heartbeat {
+    0%, 100% {
+      transform: scale(1);
+    }
+    46% {
+      transform: scale(1.08);
+    }
+    58% {
+      transform: scale(0.98);
+    }
+    70% {
+      transform: scale(1.04);
     }
   }
 

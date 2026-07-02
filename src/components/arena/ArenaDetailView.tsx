@@ -134,21 +134,6 @@ function getTeamKey(teamId: string | null, teamName: string) {
   return teamId || teamName.trim().toLowerCase();
 }
 
-function getRoundTeamKeys(round: ArenaRound | null) {
-  if (!round) {
-    return [];
-  }
-
-  return Array.from(
-    new Set(
-      round.matches.flatMap((match) => [
-        getTeamKey(match.home_team_id, match.home_team),
-        getTeamKey(match.away_team_id, match.away_team),
-      ]),
-    ),
-  );
-}
-
 function getLifeCycleSelections(life: ArenaLife | null) {
   if (!life) {
     return [];
@@ -171,17 +156,6 @@ function isTeamUsedByLife(life: ArenaLife | null, round: ArenaRound | null, team
 
     return getTeamKey(selection.selected_team_id, selection.selected_team) === teamKey;
   });
-}
-
-function getLifeChoiceProgress(life: ArenaLife | null, round: ArenaRound | null) {
-  const total = getRoundTeamKeys(round).length;
-  const used = new Set(getLifeCycleSelections(life).map((selection) => getTeamKey(selection.selected_team_id, selection.selected_team))).size;
-
-  return {
-    percent: total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0,
-    total,
-    used,
-  };
 }
 
 function buildPopularChoices(tournament: ArenaTournamentDetails, round: ArenaRound | null) {
@@ -252,7 +226,6 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
   const shouldShowRoundSummary = !!latestCalculatedRound && dismissedRoundId !== latestCalculatedRound.id;
   const countdown = formatGameCountdown(currentRound?.deadline_at ?? null, now);
   const popularChoices = tournament && currentRound ? buildPopularChoices(tournament, currentRound) : [];
-  const selectedLifeProgress = getLifeChoiceProgress(selectedLife, currentRound);
 
   useEffect(() => {
     if (!tournamentId) {
@@ -442,17 +415,6 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
                     </div>
                     {selectedLife ? <span className="ui-badge">Vita {selectedLife.life_number}</span> : null}
                   </div>
-                  {selectedLife ? (
-                    <div className="arena-choice-progress">
-                      <div>
-                        <strong>Vita {selectedLife.life_number}</strong>
-                        <span>
-                          Scelte effettuate: {selectedLifeProgress.used} / {selectedLifeProgress.total}
-                        </span>
-                      </div>
-                      <i style={{ inlineSize: `${selectedLifeProgress.percent}%` }} />
-                    </div>
-                  ) : null}
                   <div className="arena-game-match-list">
                   {currentRound.matches.map((match) => {
                     const selection = selectedLife ? getSelectionForRound(selectedLife, currentRound) : null;
@@ -587,31 +549,14 @@ function EpicCountdown({
   deadline: string;
   round: number;
 }) {
-  const units = countdown.days !== "00"
-    ? [
-        { label: "Giorni", value: countdown.days },
-        { label: "Ore", value: countdown.hours },
-        { label: "Min", value: countdown.minutes },
-        { label: "Sec", value: countdown.seconds },
-      ]
-    : [
-        { label: "Ore", value: countdown.hours },
-        { label: "Min", value: countdown.minutes },
-        { label: "Sec", value: countdown.seconds },
-      ];
+  const countdownValue = countdown.days !== "00"
+    ? `${countdown.days} : ${countdown.hours} : ${countdown.minutes} : ${countdown.seconds}`
+    : `${countdown.hours} : ${countdown.minutes} : ${countdown.seconds}`;
 
   return (
     <div className={cn("arena-game-countdown", `arena-game-countdown-${countdown.tone}`)} aria-live="polite">
       <span>Deadline Round {round}</span>
-      <div className="arena-game-countdown-digits arena-game-countdown-timer" key={countdown.label}>
-        {units.map((unit, index) => (
-          <span className="arena-game-countdown-unit" key={unit.label}>
-            <strong>{unit.value}</strong>
-            <em>{unit.label}</em>
-            {index < units.length - 1 ? <b aria-hidden="true">:</b> : null}
-          </span>
-        ))}
-      </div>
+      <strong className="arena-game-countdown-timer" key={countdown.label}>{countdownValue}</strong>
       <small>{deadline}</small>
     </div>
   );
@@ -642,6 +587,7 @@ function GameLifeButton({
 }) {
   return (
     <button
+      aria-label={`Vita ${life.life_number}${visual ? `, scelta ${visual.name}` : ", da scegliere"}`}
       className={cn(
         "arena-game-life-card",
         isSelected && "arena-game-life-card-selected",
@@ -652,12 +598,12 @@ function GameLifeButton({
       onClick={onClick}
       type="button"
     >
-      <span className="arena-game-heart">
-        <Heart aria-hidden="true" />
+      <span className="arena-game-life-pair" aria-hidden="true">
+        <span className="arena-game-heart">
+          <Heart />
+        </span>
         {visual ? <TeamMark logoUrl={visual.logoUrl} name={visual.name} /> : null}
       </span>
-      <span>Vita {life.life_number}</span>
-      <strong>{visual?.name ?? "Da scegliere"}</strong>
     </button>
   );
 }
