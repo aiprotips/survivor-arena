@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ChangeEvent, FormEvent, ReactNode } from "react";
+import type { CSSProperties, ChangeEvent, FormEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   Ban,
   CheckCircle2,
   ClipboardList,
   Crown,
+  Crop,
   Download,
   Eye,
   ImageIcon,
+  Images,
   KeyRound,
   LayoutDashboard,
   Mail,
@@ -19,9 +21,14 @@ import {
   Plus,
   Search,
   Shield,
+  SlidersHorizontal,
+  Sparkles,
   Swords,
+  Trash2,
   Trophy,
+  Upload,
   Users,
+  Wallpaper,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { BrandLogo } from "@/components/home/BrandLogo";
@@ -206,6 +213,41 @@ type TeamResponse =
       ok: false;
     };
 
+type AdminImageSectionKey =
+  | "welcome"
+  | "tournament"
+  | "quickJoin"
+  | "quickCreate"
+  | "siteBackground";
+
+type AdminImageAsset = {
+  id: string;
+  label: string;
+  local?: boolean;
+  src: string;
+};
+
+type AdminImageSectionState = {
+  customAssets: AdminImageAsset[];
+  hiddenAssetIds: string[];
+  objectPosition: string;
+  opacity: number;
+  selectedAssetId: string;
+  zoom: number;
+};
+
+type AdminImageSettings = Partial<Record<AdminImageSectionKey, Partial<AdminImageSectionState>>>;
+
+type AdminImagesResponse =
+  | {
+      ok: true;
+      settings: AdminImageSettings | null;
+    }
+  | {
+      message: string;
+      ok: false;
+    };
+
 type AdminPanelKey =
   | "dashboard"
   | "messages"
@@ -213,7 +255,8 @@ type AdminPanelKey =
   | "manage"
   | "teams"
   | "participants"
-  | "events";
+  | "events"
+  | "images";
 
 type PlatformMode = "COPPE" | "FRIENDS";
 
@@ -272,6 +315,100 @@ const resultOptions: MatchResult[] = [
   "CANCELLED",
 ];
 
+const projectImageAssets: Record<string, AdminImageAsset[]> = {
+  action: [
+    { id: "action-logo", label: "Emblema Survivor", src: "/assets/survivor-arena-logo.png" },
+    { id: "action-trophy", label: "Trofeo arena", src: "/assets/gold-trophy-arena.jpg" },
+    { id: "action-stadium", label: "Stadio premium", src: "/assets/arena-stadium.jpg" },
+  ],
+  arena: [
+    { id: "arena-stadium", label: "Stadio premium", src: "/assets/arena-stadium.jpg" },
+    { id: "arena-trophy", label: "Trofeo arena", src: "/assets/gold-trophy-arena.jpg" },
+    { id: "arena-hero", label: "Hero Survivor", src: "/assets/survivor-arena-hero.jpg" },
+    { id: "arena-desktop", label: "Hero desktop", src: "/assets/hero-desktop.jpg" },
+  ],
+  dashboard: [
+    { id: "welcome-banners", label: "Ingresso arena", src: "/assets/dashboard-hero-banners.png" },
+    { id: "welcome-trophy", label: "Trofeo centrale", src: "/assets/dashboard-hero-trophy.png" },
+    { id: "welcome-tunnel", label: "Tunnel arena", src: "/assets/dashboard-hero-tunnel.png" },
+    { id: "welcome-stadium", label: "Stadio aperto", src: "/assets/dashboard-hero-stadium.png" },
+  ],
+};
+
+const adminImageSections: Array<{
+  defaultOpacity: number;
+  defaultPosition: string;
+  defaultZoom: number;
+  description: string;
+  icon: LucideIcon;
+  key: AdminImageSectionKey;
+  preview: "welcome" | "tournament" | "quickJoin" | "quickCreate" | "site";
+  recommended: string;
+  staticAssets: AdminImageAsset[];
+  title: string;
+}> = [
+  {
+    defaultOpacity: 82,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    description: "Rotazione della card Bentornato nella dashboard utente.",
+    icon: Sparkles,
+    key: "welcome",
+    preview: "welcome",
+    recommended: "Consigliato 1920x600 o 16:5",
+    staticAssets: projectImageAssets.dashboard,
+    title: "Immagini di benvenuto",
+  },
+  {
+    defaultOpacity: 78,
+    defaultPosition: "center center",
+    defaultZoom: 108,
+    description: "Pool immagini per le card torneo. I nuovi tornei potranno riceverne una random.",
+    icon: Trophy,
+    key: "tournament",
+    preview: "tournament",
+    recommended: "Consigliato 1920x760 o 5:2",
+    staticAssets: [...projectImageAssets.arena, ...projectImageAssets.dashboard],
+    title: "Immagini tornei",
+  },
+  {
+    defaultOpacity: 34,
+    defaultPosition: "center center",
+    defaultZoom: 115,
+    description: "Sfondo della card rapida Partecipa nella dashboard utente.",
+    icon: Plus,
+    key: "quickJoin",
+    preview: "quickJoin",
+    recommended: "Consigliato 900x520",
+    staticAssets: [...projectImageAssets.action, ...projectImageAssets.dashboard],
+    title: "Immagine tasto Partecipa",
+  },
+  {
+    defaultOpacity: 38,
+    defaultPosition: "center center",
+    defaultZoom: 115,
+    description: "Sfondo della card rapida Crea competizione nella dashboard utente.",
+    icon: Swords,
+    key: "quickCreate",
+    preview: "quickCreate",
+    recommended: "Consigliato 900x520",
+    staticAssets: [...projectImageAssets.action, ...projectImageAssets.dashboard],
+    title: "Immagine tasto Crea",
+  },
+  {
+    defaultOpacity: 18,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    description: "Sfondo globale del sito e delle aree premium.",
+    icon: Wallpaper,
+    key: "siteBackground",
+    preview: "site",
+    recommended: "Consigliato 1920x1080",
+    staticAssets: [...projectImageAssets.arena, ...projectImageAssets.dashboard],
+    title: "Sfondo sito",
+  },
+];
+
 const adminTabs: Array<{
   icon: LucideIcon;
   key: AdminPanelKey;
@@ -312,9 +449,14 @@ const adminTabs: Array<{
     key: "events",
     label: "Registro eventi",
   },
+  {
+    icon: Images,
+    key: "images",
+    label: "Immagini",
+  },
 ];
 
-const friendsAdminPanels = new Set<AdminPanelKey>(["dashboard", "messages", "teams", "events"]);
+const friendsAdminPanels = new Set<AdminPanelKey>(["dashboard", "messages", "teams", "events", "images"]);
 
 function isAdminPanelVisible(panel: AdminPanelKey, mode: PlatformMode) {
   return mode === "COPPE" || friendsAdminPanels.has(panel);
@@ -1017,6 +1159,8 @@ export function AdminArenaPanel() {
                 query={eventQuery}
               />
             ) : null}
+
+            {activePanel === "images" ? <AdminImagesPanel /> : null}
           </div>
         </div>
       </section>
@@ -2804,6 +2948,478 @@ function TeamLogo({
     <span className="admin-team-logo admin-team-logo-placeholder">
       {name.slice(0, 2).toUpperCase()}
     </span>
+  );
+}
+
+function createDefaultImageState(): Record<AdminImageSectionKey, AdminImageSectionState> {
+  return adminImageSections.reduce(
+    (state, section) => ({
+      ...state,
+      [section.key]: {
+        customAssets: [],
+        hiddenAssetIds: [],
+        objectPosition: section.defaultPosition,
+        opacity: section.defaultOpacity,
+        selectedAssetId: section.staticAssets[0]?.id ?? "",
+        zoom: section.defaultZoom,
+      },
+    }),
+    {} as Record<AdminImageSectionKey, AdminImageSectionState>,
+  );
+}
+
+function cleanProjectAssetPath(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+}
+
+function getSectionAssets(section: (typeof adminImageSections)[number], state: AdminImageSectionState) {
+  return [
+    ...section.staticAssets.filter((asset) => !state.hiddenAssetIds.includes(asset.id)),
+    ...state.customAssets,
+  ];
+}
+
+function getSelectedImageAsset(section: (typeof adminImageSections)[number], state: AdminImageSectionState) {
+  const assets = getSectionAssets(section, state);
+
+  return assets.find((asset) => asset.id === state.selectedAssetId) ?? assets[0] ?? section.staticAssets[0];
+}
+
+function hydrateImageState(settings: AdminImageSettings | null): Record<AdminImageSectionKey, AdminImageSectionState> {
+  const defaults = createDefaultImageState();
+
+  if (!settings) {
+    return defaults;
+  }
+
+  return adminImageSections.reduce((state, section) => {
+    const saved = settings[section.key];
+    const customAssets = Array.isArray(saved?.customAssets)
+      ? saved.customAssets.filter(
+          (asset): asset is AdminImageAsset =>
+            Boolean(asset) &&
+            typeof asset === "object" &&
+            typeof asset.id === "string" &&
+            typeof asset.label === "string" &&
+            typeof asset.src === "string" &&
+            asset.src.startsWith("/"),
+        )
+      : [];
+    const hiddenAssetIds = Array.isArray(saved?.hiddenAssetIds)
+      ? saved.hiddenAssetIds.filter((assetId): assetId is string => typeof assetId === "string")
+      : [];
+    const sectionState = {
+      customAssets,
+      hiddenAssetIds,
+      objectPosition: typeof saved?.objectPosition === "string" ? saved.objectPosition : defaults[section.key].objectPosition,
+      opacity: typeof saved?.opacity === "number"
+        ? Math.min(100, Math.max(0, saved.opacity))
+        : defaults[section.key].opacity,
+      selectedAssetId: typeof saved?.selectedAssetId === "string"
+        ? saved.selectedAssetId
+        : defaults[section.key].selectedAssetId,
+      zoom: typeof saved?.zoom === "number"
+        ? Math.min(160, Math.max(100, saved.zoom))
+        : defaults[section.key].zoom,
+    };
+    const selectedAsset = getSelectedImageAsset(section, sectionState);
+
+    return {
+      ...state,
+      [section.key]: {
+        ...sectionState,
+        selectedAssetId: selectedAsset?.id ?? defaults[section.key].selectedAssetId,
+      },
+    };
+  }, defaults);
+}
+
+function serializeImageState(state: Record<AdminImageSectionKey, AdminImageSectionState>): AdminImageSettings {
+  return adminImageSections.reduce((settings, section) => {
+    const sectionState = state[section.key];
+
+    return {
+      ...settings,
+      [section.key]: {
+        ...sectionState,
+        customAssets: sectionState.customAssets.filter((asset) => !asset.local && asset.src.startsWith("/")),
+      },
+    };
+  }, {} as AdminImageSettings);
+}
+
+function AdminImagesPanel() {
+  const [sectionsState, setSectionsState] = useState<Record<AdminImageSectionKey, AdminImageSectionState>>(
+    () => createDefaultImageState(),
+  );
+  const [draftPaths, setDraftPaths] = useState<Partial<Record<AdminImageSectionKey, string>>>({});
+  const [localMessage, setLocalMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadImageSettings() {
+      const { data } = await fetchJson<AdminImagesResponse>("/api/admin/images");
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (data.ok) {
+        setSectionsState(hydrateImageState(data.settings));
+      } else {
+        setLocalMessage(data.message);
+      }
+
+      setIsLoading(false);
+    }
+
+    loadImageSettings().catch(() => {
+      if (isMounted) {
+        setLocalMessage("Impossibile caricare le impostazioni immagini.");
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  function updateSection(sectionKey: AdminImageSectionKey, updater: (state: AdminImageSectionState) => AdminImageSectionState) {
+    setSectionsState((current) => ({
+      ...current,
+      [sectionKey]: updater(current[sectionKey]),
+    }));
+  }
+
+  function addProjectAsset(sectionKey: AdminImageSectionKey) {
+    const src = cleanProjectAssetPath(draftPaths[sectionKey] ?? "");
+
+    if (!src || !src.startsWith("/assets/")) {
+      setLocalMessage("Inserisci un percorso asset valido, per esempio /assets/nuova-immagine.png.");
+      return;
+    }
+
+    const id = `custom-${sectionKey}-${Date.now()}`;
+    const label = src.split("/").pop()?.replace(/\.[a-z0-9]+$/i, "") || "Immagine progetto";
+
+    updateSection(sectionKey, (sectionState) => ({
+      ...sectionState,
+      customAssets: [...sectionState.customAssets, { id, label, src }],
+      selectedAssetId: id,
+    }));
+    setDraftPaths((current) => ({ ...current, [sectionKey]: "" }));
+    setLocalMessage("Asset progetto aggiunto al catalogo. Salva le impostazioni per renderlo definitivo.");
+  }
+
+  function addLocalPreview(sectionKey: AdminImageSectionKey, event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setLocalMessage("Seleziona un file immagine.");
+      return;
+    }
+
+    const id = `preview-${sectionKey}-${Date.now()}`;
+    const src = URL.createObjectURL(file);
+
+    updateSection(sectionKey, (sectionState) => ({
+      ...sectionState,
+      customAssets: [
+        ...sectionState.customAssets,
+        {
+          id,
+          label: file.name.replace(/\.[a-z0-9]+$/i, ""),
+          local: true,
+          src,
+        },
+      ],
+      selectedAssetId: id,
+    }));
+    event.target.value = "";
+    setLocalMessage("Anteprima locale caricata. Per pubblicarla online va aggiunta come file in /public/assets.");
+  }
+
+  function removeAsset(section: (typeof adminImageSections)[number], asset: AdminImageAsset) {
+    updateSection(section.key, (sectionState) => {
+      const nextState = asset.local || asset.id.startsWith("custom-")
+        ? {
+            ...sectionState,
+            customAssets: sectionState.customAssets.filter((customAsset) => customAsset.id !== asset.id),
+          }
+        : {
+            ...sectionState,
+            hiddenAssetIds: [...new Set([...sectionState.hiddenAssetIds, asset.id])],
+          };
+      const availableAssets = getSectionAssets(section, nextState);
+
+      return {
+        ...nextState,
+        selectedAssetId: availableAssets[0]?.id ?? section.staticAssets[0]?.id ?? "",
+      };
+    });
+  }
+
+  async function saveImageSettings() {
+    setIsSaving(true);
+    setLocalMessage("");
+
+    const { data } = await fetchJson<AdminImagesResponse>("/api/admin/images", {
+      body: JSON.stringify({ settings: serializeImageState(sectionsState) }),
+      method: "POST",
+    });
+
+    setIsSaving(false);
+
+    if (data.ok) {
+      setSectionsState(hydrateImageState(data.settings));
+      setLocalMessage("Impostazioni immagini salvate.");
+      return;
+    }
+
+    setLocalMessage(data.message);
+  }
+
+  return (
+    <div className="admin-stack">
+      <Card className="admin-card admin-images-intro-card">
+        <div className="admin-card-heading">
+          <p className="user-page-kicker">Libreria visuale</p>
+          <h2>Immagini</h2>
+          <p>
+            Gestisci immagini di benvenuto, sfondi torneo, card rapide e sfondo globale. I file restano asset statici,
+            mentre qui salvi solo ritaglio, trasparenza e immagine attiva.
+          </p>
+        </div>
+        <div className="admin-actions-row">
+          <Button disabled={isSaving || isLoading} onClick={() => void saveImageSettings()} type="button">
+            <SlidersHorizontal aria-hidden="true" className="admin-button-icon" />
+            {isSaving ? "Salvataggio..." : "Salva impostazioni"}
+          </Button>
+        </div>
+      </Card>
+
+      {localMessage ? (
+        <div className="auth-form-message" role="status">
+          {localMessage}
+        </div>
+      ) : null}
+
+      <div className="admin-image-section-grid">
+        {adminImageSections.map((section) => {
+          const sectionState = sectionsState[section.key];
+          const selectedAsset = getSelectedImageAsset(section, sectionState);
+          const assets = getSectionAssets(section, sectionState);
+          const Icon = section.icon;
+
+          return (
+            <Card className="admin-card admin-image-section-card" key={section.key}>
+              <div className="admin-image-section-heading">
+                <Icon aria-hidden="true" className="admin-metric-icon" />
+                <div>
+                  <p className="user-page-kicker">{section.recommended}</p>
+                  <h3>{section.title}</h3>
+                  <p>{section.description}</p>
+                </div>
+              </div>
+
+              <ImagePreview
+                asset={selectedAsset}
+                opacity={sectionState.opacity}
+                position={sectionState.objectPosition}
+                preview={section.preview}
+                zoom={sectionState.zoom}
+              />
+
+              <div className="admin-image-controls">
+                <label>
+                  <span>Trasparenza</span>
+                  <input
+                    max="100"
+                    min="0"
+                    onChange={(event) =>
+                      updateSection(section.key, (current) => ({
+                        ...current,
+                        opacity: Number(event.target.value),
+                      }))
+                    }
+                    type="range"
+                    value={sectionState.opacity}
+                  />
+                  <strong>{sectionState.opacity}%</strong>
+                </label>
+                <label>
+                  <span>Ritaglio</span>
+                  <select
+                    className="admin-select"
+                    onChange={(event) =>
+                      updateSection(section.key, (current) => ({
+                        ...current,
+                        objectPosition: event.target.value,
+                      }))
+                    }
+                    value={sectionState.objectPosition}
+                  >
+                    <option value="center center">Centro</option>
+                    <option value="center top">Alto</option>
+                    <option value="center bottom">Basso</option>
+                    <option value="left center">Sinistra</option>
+                    <option value="right center">Destra</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Zoom</span>
+                  <input
+                    max="160"
+                    min="100"
+                    onChange={(event) =>
+                      updateSection(section.key, (current) => ({
+                        ...current,
+                        zoom: Number(event.target.value),
+                      }))
+                    }
+                    type="range"
+                    value={sectionState.zoom}
+                  />
+                  <strong>{sectionState.zoom}%</strong>
+                </label>
+              </div>
+
+              <div className="admin-image-add-row">
+                <input
+                  className="ui-input"
+                  onChange={(event) => setDraftPaths((current) => ({ ...current, [section.key]: event.target.value }))}
+                  placeholder="/assets/nuova-immagine.png"
+                  value={draftPaths[section.key] ?? ""}
+                />
+                <Button onClick={() => addProjectAsset(section.key)} type="button" variant="secondary">
+                  <Plus aria-hidden="true" className="admin-button-icon" />
+                  Aggiungi path
+                </Button>
+                <label className="admin-image-upload-button">
+                  <Upload aria-hidden="true" className="admin-button-icon" />
+                  Anteprima file
+                  <input accept="image/*" onChange={(event) => addLocalPreview(section.key, event)} type="file" />
+                </label>
+              </div>
+
+              <div className="admin-image-gallery" aria-label={`Catalogo ${section.title}`}>
+                {assets.map((asset) => (
+                  <article
+                    className={cn("admin-image-thumb", asset.id === selectedAsset?.id && "admin-image-thumb-active")}
+                    key={asset.id}
+                  >
+                    <button
+                      onClick={() =>
+                        updateSection(section.key, (current) => ({
+                          ...current,
+                          selectedAssetId: asset.id,
+                        }))
+                      }
+                      type="button"
+                    >
+                      <span style={{ "--admin-image-url": `url("${asset.src}")` } as CSSProperties} />
+                      <strong>{asset.label}</strong>
+                      {asset.local ? <small>Anteprima locale</small> : <small>{asset.src}</small>}
+                    </button>
+                    <button
+                      aria-label={`Elimina ${asset.label}`}
+                      className="admin-image-remove"
+                      onClick={() => removeAsset(section, asset)}
+                      type="button"
+                    >
+                      <Trash2 aria-hidden="true" />
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ImagePreview({
+  asset,
+  opacity,
+  position,
+  preview,
+  zoom,
+}: {
+  asset: AdminImageAsset | undefined;
+  opacity: number;
+  position: string;
+  preview: "welcome" | "tournament" | "quickJoin" | "quickCreate" | "site";
+  zoom: number;
+}) {
+  const style = {
+    "--admin-image-opacity": String(opacity / 100),
+    "--admin-image-position": position,
+    "--admin-image-size": `${zoom}%`,
+    "--admin-image-url": `url("${asset?.src ?? "/assets/arena-stadium.jpg"}")`,
+  } as CSSProperties;
+
+  return (
+    <div className={cn("admin-image-preview", `admin-image-preview-${preview}`)} style={style}>
+      <span className="admin-image-preview-bg" />
+      <span className="admin-image-preview-vignette" />
+      <div className="admin-image-preview-content">
+        {preview === "welcome" ? (
+          <>
+            <small>Bentornato,</small>
+            <strong>LorenzoP96</strong>
+            <span>Pronto per il prossimo round?</span>
+          </>
+        ) : null}
+        {preview === "tournament" ? (
+          <>
+            <small>Torneo in corso</small>
+            <strong>DERBY</strong>
+            <span>Deadline 03/07/26 - 12:23</span>
+          </>
+        ) : null}
+        {preview === "quickJoin" ? (
+          <>
+            <Plus aria-hidden="true" />
+            <strong>Partecipa</strong>
+            <span>Con codice</span>
+          </>
+        ) : null}
+        {preview === "quickCreate" ? (
+          <>
+            <Swords aria-hidden="true" />
+            <strong>Crea</strong>
+            <span>Competizione</span>
+          </>
+        ) : null}
+        {preview === "site" ? (
+          <>
+            <small>Background globale</small>
+            <strong>Survivor Arena</strong>
+            <span>Anteprima sfondo sito</span>
+          </>
+        ) : null}
+      </div>
+      <div className="admin-image-preview-badge">
+        <Crop aria-hidden="true" />
+        Preview
+      </div>
+    </div>
   );
 }
 
