@@ -623,15 +623,18 @@ export function FriendsPage({
       : isTournamentDetail
         ? "Dettaglio torneo Friends, scelte e storico della competizione."
         : "Tutti i tornei Friends a cui sei invitato o iscritto, separati tra in corso e conclusi.";
+  const showPageIntro = view !== "tournaments";
 
   return (
     <div className="dashboard-page-content">
-      <header className="user-page-intro">
-        <p className="user-page-kicker">Modalità Friends</p>
-        <h1>{pageTitle}</h1>
-        <p>{pageCopy}</p>
-        <PremiumDivider />
-      </header>
+      {showPageIntro ? (
+        <header className="user-page-intro">
+          <p className="user-page-kicker">Modalità Friends</p>
+          <h1>{pageTitle}</h1>
+          <p>{pageCopy}</p>
+          <PremiumDivider />
+        </header>
+      ) : null}
 
       {message ? (
         <div className="auth-form-message auth-form-message-error" role="alert">
@@ -2118,24 +2121,38 @@ function TournamentsView({
 
   return (
     <div className="tournaments-stage">
-      <div className="tournaments-page-actions">
-        <Button onClick={onJoin} type="button" variant="secondary">
-          Partecipa con codice
-        </Button>
-      </div>
-
       <section className="tournaments-showcase-section" aria-labelledby="active-tournaments-title">
-        <TournamentSectionTitle id="active-tournaments-title">Tornei in corso</TournamentSectionTitle>
-        <TournamentActiveShowcaseCard tournament={activeTournament} />
+        <div className="tournaments-section-head">
+          <TournamentSectionTitle id="active-tournaments-title">Tornei in corso</TournamentSectionTitle>
+          <Button onClick={onJoin} type="button" variant="secondary">
+            Partecipa con codice
+          </Button>
+        </div>
+        {activeTournament ? (
+          <TournamentActiveShowcaseCard tournament={activeTournament} />
+        ) : (
+          <TournamentEmptyState
+            title="Nessun torneo in corso"
+            text="Quando una competizione sarà attiva, la troverai qui pronta per l'accesso."
+          />
+        )}
       </section>
 
       <section className="tournaments-archive-section" aria-labelledby="archive-tournaments-title">
         <TournamentSectionTitle id="archive-tournaments-title">Archivio tornei conclusi</TournamentSectionTitle>
-        <div className="tournaments-archive-list">
-          {archivedTournaments.map((tournament) => (
-            <TournamentArchiveRow key={tournament.id} tournament={tournament} />
-          ))}
-        </div>
+        {archivedTournaments.length > 0 ? (
+          <div className="tournaments-archive-list">
+            {archivedTournaments.map((tournament) => (
+              <TournamentArchiveRow key={tournament.id} tournament={tournament} />
+            ))}
+          </div>
+        ) : (
+          <TournamentEmptyState
+            compact
+            title="Nessun torneo concluso"
+            text="L'archivio mostrerà solo competizioni realmente terminate."
+          />
+        )}
       </section>
     </div>
   );
@@ -2263,24 +2280,19 @@ function TournamentArchiveMetric({ label, value }: { label: string; value: strin
   );
 }
 
-function buildActiveTournamentShowcase(competition: FriendsCompetition | undefined, now: number): TournamentShowcase {
-  if (!competition) {
-    const demoDeadline = new Date(now + 23 * 3_600_000 + 41 * 60_000 + 27_000);
+function TournamentEmptyState({ compact = false, text, title }: { compact?: boolean; text: string; title: string }) {
+  return (
+    <div className={cn("tournaments-empty-state", compact && "tournaments-empty-state-compact")}>
+      <Trophy aria-hidden="true" />
+      <strong>{title}</strong>
+      <span>{text}</span>
+    </div>
+  );
+}
 
-    return {
-      actionLabel: "Accedi al torneo",
-      completedLabel: "",
-      deadlineDate: formatTournamentShowcaseDate(demoDeadline.toISOString()),
-      description: "La sopravvivenza è una scelta.",
-      href: "/tornei/dettaglio",
-      id: "demo-active-tournament",
-      isDemo: true,
-      name: "Survivor Arena Summer Cup 2026",
-      participants: "128",
-      round: "Round 3",
-      timer: getTournamentTimerParts(demoDeadline.toISOString(), now),
-      totalLives: "5",
-    };
+function buildActiveTournamentShowcase(competition: FriendsCompetition | undefined, now: number): TournamentShowcase | null {
+  if (!competition) {
+    return null;
   }
 
   const currentRound = getCurrentRound(competition);
@@ -2306,15 +2318,6 @@ function buildActiveTournamentShowcase(competition: FriendsCompetition | undefin
 }
 
 function buildArchivedTournamentRows(competitions: FriendsCompetition[]): TournamentShowcase[] {
-  if (competitions.length === 0) {
-    return [
-      buildDemoArchiveTournament("winter", "Survivor Arena Winter Cup 2026", "28/06/2026", "90", "5", "10"),
-      buildDemoArchiveTournament("spring", "Survivor Arena Spring Cup 2026", "15/05/2026", "112", "7", "12"),
-      buildDemoArchiveTournament("classic", "Survivor Arena Classic Cup 2026", "03/04/2026", "75", "5", "8"),
-      buildDemoArchiveTournament("open", "Survivor Arena Open Cup 2026", "22/03/2026", "64", "3", "6"),
-    ];
-  }
-
   return competitions.map((competition) => {
     const participants = getConfirmedFriendsParticipants(competition);
     const totalLives = participants.reduce((sum, participant) => sum + participant.total_lives, 0);
@@ -2335,23 +2338,6 @@ function buildArchivedTournamentRows(competitions: FriendsCompetition[]): Tourna
       totalLives: String(totalLives || competition.participants.reduce((sum, participant) => sum + participant.total_lives, 0) || 1),
     };
   });
-}
-
-function buildDemoArchiveTournament(id: string, name: string, date: string, participants: string, lives: string, rounds: string): TournamentShowcase {
-  return {
-    actionLabel: "Visualizza risultati",
-    completedLabel: `Concluso il ${date}`,
-    deadlineDate: date,
-    description: "Competizione conclusa",
-    href: "/tornei/dettaglio",
-    id: `demo-${id}`,
-    isDemo: true,
-    name,
-    participants,
-    round: `Round ${rounds}`,
-    timer: { hours: "00", minutes: "00", seconds: "00" },
-    totalLives: lives,
-  };
 }
 
 function getTournamentTimerParts(deadline: string | null, now: number) {
