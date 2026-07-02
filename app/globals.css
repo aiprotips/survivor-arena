@@ -7128,26 +7128,24 @@ a {
 
   .arena-game-match-card {
     position: relative;
+    isolation: isolate;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     gap: clamp(0.3rem, 1.5vw, 0.78rem);
     overflow: hidden;
     min-height: clamp(4.7rem, 12vw, 5.9rem);
-    border: 2px solid transparent;
     border-radius: clamp(1.45rem, 4vw, 2rem);
     background:
-      linear-gradient(90deg, color-mix(in srgb, var(--color-gold) 9%, var(--color-ink)), color-mix(in srgb, var(--color-primary) 11%, var(--color-ink))) padding-box,
-      linear-gradient(90deg, color-mix(in srgb, var(--color-gold-strong) 96%, var(--color-white)) 0%, color-mix(in srgb, var(--color-gold) 54%, var(--color-primary)) 34%, color-mix(in srgb, var(--color-primary) 54%, var(--color-gold)) 60%, color-mix(in srgb, var(--color-primary) 96%, var(--color-white)) 100%);
-    background-clip: padding-box, border-box;
-    background-origin: border-box;
+      linear-gradient(90deg, color-mix(in srgb, var(--color-ink) 72%, transparent) 0%, color-mix(in srgb, var(--color-ink) 34%, transparent) 47%, color-mix(in srgb, var(--color-ink) 34%, transparent) 53%, color-mix(in srgb, var(--color-ink) 72%, transparent) 100%),
+      radial-gradient(ellipse at center, transparent 0 42%, color-mix(in srgb, var(--color-ink) 38%, transparent) 100%),
+      url("/assets/arena-stadium.jpg");
+    background-position: center 45%;
+    background-size: cover;
     box-shadow:
-      inset 0 0 0 1px color-mix(in srgb, var(--color-white) 7%, transparent),
-      inset 1.2rem 0 2.4rem color-mix(in srgb, var(--color-gold) 16%, transparent),
-      inset -1.2rem 0 2.4rem color-mix(in srgb, var(--color-primary) 22%, transparent),
-      0 0 1.1rem color-mix(in srgb, var(--color-gold) 14%, transparent),
-      0 0 1.5rem color-mix(in srgb, var(--color-primary) 16%, transparent),
-      0 1rem 2.8rem color-mix(in srgb, var(--color-black) 36%, transparent);
+      0 0 0.9rem color-mix(in srgb, var(--color-gold) 18%, transparent),
+      0 0 1.25rem color-mix(in srgb, var(--color-button-blue-hover) 22%, transparent),
+      0 1rem 2.8rem color-mix(in srgb, var(--color-ink) 36%, transparent);
     padding: clamp(0.42rem, 1.6vw, 0.68rem) clamp(0.52rem, 2.2vw, 1.05rem);
     transition: transform 180ms ease, box-shadow 180ms ease;
   }
@@ -7156,29 +7154,35 @@ a {
     content: "";
     position: absolute;
     inset: 0;
-    z-index: 0;
+    z-index: 3;
+    border-radius: inherit;
     background:
-      radial-gradient(circle at 12% 34%, color-mix(in srgb, var(--color-gold) 34%, transparent) 0 0.18rem, transparent 0.22rem),
-      radial-gradient(circle at 20% 28%, color-mix(in srgb, var(--color-white) 22%, transparent) 0 0.11rem, transparent 0.15rem),
-      radial-gradient(circle at 80% 28%, color-mix(in srgb, var(--color-white) 24%, transparent) 0 0.11rem, transparent 0.15rem),
-      radial-gradient(circle at 88% 34%, color-mix(in srgb, var(--color-primary) 42%, transparent) 0 0.18rem, transparent 0.22rem),
-      linear-gradient(90deg, color-mix(in srgb, var(--color-gold) 22%, transparent), transparent 25%, transparent 75%, color-mix(in srgb, var(--color-primary) 26%, transparent)),
-      url("/assets/arena-stadium.jpg");
-    background-position: center 44%;
-    background-size: cover;
-    opacity: 1;
-    filter: saturate(1.18) contrast(1.12) blur(0.25px);
+      linear-gradient(94deg, color-mix(in srgb, var(--color-gold-strong) 96%, var(--color-white)) 0%, color-mix(in srgb, var(--color-gold) 76%, var(--color-white)) 18%, color-mix(in srgb, var(--color-gold) 36%, var(--color-button-blue-hover)) 43%, color-mix(in srgb, var(--color-button-blue-hover) 42%, var(--color-gold)) 58%, color-mix(in srgb, var(--color-button-blue-hover) 84%, var(--color-white)) 82%, color-mix(in srgb, var(--color-button-blue-hover) 96%, var(--color-white)) 100%);
+    filter: drop-shadow(0 0 0.62rem color-mix(in srgb, var(--color-gold) 18%, transparent)) drop-shadow(0 0 0.72rem color-mix(in srgb, var(--color-button-blue-hover) 22%, transparent));
+    padding: 2px;
+    -webkit-mask:
+      linear-gradient(var(--color-ink) 0 0) content-box,
+      linear-gradient(var(--color-ink) 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
     pointer-events: none;
   }
 
   .arena-game-match-card::after {
     content: "";
     position: absolute;
-    inset: 0;
+    inset: 2px;
     z-index: 1;
+    border-radius: calc(clamp(1.45rem, 4vw, 2rem) - 2px);
     background:
-      linear-gradient(90deg, color-mix(in srgb, var(--color-ink) 66%, transparent) 0%, color-mix(in srgb, var(--color-ink) 35%, transparent) 44%, color-mix(in srgb, var(--color-ink) 35%, transparent) 56%, color-mix(in srgb, var(--color-ink) 66%, transparent) 100%),
-      radial-gradient(ellipse at center, transparent 0 46%, color-mix(in srgb, var(--color-black) 28%, transparent) 100%);
+      radial-gradient(circle at 16% 38%, color-mix(in srgb, var(--color-gold) 16%, transparent), transparent 18%),
+      radial-gradient(circle at 84% 38%, color-mix(in srgb, var(--color-button-blue-hover) 20%, transparent), transparent 18%),
+      linear-gradient(90deg, color-mix(in srgb, var(--color-gold) 14%, transparent), transparent 24%, transparent 76%, color-mix(in srgb, var(--color-button-blue-hover) 18%, transparent)),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 22%, transparent), color-mix(in srgb, var(--color-ink) 8%, transparent) 48%, color-mix(in srgb, var(--color-ink) 30%, transparent));
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-white) 7%, transparent),
+      inset 1rem 0 2.2rem color-mix(in srgb, var(--color-gold) 13%, transparent),
+      inset -1rem 0 2.2rem color-mix(in srgb, var(--color-button-blue-hover) 18%, transparent);
     pointer-events: none;
   }
 
@@ -7224,23 +7228,27 @@ a {
   .arena-game-team-button .arena-team-mark {
     flex: 0 0 auto;
     width: clamp(3.05rem, 10vw, 4.65rem);
-    border: 2px solid color-mix(in srgb, var(--color-primary) 58%, var(--color-ink));
-    background-color: color-mix(in srgb, var(--color-ink) 76%, transparent);
+    border: 2px solid color-mix(in srgb, var(--color-button-blue-hover) 74%, var(--color-white));
+    background-color: color-mix(in srgb, var(--color-ink) 88%, var(--color-button-blue-hover));
     background-size: contain;
     box-shadow:
-      0 0 0 0.42rem color-mix(in srgb, var(--color-primary) 9%, transparent),
-      0 0 1.35rem color-mix(in srgb, var(--color-primary) 44%, transparent),
-      0 0 2.5rem color-mix(in srgb, var(--color-primary) 18%, transparent),
-      inset 0 0 1.1rem color-mix(in srgb, var(--color-primary) 12%, transparent);
+      0 0 0 0.38rem color-mix(in srgb, var(--color-button-blue-hover) 12%, transparent),
+      0 0 1.05rem color-mix(in srgb, var(--color-button-blue-hover) 52%, transparent),
+      0 0 2.1rem color-mix(in srgb, var(--color-button-blue-hover) 24%, transparent),
+      inset 0 0 1rem color-mix(in srgb, var(--color-button-blue-hover) 18%, transparent);
+  }
+
+  .arena-game-team-button .arena-team-mark-image em {
+    display: none;
   }
 
   .arena-game-team-button:first-of-type .arena-team-mark {
-    border-color: color-mix(in srgb, var(--color-primary) 58%, var(--color-ink));
+    border-color: color-mix(in srgb, var(--color-button-blue-hover) 74%, var(--color-white));
     box-shadow:
-      0 0 0 0.42rem color-mix(in srgb, var(--color-primary) 9%, transparent),
-      0 0 1.35rem color-mix(in srgb, var(--color-primary) 44%, transparent),
-      0 0 2.5rem color-mix(in srgb, var(--color-primary) 18%, transparent),
-      inset 0 0 1.1rem color-mix(in srgb, var(--color-primary) 12%, transparent);
+      0 0 0 0.38rem color-mix(in srgb, var(--color-button-blue-hover) 12%, transparent),
+      0 0 1.05rem color-mix(in srgb, var(--color-button-blue-hover) 52%, transparent),
+      0 0 2.1rem color-mix(in srgb, var(--color-button-blue-hover) 24%, transparent),
+      inset 0 0 1rem color-mix(in srgb, var(--color-button-blue-hover) 18%, transparent);
   }
 
   .arena-game-team-button span {
@@ -7256,7 +7264,7 @@ a {
     white-space: nowrap;
     text-shadow:
       0 0 1rem color-mix(in srgb, var(--color-white) 14%, transparent),
-      0 0 2.2rem color-mix(in srgb, var(--color-primary) 16%, transparent);
+      0 0 2.2rem color-mix(in srgb, var(--color-button-blue-hover) 16%, transparent);
   }
 
   .arena-game-team-button:hover,
@@ -7271,12 +7279,12 @@ a {
   }
 
   .arena-game-team-button-selected .arena-team-mark {
-    border-color: color-mix(in srgb, var(--color-primary) 72%, var(--color-white));
+    border-color: color-mix(in srgb, var(--color-button-blue-hover) 72%, var(--color-white));
     box-shadow:
-      0 0 0 0.42rem color-mix(in srgb, var(--color-primary) 12%, transparent),
-      0 0 1.45rem color-mix(in srgb, var(--color-primary) 52%, transparent),
-      0 0 2.6rem color-mix(in srgb, var(--color-primary) 22%, transparent),
-      inset 0 0 1.1rem color-mix(in srgb, var(--color-primary) 14%, transparent);
+      0 0 0 0.42rem color-mix(in srgb, var(--color-button-blue-hover) 12%, transparent),
+      0 0 1.45rem color-mix(in srgb, var(--color-button-blue-hover) 52%, transparent),
+      0 0 2.6rem color-mix(in srgb, var(--color-button-blue-hover) 22%, transparent),
+      inset 0 0 1.1rem color-mix(in srgb, var(--color-button-blue-hover) 14%, transparent);
   }
 
   .arena-game-team-button-used {
