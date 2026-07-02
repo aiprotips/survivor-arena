@@ -4051,6 +4051,290 @@ a {
     grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   }
 
+  .friends-dashboard-home {
+    gap: clamp(1.05rem, 3vw, 1.55rem);
+  }
+
+  .friends-dashboard-hero-card {
+    min-height: clamp(10rem, 36vw, 17rem);
+    align-items: center;
+    text-align: left;
+  }
+
+  .friends-dashboard-hero-card::before {
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--color-background) 86%, transparent), color-mix(in srgb, var(--color-card) 52%, transparent) 52%, color-mix(in srgb, var(--color-background) 72%, transparent)),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-background) 8%, transparent), color-mix(in srgb, var(--color-background) 76%, transparent)),
+      url("/assets/arena-stadium.jpg") center / cover no-repeat;
+    opacity: 0.86;
+  }
+
+  .friends-dashboard-hero-card .dashboard-hero-copy {
+    max-width: 100%;
+    gap: 0.34rem;
+  }
+
+  .friends-dashboard-hero-card .dashboard-hero-copy h1 {
+    text-transform: uppercase;
+  }
+
+  .friends-dashboard-hero-card .dashboard-hero-copy p:not(.user-page-kicker) {
+    color: var(--color-gold-strong);
+    font-weight: 720;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .friends-dashboard-feature-grid {
+    display: grid;
+    gap: clamp(0.9rem, 3vw, 1.25rem);
+    min-width: 0;
+  }
+
+  .friends-dashboard-feature-main {
+    min-width: 0;
+  }
+
+  .friends-dashboard-feature-card {
+    min-width: 0;
+  }
+
+  .friends-dashboard-quick-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.72rem;
+    min-width: 0;
+  }
+
+  .friends-dashboard-action-card {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    min-height: 7rem;
+    align-content: center;
+    gap: 0.32rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+    border-radius: var(--radius-card);
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--color-card) 84%, transparent), color-mix(in srgb, var(--color-surface) 64%, transparent)),
+      color-mix(in srgb, var(--color-card) 84%, transparent);
+    color: var(--color-white);
+    font: inherit;
+    padding: 0.95rem;
+    text-align: left;
+    text-decoration: none;
+    box-shadow:
+      var(--shadow-card),
+      inset 0 0 0 1px color-mix(in srgb, var(--color-white) 2%, transparent);
+    cursor: pointer;
+    transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  }
+
+  .friends-dashboard-action-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--color-blue-hover) 22%, transparent), transparent 8rem),
+      linear-gradient(180deg, transparent, color-mix(in srgb, var(--color-ink) 44%, transparent));
+    pointer-events: none;
+  }
+
+  .friends-dashboard-action-card:hover {
+    border-color: color-mix(in srgb, var(--color-blue-hover) 50%, var(--color-border));
+    transform: translateY(-1px);
+  }
+
+  .friends-dashboard-action-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .friends-dashboard-action-card span {
+    display: grid;
+    width: 2.6rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-blue-hover) 42%, var(--color-border));
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-blue) 10%, transparent);
+    color: var(--color-blue-hover);
+  }
+
+  .friends-dashboard-action-card svg {
+    width: 1.3rem;
+    height: 1.3rem;
+  }
+
+  .friends-dashboard-action-card strong {
+    color: var(--color-white);
+    font-size: 1.02rem;
+    font-weight: 760;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .friends-dashboard-action-card small {
+    color: var(--color-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
+  .friends-dashboard-action-gold {
+    border-color: color-mix(in srgb, var(--color-gold) 38%, var(--color-border));
+  }
+
+  .friends-dashboard-action-gold::before {
+    background:
+      radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--color-gold) 18%, transparent), transparent 8rem),
+      linear-gradient(180deg, transparent, color-mix(in srgb, var(--color-ink) 44%, transparent));
+  }
+
+  .friends-dashboard-action-gold span {
+    border-color: color-mix(in srgb, var(--color-gold) 46%, var(--color-border));
+    background: color-mix(in srgb, var(--color-gold) 9%, transparent);
+    color: var(--color-gold-strong);
+  }
+
+  .friends-dashboard-section {
+    display: grid;
+    gap: 0.9rem;
+    min-width: 0;
+  }
+
+  .friends-dashboard-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    min-width: 0;
+  }
+
+  .friends-dashboard-section-heading h2 {
+    color: var(--color-white);
+    font-size: clamp(1rem, 4vw, 1.3rem);
+    font-weight: 740;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .friends-dashboard-section-heading .ui-button {
+    width: auto;
+    min-height: 2.25rem;
+    padding-inline: 0.82rem;
+  }
+
+  .friends-dashboard-carousel {
+    display: grid;
+    grid-auto-columns: minmax(10.5rem, 13rem);
+    grid-auto-flow: column;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding: 0.05rem 0.1rem 0.35rem;
+    scrollbar-width: none;
+  }
+
+  .friends-dashboard-carousel::-webkit-scrollbar {
+    display: none;
+  }
+
+  .friends-dashboard-mini-card {
+    position: relative;
+    display: grid;
+    min-height: 9.6rem;
+    align-content: end;
+    gap: 0.3rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--color-border) 68%, transparent);
+    border-radius: var(--radius-base);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 14%, transparent), color-mix(in srgb, var(--color-background) 78%, transparent)),
+      url("/assets/arena-stadium.jpg") center / cover no-repeat;
+    color: var(--color-white);
+    padding: 0.72rem;
+    text-decoration: none;
+    box-shadow: var(--shadow-card);
+  }
+
+  .friends-dashboard-mini-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 5% 8%, color-mix(in srgb, var(--color-gold) 14%, transparent), transparent 7rem),
+      radial-gradient(circle at 100% 8%, color-mix(in srgb, var(--color-blue-hover) 20%, transparent), transparent 8rem);
+    pointer-events: none;
+  }
+
+  .friends-dashboard-mini-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .friends-dashboard-mini-status {
+    position: absolute;
+    top: 0.58rem;
+    left: 0.58rem;
+    display: inline-flex;
+    width: fit-content;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 42%, var(--color-border));
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-gold) 8%, var(--color-card));
+    color: var(--color-gold-strong);
+    font-size: 0.54rem;
+    font-weight: 760;
+    letter-spacing: 0.06em;
+    padding: 0.28rem 0.46rem;
+    text-transform: uppercase;
+  }
+
+  .friends-dashboard-mini-status-muted {
+    border-color: color-mix(in srgb, var(--color-muted-soft) 28%, var(--color-border));
+    color: var(--color-muted-soft);
+  }
+
+  .friends-dashboard-mini-crest {
+    display: grid;
+    width: 2.55rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-blue-hover) 36%, var(--color-border));
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-card) 58%, transparent);
+    color: var(--color-gold-strong);
+    margin-block-start: 1.2rem;
+  }
+
+  .friends-dashboard-mini-crest svg {
+    width: 1.34rem;
+    height: 1.34rem;
+  }
+
+  .friends-dashboard-mini-card strong {
+    overflow-wrap: anywhere;
+    color: var(--color-white);
+    font-size: 0.88rem;
+    font-weight: 760;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .friends-dashboard-mini-card small,
+  .friends-dashboard-mini-card em {
+    color: var(--color-muted);
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  .friends-dashboard-archive-list {
+    min-width: 0;
+  }
+
   .friends-tournament-card {
     width: 100%;
     color: inherit;
@@ -8979,6 +9263,17 @@ a {
       align-items: end;
     }
 
+    .friends-dashboard-hero-card {
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: center;
+      min-height: clamp(14rem, 27vw, 20rem);
+      text-align: center;
+    }
+
+    .friends-dashboard-hero-card .dashboard-hero-copy {
+      justify-items: center;
+    }
+
     .dashboard-hero-status {
       justify-self: end;
       margin-top: 0;
@@ -9092,6 +9387,25 @@ a {
   }
 
   @media (min-width: 64rem) {
+    .friends-dashboard-feature-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(15.5rem, 0.32fr);
+      align-items: stretch;
+    }
+
+    .friends-dashboard-quick-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .friends-dashboard-action-card {
+      min-height: 0;
+      align-content: center;
+      padding: 1.1rem;
+    }
+
+    .friends-dashboard-carousel {
+      grid-auto-columns: minmax(11.5rem, 14rem);
+    }
+
     .tournaments-section-head {
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;

@@ -32,7 +32,6 @@ import type { AccountUser } from "@/components/account/types";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
-import { StatCard } from "@/components/account/StatCard";
 import { cn } from "@/lib/cn";
 import { formatDeadline, fromDateTimeLocal, isDeadlinePassed, toDateTimeLocal, type MatchResult } from "@/lib/arena-client";
 
@@ -356,41 +355,6 @@ function buildFriendsPopularChoices(competition: FriendsCompetition, round: Frie
     }));
 }
 
-function getSelectionStats(competitions: FriendsCompetition[]) {
-  const teamCounts = new Map<string, number>();
-  let selections = 0;
-  let firstPlaces = 0;
-  let aliveLives = 0;
-
-  competitions.forEach((competition) => {
-    const lives = competition.participant?.lives ?? [];
-
-    if (lives.some((life) => life.status === "WINNER")) {
-      firstPlaces += 1;
-    }
-
-    lives.forEach((life) => {
-      if (life.status === "ALIVE" || life.status === "WINNER") {
-        aliveLives += 1;
-      }
-
-      life.selections.forEach((selection) => {
-        selections += 1;
-        teamCounts.set(selection.selected_team, (teamCounts.get(selection.selected_team) ?? 0) + 1);
-      });
-    });
-  });
-
-  const favoriteTeam = Array.from(teamCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Nessuna";
-
-  return {
-    aliveLives,
-    favoriteTeam,
-    firstPlaces,
-    selections,
-  };
-}
-
 function useFriendsData(loadTeams = true) {
   const [competitions, setCompetitions] = useState<FriendsCompetition[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -479,22 +443,33 @@ function useFriendsData(loadTeams = true) {
 export function FriendsDashboardContent({ user }: { user: AccountUser }) {
   const { competitions, isLoading, message, mutate } = useFriendsData(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const activeCompetitions = competitions.filter((competition) => !isFinishedCompetition(competition));
   const finishedCompetitions = competitions.filter(isFinishedCompetition);
-  const stats = getSelectionStats(competitions);
+  const featuredCompetition = activeCompetitions[0];
+  const featuredTournament = buildActiveTournamentShowcase(featuredCompetition, now);
+  const dashboardTournament = featuredTournament
+    ? {
+        ...featuredTournament,
+        actionLabel: featuredCompetition?.can_join ? "Accetta invito" : "Continua torneo",
+      }
+    : null;
+  const dashboardTournamentCards = buildDashboardTournamentCards(competitions);
+  const archivedTournaments = buildArchivedTournamentRows(finishedCompetitions);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
-    <div className="dashboard-page-content">
-      <section className="dashboard-hero-card" aria-labelledby="friends-dashboard-title">
+    <div className="dashboard-page-content friends-dashboard-home">
+      <section className="dashboard-hero-card friends-dashboard-hero-card" aria-labelledby="friends-dashboard-title">
         <div className="dashboard-hero-copy">
-          <p className="user-page-kicker">Modalità Friends</p>
-          <h1 id="friends-dashboard-title">Benvenuto, {user.username}</h1>
-          <p>Qui vedi i tornei in corso, le tue scelte e gli inviti privati tra amici.</p>
-        </div>
-
-        <div className="dashboard-hero-status" aria-label="Tornei Friends in corso">
-          <span>Tornei in corso</span>
-          <strong>{activeCompetitions.length}</strong>
+          <p className="user-page-kicker">Bentornato,</p>
+          <h1 id="friends-dashboard-title">{user.username}</h1>
+          <p>Pronto per il prossimo round?</p>
         </div>
       </section>
 
@@ -510,79 +485,79 @@ export function FriendsDashboardContent({ user }: { user: AccountUser }) {
         </section>
       ) : null}
 
-      <section className="user-stat-grid dashboard-stat-grid" aria-label="Statistiche Friends">
-        <StatCard icon={<Trophy aria-hidden="true" className="user-stat-svg" />} label="Volte primo" tone="gold" value={String(stats.firstPlaces)} />
-        <StatCard icon={<Swords aria-hidden="true" className="user-stat-svg" />} label="Scelte effettuate" value={String(stats.selections)} />
-        <StatCard icon={<Heart aria-hidden="true" className="user-stat-svg" />} label="Vite vive" value={String(stats.aliveLives)} />
-        <StatCard icon={<Shield aria-hidden="true" className="user-stat-svg" />} label="Squadra più scelta" value={stats.favoriteTeam} />
-      </section>
-
-      <div className="dashboard-layout-grid">
-        <div className="dashboard-main-stack">
-          <section className="dashboard-panel">
-            <div className="dashboard-section-heading">
-              <div>
-                <p className="user-page-kicker">In gioco</p>
-                <h2>Tornei in corso</h2>
-              </div>
-              <ButtonLink className="dashboard-section-link" href="/tornei" variant="secondary">
-                Vedi tornei
-              </ButtonLink>
-            </div>
-
-            {!isLoading && activeCompetitions.length > 0 ? (
-              <div className="friends-tournament-grid">
-                {activeCompetitions.slice(0, 4).map((competition) => (
-                  <FriendsTournamentCard competition={competition} key={competition.id} />
-                ))}
-              </div>
-            ) : !isLoading ? (
-              <DashboardEmpty
-                text="Quando riceverai un invito o entrerai in una competizione, la vedrai qui."
-                title="Nessun torneo in corso"
-              />
-            ) : null}
-          </section>
-
-          <section className="dashboard-panel">
-            <div className="dashboard-section-heading">
-              <div>
-                <p className="user-page-kicker">Archivio</p>
-                <h2>Tornei conclusi</h2>
-              </div>
-            </div>
-
-            {!isLoading && finishedCompetitions.length > 0 ? (
-              <div className="friends-tournament-grid">
-                {finishedCompetitions.slice(0, 5).map((competition) => (
-                  <FriendsTournamentCard competition={competition} key={competition.id} />
-                ))}
-              </div>
-            ) : !isLoading ? (
-              <p className="admin-muted">Nessun torneo concluso.</p>
-            ) : null}
-          </section>
+      <section className="friends-dashboard-feature-grid" aria-label="Torneo principale e azioni rapide">
+        <div className="friends-dashboard-feature-main">
+          {!isLoading && dashboardTournament ? (
+            <TournamentActiveShowcaseCard
+              className="friends-dashboard-feature-card"
+              tournament={dashboardTournament}
+            />
+          ) : !isLoading ? (
+            <TournamentEmptyState
+              title="Nessun torneo in corso"
+              text="Quando riceverai un invito o entrerai in una competizione, la vedrai qui."
+            />
+          ) : null}
         </div>
 
-        <aside className="dashboard-side-stack">
-          <section className="dashboard-panel">
-            <div className="dashboard-section-heading">
-              <div>
-                <p className="user-page-kicker">Azioni rapide</p>
-                <h2>Friends</h2>
-              </div>
-            </div>
-            <div className="friends-quick-actions">
-              <Button onClick={() => setIsJoinOpen(true)} type="button">
-                Partecipa a una competizione
-              </Button>
-              <ButtonLink href="/tornei" variant="secondary">
-                Apri Tornei
-              </ButtonLink>
-            </div>
-          </section>
-        </aside>
-      </div>
+        <div className="friends-dashboard-quick-grid" aria-label="Azioni rapide Friends">
+          <button className="friends-dashboard-action-card friends-dashboard-action-blue" onClick={() => setIsJoinOpen(true)} type="button">
+            <span aria-hidden="true">
+              <Plus />
+            </span>
+            <strong>Partecipa</strong>
+            <small>Con codice</small>
+          </button>
+          <Link className="friends-dashboard-action-card friends-dashboard-action-gold" href="/area-manager">
+            <span aria-hidden="true">
+              <Swords />
+            </span>
+            <strong>Crea</strong>
+            <small>Competizione</small>
+          </Link>
+        </div>
+      </section>
+
+      <section className="friends-dashboard-section" aria-labelledby="friends-dashboard-my-tournaments">
+        <div className="friends-dashboard-section-heading">
+          <h2 id="friends-dashboard-my-tournaments">I tuoi tornei</h2>
+          <ButtonLink className="dashboard-section-link" href="/tornei" variant="secondary">
+            Vedi tutti
+          </ButtonLink>
+        </div>
+
+        {!isLoading && dashboardTournamentCards.length > 0 ? (
+          <div className="friends-dashboard-carousel">
+            {dashboardTournamentCards.slice(0, 8).map((competition) => (
+              <DashboardTournamentMiniCard competition={competition} key={competition.id} />
+            ))}
+          </div>
+        ) : !isLoading ? (
+          <DashboardEmpty
+            text="Qui appariranno i tornei a cui sei invitato o iscritto."
+            title="Nessun torneo disponibile"
+          />
+        ) : null}
+      </section>
+
+      <section className="friends-dashboard-section" aria-labelledby="friends-dashboard-archive">
+        <div className="friends-dashboard-section-heading">
+          <h2 id="friends-dashboard-archive">Archivio tornei conclusi</h2>
+          <ButtonLink className="dashboard-section-link" href="/tornei" variant="secondary">
+            Vedi tutti
+          </ButtonLink>
+        </div>
+
+        {!isLoading && archivedTournaments.length > 0 ? (
+          <div className="tournaments-archive-list friends-dashboard-archive-list">
+            {archivedTournaments.slice(0, 4).map((tournament) => (
+              <TournamentArchiveRow key={tournament.id} tournament={tournament} />
+            ))}
+          </div>
+        ) : !isLoading ? (
+          <p className="admin-muted">Nessun torneo concluso.</p>
+        ) : null}
+      </section>
 
       {isJoinOpen ? (
         <JoinInviteModal
@@ -2187,9 +2162,15 @@ function TournamentSectionTitle({ children, id }: { children: ReactNode; id: str
   );
 }
 
-function TournamentActiveShowcaseCard({ tournament }: { tournament: TournamentShowcase }) {
+function TournamentActiveShowcaseCard({
+  className,
+  tournament,
+}: {
+  className?: string;
+  tournament: TournamentShowcase;
+}) {
   return (
-    <article className="tournaments-active-card">
+    <article className={cn("tournaments-active-card", className)}>
       <div className="tournaments-active-content">
         <div className="tournaments-active-copy">
           <span className="tournaments-active-badge">{tournament.isDemo ? "Anteprima torneo" : "Torneo in corso"}</span>
@@ -2338,6 +2319,50 @@ function buildArchivedTournamentRows(competitions: FriendsCompetition[]): Tourna
       totalLives: String(totalLives || competition.participants.reduce((sum, participant) => sum + participant.total_lives, 0) || 1),
     };
   });
+}
+
+function buildDashboardTournamentCards(competitions: FriendsCompetition[]) {
+  return [...competitions].sort((a, b) => {
+    const aFinished = isFinishedCompetition(a) ? 1 : 0;
+    const bFinished = isFinishedCompetition(b) ? 1 : 0;
+
+    if (aFinished !== bFinished) {
+      return aFinished - bFinished;
+    }
+
+    const aDeadline = getCurrentRound(a)?.deadline_at ?? a.completed_at ?? "";
+    const bDeadline = getCurrentRound(b)?.deadline_at ?? b.completed_at ?? "";
+
+    return aDeadline.localeCompare(bDeadline);
+  });
+}
+
+function DashboardTournamentMiniCard({ competition }: { competition: FriendsCompetition }) {
+  const currentRound = getCurrentRound(competition);
+  const finished = isFinishedCompetition(competition);
+  const statusLabel = finished ? "Completato" : competition.can_join ? "Invito" : "In corso";
+  const metaLabel = finished
+    ? `Concluso il ${formatTournamentArchiveDate(competition.completed_at)}`
+    : currentRound
+      ? `${formatDeadline(currentRound.deadline_at)}`
+      : "Round da configurare";
+  const roundLabel = finished
+    ? `${competition.rounds.filter((round) => round.status === "CALCULATED").length || competition.current_round_number} round`
+    : `Round ${currentRound?.round_number ?? competition.current_round_number}`;
+
+  return (
+    <Link className="friends-dashboard-mini-card" href={`/tornei/dettaglio?id=${competition.id}`}>
+      <span className={cn("friends-dashboard-mini-status", finished && "friends-dashboard-mini-status-muted")}>
+        {statusLabel}
+      </span>
+      <span className="friends-dashboard-mini-crest" aria-hidden="true">
+        <Trophy />
+      </span>
+      <strong>{competition.name}</strong>
+      <small>{roundLabel}</small>
+      <em>{metaLabel}</em>
+    </Link>
+  );
 }
 
 function getTournamentTimerParts(deadline: string | null, now: number) {
@@ -2540,70 +2565,6 @@ function FriendsTournamentRow({
       </span>
       <em>{actionLabel}</em>
     </Link>
-  );
-}
-
-function FriendsTournamentCard({
-  competition,
-  href,
-  isSelected,
-  onSelect,
-}: {
-  competition: FriendsCompetition;
-  href?: string;
-  isSelected?: boolean;
-  onSelect?: () => void;
-}) {
-  const currentRound = getCurrentRound(competition);
-  const role = competition.is_owner ? "Organizzatore" : competition.can_join ? "Invito ricevuto" : "Partecipante";
-
-  const content = (
-    <>
-      <div className="dashboard-arena-top">
-        <span className="dashboard-arena-status">{role}</span>
-        <span>{competition.status}</span>
-      </div>
-      <div className="dashboard-arena-copy">
-        <h3>{competition.name}</h3>
-        <p>{competition.description || `Round ${competition.current_round_number}`}</p>
-      </div>
-      <div className="dashboard-arena-meta">
-        <div>
-          <Clock3 aria-hidden="true" className="dashboard-small-icon" />
-          <span>{formatDeadline(currentRound?.deadline_at ?? null)}</span>
-        </div>
-        <div>
-          <UsersRound aria-hidden="true" className="dashboard-small-icon" />
-          <span>{competition.participants.length} partecipanti</span>
-        </div>
-      </div>
-    </>
-  );
-
-  if (href) {
-    return (
-      <Link className="dashboard-arena-card friends-tournament-card" href={href}>
-        {content}
-      </Link>
-    );
-  }
-
-  if (onSelect) {
-    return (
-      <button
-        className={cn("dashboard-arena-card friends-tournament-card", isSelected && "user-nav-link-active")}
-        onClick={onSelect}
-        type="button"
-      >
-        {content}
-      </button>
-    );
-  }
-
-  return (
-    <article className="dashboard-arena-card friends-tournament-card">
-      {content}
-    </article>
   );
 }
 
