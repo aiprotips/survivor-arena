@@ -7166,12 +7166,12 @@ a {
 
   .arena-game-life-pair .arena-team-mark {
     width: clamp(1.68rem, 4.8vw, 2.12rem);
-    border: 1.5px solid color-mix(in srgb, var(--color-button-blue-hover) 74%, var(--color-white));
+    border: 1.5px solid color-mix(in srgb, var(--color-button-blue-hover) 46%, transparent);
     background-color: color-mix(in srgb, var(--color-ink) 82%, var(--color-button-blue-hover));
     background-size: contain;
     box-shadow:
-      0 0 0 0.18rem color-mix(in srgb, var(--color-button-blue-hover) 11%, transparent),
-      0 0 0.85rem color-mix(in srgb, var(--color-button-blue-hover) 44%, transparent),
+      0 0 0.34rem color-mix(in srgb, var(--color-button-blue-hover) 22%, transparent),
+      0 0 0.78rem color-mix(in srgb, var(--color-button-blue-hover) 18%, transparent),
       inset 0 0 0.62rem color-mix(in srgb, var(--color-button-blue-hover) 16%, transparent);
   }
 
@@ -7295,14 +7295,13 @@ a {
   .arena-game-team-button .arena-team-mark {
     flex: 0 0 auto;
     width: clamp(3.05rem, 10vw, 4.65rem);
-    border: 2px solid color-mix(in srgb, var(--color-button-blue-hover) 74%, var(--color-white));
+    border: 1.5px solid color-mix(in srgb, var(--color-button-blue-hover) 52%, transparent);
     background-color: color-mix(in srgb, var(--color-ink) 88%, var(--color-button-blue-hover));
     background-size: contain;
     box-shadow:
-      0 0 0 0.38rem color-mix(in srgb, var(--color-button-blue-hover) 12%, transparent),
-      0 0 1.05rem color-mix(in srgb, var(--color-button-blue-hover) 52%, transparent),
-      0 0 2.1rem color-mix(in srgb, var(--color-button-blue-hover) 24%, transparent),
-      inset 0 0 1rem color-mix(in srgb, var(--color-button-blue-hover) 18%, transparent);
+      0 0 0.44rem color-mix(in srgb, var(--color-button-blue-hover) 28%, transparent),
+      0 0 1.15rem color-mix(in srgb, var(--color-button-blue-hover) 18%, transparent),
+      inset 0 0 0.92rem color-mix(in srgb, var(--color-button-blue-hover) 14%, transparent);
   }
 
   .arena-game-team-button .arena-team-mark-image em {
@@ -7310,12 +7309,11 @@ a {
   }
 
   .arena-game-team-button:first-of-type .arena-team-mark {
-    border-color: color-mix(in srgb, var(--color-button-blue-hover) 74%, var(--color-white));
+    border-color: color-mix(in srgb, var(--color-button-blue-hover) 52%, transparent);
     box-shadow:
-      0 0 0 0.38rem color-mix(in srgb, var(--color-button-blue-hover) 12%, transparent),
-      0 0 1.05rem color-mix(in srgb, var(--color-button-blue-hover) 52%, transparent),
-      0 0 2.1rem color-mix(in srgb, var(--color-button-blue-hover) 24%, transparent),
-      inset 0 0 1rem color-mix(in srgb, var(--color-button-blue-hover) 18%, transparent);
+      0 0 0.44rem color-mix(in srgb, var(--color-button-blue-hover) 28%, transparent),
+      0 0 1.15rem color-mix(in srgb, var(--color-button-blue-hover) 18%, transparent),
+      inset 0 0 0.92rem color-mix(in srgb, var(--color-button-blue-hover) 14%, transparent);
   }
 
   .arena-game-team-button span {
@@ -7346,12 +7344,11 @@ a {
   }
 
   .arena-game-team-button-selected .arena-team-mark {
-    border-color: color-mix(in srgb, var(--color-button-blue-hover) 72%, var(--color-white));
+    border-color: color-mix(in srgb, var(--color-button-blue-hover) 58%, transparent);
     box-shadow:
-      0 0 0 0.42rem color-mix(in srgb, var(--color-button-blue-hover) 12%, transparent),
-      0 0 1.45rem color-mix(in srgb, var(--color-button-blue-hover) 52%, transparent),
-      0 0 2.6rem color-mix(in srgb, var(--color-button-blue-hover) 22%, transparent),
-      inset 0 0 1.1rem color-mix(in srgb, var(--color-button-blue-hover) 14%, transparent);
+      0 0 0.5rem color-mix(in srgb, var(--color-button-blue-hover) 30%, transparent),
+      0 0 1.28rem color-mix(in srgb, var(--color-button-blue-hover) 20%, transparent),
+      inset 0 0 1rem color-mix(in srgb, var(--color-button-blue-hover) 14%, transparent);
   }
 
   .arena-game-team-button-used {
