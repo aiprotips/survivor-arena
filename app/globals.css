@@ -7049,9 +7049,9 @@ a {
     background: transparent;
     color: var(--color-white);
     font: inherit;
-    min-width: 3.45rem;
-    min-height: 3.45rem;
-    padding: 0.24rem;
+    min-width: 3.08rem;
+    min-height: 3.08rem;
+    padding: 0.2rem;
     scroll-snap-align: start;
     transition: filter 180ms ease, transform 180ms ease;
   }
@@ -7072,7 +7072,7 @@ a {
     position: relative;
     display: grid;
     isolation: isolate;
-    width: clamp(2.85rem, 8vw, 3.55rem);
+    width: clamp(2.42rem, 6.8vw, 3.05rem);
     aspect-ratio: 1;
     place-items: center;
     color: color-mix(in srgb, var(--color-danger) 92%, var(--color-white));
@@ -7165,7 +7165,7 @@ a {
   }
 
   .arena-game-life-pair .arena-team-mark {
-    width: clamp(1.9rem, 5.4vw, 2.38rem);
+    width: clamp(1.68rem, 4.8vw, 2.12rem);
     border: 1.5px solid color-mix(in srgb, var(--color-button-blue-hover) 74%, var(--color-white));
     background-color: color-mix(in srgb, var(--color-ink) 82%, var(--color-button-blue-hover));
     background-size: contain;
@@ -7210,9 +7210,9 @@ a {
     background-position: center 45%;
     background-size: cover;
     box-shadow:
-      0 0 0.9rem color-mix(in srgb, var(--color-gold) 18%, transparent),
-      0 0 1.25rem color-mix(in srgb, var(--color-button-blue-hover) 22%, transparent),
-      0 1rem 2.8rem color-mix(in srgb, var(--color-ink) 36%, transparent);
+      0 0 0.62rem color-mix(in srgb, var(--color-gold) 10%, transparent),
+      0 0 0.82rem color-mix(in srgb, var(--color-button-blue-hover) 12%, transparent),
+      0 0.85rem 2.25rem color-mix(in srgb, var(--color-ink) 32%, transparent);
     padding: clamp(0.42rem, 1.6vw, 0.68rem) clamp(0.52rem, 2.2vw, 1.05rem);
     transition: transform 180ms ease, box-shadow 180ms ease;
   }
@@ -7225,7 +7225,7 @@ a {
     border-radius: inherit;
     background:
       linear-gradient(94deg, color-mix(in srgb, var(--color-gold-strong) 96%, var(--color-white)) 0%, color-mix(in srgb, var(--color-gold) 76%, var(--color-white)) 18%, color-mix(in srgb, var(--color-gold) 36%, var(--color-button-blue-hover)) 43%, color-mix(in srgb, var(--color-button-blue-hover) 42%, var(--color-gold)) 58%, color-mix(in srgb, var(--color-button-blue-hover) 84%, var(--color-white)) 82%, color-mix(in srgb, var(--color-button-blue-hover) 96%, var(--color-white)) 100%);
-    filter: drop-shadow(0 0 0.62rem color-mix(in srgb, var(--color-gold) 18%, transparent)) drop-shadow(0 0 0.72rem color-mix(in srgb, var(--color-button-blue-hover) 22%, transparent));
+    filter: drop-shadow(0 0 0.42rem color-mix(in srgb, var(--color-gold) 10%, transparent)) drop-shadow(0 0 0.48rem color-mix(in srgb, var(--color-button-blue-hover) 12%, transparent));
     padding: 2px;
     -webkit-mask:
       linear-gradient(var(--color-ink) 0 0) content-box,
@@ -7242,14 +7242,14 @@ a {
     z-index: 1;
     border-radius: calc(clamp(1.45rem, 4vw, 2rem) - 2px);
     background:
-      radial-gradient(circle at 16% 38%, color-mix(in srgb, var(--color-gold) 16%, transparent), transparent 18%),
-      radial-gradient(circle at 84% 38%, color-mix(in srgb, var(--color-button-blue-hover) 20%, transparent), transparent 18%),
-      linear-gradient(90deg, color-mix(in srgb, var(--color-gold) 14%, transparent), transparent 24%, transparent 76%, color-mix(in srgb, var(--color-button-blue-hover) 18%, transparent)),
+      radial-gradient(circle at 16% 38%, color-mix(in srgb, var(--color-gold) 9%, transparent), transparent 18%),
+      radial-gradient(circle at 84% 38%, color-mix(in srgb, var(--color-button-blue-hover) 10%, transparent), transparent 18%),
+      linear-gradient(90deg, color-mix(in srgb, var(--color-gold) 8%, transparent), transparent 24%, transparent 76%, color-mix(in srgb, var(--color-button-blue-hover) 10%, transparent)),
       linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 22%, transparent), color-mix(in srgb, var(--color-ink) 8%, transparent) 48%, color-mix(in srgb, var(--color-ink) 30%, transparent));
     box-shadow:
       inset 0 0 0 1px color-mix(in srgb, var(--color-white) 7%, transparent),
-      inset 1rem 0 2.2rem color-mix(in srgb, var(--color-gold) 13%, transparent),
-      inset -1rem 0 2.2rem color-mix(in srgb, var(--color-button-blue-hover) 18%, transparent);
+      inset 1rem 0 2.2rem color-mix(in srgb, var(--color-gold) 7%, transparent),
+      inset -1rem 0 2.2rem color-mix(in srgb, var(--color-button-blue-hover) 9%, transparent);
     pointer-events: none;
   }
 
