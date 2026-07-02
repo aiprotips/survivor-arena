@@ -4059,6 +4059,7 @@ a {
     min-height: clamp(10rem, 36vw, 17rem);
     align-items: center;
     justify-items: center;
+    align-content: center;
     text-align: center;
   }
 
@@ -9290,6 +9291,8 @@ a {
 
     .friends-dashboard-hero-card {
       grid-template-columns: minmax(0, 1fr);
+      align-items: center;
+      align-content: center;
       justify-items: center;
       min-height: clamp(14rem, 27vw, 20rem);
       text-align: center;

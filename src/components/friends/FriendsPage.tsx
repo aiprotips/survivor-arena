@@ -446,7 +446,7 @@ export function FriendsDashboardContent({ user }: { user: AccountUser }) {
   const [now, setNow] = useState(() => Date.now());
   const activeCompetitions = competitions.filter((competition) => !isFinishedCompetition(competition));
   const finishedCompetitions = competitions.filter(isFinishedCompetition);
-  const featuredCompetition = activeCompetitions[0];
+  const featuredCompetition = pickDashboardFeaturedCompetition(activeCompetitions, user.id);
   const featuredTournament = buildActiveTournamentShowcase(featuredCompetition, now);
   const dashboardTournament = featuredTournament
     ? {
@@ -2335,6 +2335,30 @@ function buildDashboardTournamentCards(competitions: FriendsCompetition[]) {
 
     return aDeadline.localeCompare(bDeadline);
   });
+}
+
+function pickDashboardFeaturedCompetition(
+  competitions: FriendsCompetition[],
+  userId: string,
+) {
+  const joinedCompetitions = competitions.filter((competition) => (
+    competition.is_participant && !competition.can_join
+  ));
+  const pool = joinedCompetitions.length > 0 ? joinedCompetitions : competitions;
+
+  if (pool.length === 0) {
+    return undefined;
+  }
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const seed = `${userId}-${todayKey}-${pool.map((competition) => competition.id).join("|")}`;
+  let hash = 0;
+
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(index)) | 0;
+  }
+
+  return pool[Math.abs(hash) % pool.length];
 }
 
 function DashboardTournamentMiniCard({ competition }: { competition: FriendsCompetition }) {
