@@ -27,6 +27,7 @@ export type FriendsCompetitionRow = {
   owner_username?: string;
   published_at: string | null;
   rules: string | null;
+  show_popular_picks_before_deadline: number;
   status: FriendsCompetitionStatus;
   updated_at: string;
 };
@@ -207,12 +208,14 @@ export async function ensureFriendsSchema(db: D1Database) {
       invite_code TEXT NOT NULL UNIQUE,
       status TEXT NOT NULL DEFAULT 'PENDING',
       current_round_number INTEGER NOT NULL DEFAULT 1,
+      show_popular_picks_before_deadline INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       published_at TEXT,
       completed_at TEXT
     )`,
   );
+  await runSchema(db, "ALTER TABLE friends_competitions ADD COLUMN show_popular_picks_before_deadline INTEGER NOT NULL DEFAULT 0");
   await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_competitions_owner ON friends_competitions (owner_user_id, status)");
   await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_competitions_invite_code ON friends_competitions (invite_code)");
   await runSchema(
@@ -848,7 +851,8 @@ export async function getFriendsCompetitionBundle(
     })),
   );
   const currentRound = hydratedRounds.find((round) => round.round_number === competition.current_round_number) ?? null;
-  const publicChoices = currentRound && !canChangeChoices(currentRound) ? await listPublicChoices(db, currentRound.id) : [];
+  const canShowPopularChoices = !!currentRound && (competition.show_popular_picks_before_deadline === 1 || !canChangeChoices(currentRound));
+  const publicChoices = canShowPopularChoices ? await listPublicChoices(db, currentRound.id) : [];
   const activeParticipant = participant?.status === "REMOVED" ? null : participant;
   const canJoin = competition.status === "ACTIVE" && !activeParticipant && await canUserJoin(db, competition, userId);
 
@@ -1248,6 +1252,36 @@ export async function terminateFriendsCompetition(db: D1Database, competitionId:
   });
 
   return getFriendsCompetitionBundle(db, competition.id, organizerId);
+}
+
+export async function updateFriendsPopularChoicesVisibility(
+  db: D1Database,
+  input: {
+    competitionId: string;
+    organizerId: string;
+    showPopularPicksBeforeDeadline: boolean;
+  },
+) {
+  await ensureFriendsSchema(db);
+  const competition = await assertOwner(db, input.competitionId, input.organizerId);
+  assertFriends(competition.status !== "COMPLETED" && competition.status !== "CANCELLED", "Competizione già chiusa.", 409);
+
+  const now = nowIso();
+  await db
+    .prepare("UPDATE friends_competitions SET show_popular_picks_before_deadline = ?1, updated_at = ?2 WHERE id = ?3")
+    .bind(input.showPopularPicksBeforeDeadline ? 1 : 0, now, competition.id)
+    .run();
+
+  await logFriendsEvent(db, {
+    competitionId: competition.id,
+    eventType: "friends_popular_choices_visibility",
+    message: input.showPopularPicksBeforeDeadline
+      ? "Scelte più gettonate visibili prima della deadline."
+      : "Scelte più gettonate nascoste fino alla deadline.",
+    userId: input.organizerId,
+  });
+
+  return getFriendsCompetitionBundle(db, competition.id, input.organizerId);
 }
 
 export async function deleteFriendsCompetition(db: D1Database, competitionId: string, organizerId: string) {

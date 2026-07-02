@@ -4256,6 +4256,46 @@ a {
     align-items: center;
   }
 
+  .friends-manager-visibility-toggle {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.68rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 66%, transparent);
+    border-radius: var(--radius-base);
+    background: color-mix(in srgb, var(--color-ink) 18%, transparent);
+    color: var(--color-white);
+    cursor: pointer;
+    padding: 0.72rem 0.76rem;
+  }
+
+  .friends-manager-visibility-toggle input {
+    width: 1.08rem;
+    height: 1.08rem;
+    accent-color: var(--color-gold);
+  }
+
+  .friends-manager-visibility-toggle span {
+    display: grid;
+    gap: 0.18rem;
+    min-width: 0;
+  }
+
+  .friends-manager-visibility-toggle strong {
+    color: var(--color-white);
+    font-size: 0.76rem;
+    font-weight: 720;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .friends-manager-visibility-toggle small {
+    color: var(--color-muted);
+    font-size: 0.74rem;
+    font-weight: 560;
+    line-height: 1.35;
+  }
+
   .friends-manager-small-button,
   .friends-manager-action,
   .friends-manager-tab,

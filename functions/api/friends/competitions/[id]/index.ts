@@ -1,7 +1,14 @@
 /// <reference types="@cloudflare/workers-types" />
 
 import { requireUser } from "../../../../_shared/access";
-import { deleteFriendsCompetition, getFriendsCompetitionBundle, getFriendsError, joinFriendsCompetition, terminateFriendsCompetition } from "../../../../_shared/friends";
+import {
+  deleteFriendsCompetition,
+  getFriendsCompetitionBundle,
+  getFriendsError,
+  joinFriendsCompetition,
+  terminateFriendsCompetition,
+  updateFriendsPopularChoicesVisibility,
+} from "../../../../_shared/friends";
 import { json, missingDatabase, readJsonObject } from "../../../../_shared/http";
 
 type Env = {
@@ -68,6 +75,16 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
   const action = String(body?.action ?? "");
 
   try {
+    if (action === "popular-choices-visibility") {
+      const competition = await updateFriendsPopularChoicesVisibility(context.env.DB, {
+        competitionId: getParam(context.params.id),
+        organizerId: auth.user.id,
+        showPopularPicksBeforeDeadline: body?.showPopularPicksBeforeDeadline === true,
+      });
+
+      return json({ competition, ok: true });
+    }
+
     if (action !== "terminate") {
       return json({ message: "Azione non valida.", ok: false }, { status: 400 });
     }

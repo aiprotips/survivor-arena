@@ -120,6 +120,7 @@ type FriendsCompetition = {
   }>;
   rounds: FriendsRound[];
   rules: string | null;
+  show_popular_picks_before_deadline: number;
   status: "PENDING" | "ACTIVE" | "LOCKED" | "COMPLETED" | "CANCELLED";
 };
 
@@ -806,6 +807,16 @@ function FriendsManagerCompetitionView({
     await copyInviteCode();
   }
 
+  async function togglePopularChoicesVisibility() {
+    await mutate(`/api/friends/competitions/${competition.id}`, {
+      body: JSON.stringify({
+        action: "popular-choices-visibility",
+        showPopularPicksBeforeDeadline: competition.show_popular_picks_before_deadline !== 1,
+      }),
+      method: "PATCH",
+    });
+  }
+
   async function deleteCompetition() {
     const response = await fetch(`/api/friends/competitions/${competition.id}`, {
       credentials: "include",
@@ -834,6 +845,7 @@ function FriendsManagerCompetitionView({
         currentRound={currentRound}
         onCopy={() => void copyInviteCode()}
         onShare={() => void shareInvite()}
+        onTogglePopularChoicesVisibility={() => void togglePopularChoicesVisibility()}
         stats={stats}
       />
       {copyMessage ? <p className="friends-manager-copy-message">{copyMessage}</p> : null}
@@ -976,6 +988,7 @@ function CompetitionSummaryCard({
   currentRound,
   onCopy,
   onShare,
+  onTogglePopularChoicesVisibility,
   stats,
 }: {
   competition: FriendsCompetition;
@@ -983,8 +996,11 @@ function CompetitionSummaryCard({
   currentRound: FriendsRound | null;
   onCopy: () => void;
   onShare: () => void;
+  onTogglePopularChoicesVisibility: () => void;
   stats: FriendsManagerStats;
 }) {
+  const showPopularChoicesBeforeDeadline = competition.show_popular_picks_before_deadline === 1;
+
   return (
     <Card className="friends-manager-summary">
       <div className="friends-manager-summary-top">
@@ -1012,6 +1028,17 @@ function CompetitionSummaryCard({
               Condividi invito
             </button>
           </div>
+          <label className="friends-manager-visibility-toggle">
+            <input
+              checked={showPopularChoicesBeforeDeadline}
+              onChange={onTogglePopularChoicesVisibility}
+              type="checkbox"
+            />
+            <span>
+              <strong>Mostra gettonate</strong>
+              <small>{showPopularChoicesBeforeDeadline ? "Visibili prima della deadline" : "Nascoste fino alla deadline"}</small>
+            </span>
+          </label>
         </div>
       </div>
 
@@ -2453,6 +2480,7 @@ function FriendsCompetitionPanel({
   const deadline = currentRound ? deadlineEdits[currentRound.id] ?? toDateTimeLocal(currentRound.deadline_at) : "";
   const countdown = formatFriendsGameCountdown(currentRound?.deadline_at ?? null, now);
   const popularChoices = currentRound ? buildFriendsPopularChoices(competition, currentRound) : [];
+  const shouldShowPopularChoices = choicesLocked || competition.show_popular_picks_before_deadline === 1;
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 1000);
@@ -2644,7 +2672,7 @@ function FriendsCompetitionPanel({
               <h2>Scelte più gettonate</h2>
             </div>
           </div>
-          {choicesLocked ? (
+          {shouldShowPopularChoices ? (
             <div className="arena-popular-track" aria-label="Scelte più gettonate">
               {popularChoices.length > 0 ? (
                 popularChoices.map((choice) => (
