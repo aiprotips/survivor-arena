@@ -78,7 +78,7 @@ function formatGameCountdown(deadline: string | null, now: number) {
   const label = days > 0
     ? `${days}g ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`
     : `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
-  const tone = diff <= 10 * 60_000 ? "pulse" : diff <= 3_600_000 ? "danger" : diff <= 86_400_000 ? "warning" : "normal";
+  const tone = diff <= 10_000 ? "pulse" : diff <= 3_600_000 ? "danger" : diff <= 86_400_000 ? "warning" : "normal";
 
   return {
     label,
@@ -320,9 +320,9 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
           </span>
         </div>
         <div className={cn("arena-game-countdown", `arena-game-countdown-${countdown.tone}`)} aria-live="polite">
-          <span>Deadline</span>
-          <strong>{countdown.label}</strong>
-          <em>{formatDeadline(currentRound?.deadline_at ?? null)}</em>
+          <span>Le scelte si chiudono tra</span>
+          <strong className="arena-game-countdown-timer" key={countdown.label}>{countdown.label}</strong>
+          <em>Deadline {formatDeadline(currentRound?.deadline_at ?? null)}</em>
         </div>
         <div className="arena-game-hero-stats" aria-label="Riepilogo torneo">
           <span>
@@ -475,26 +475,6 @@ function ArenaDetailContent({ tournamentId }: { tournamentId: string }) {
           </div>
         )}
       </section>
-
-      {currentRound ? (
-        <section className="arena-game-section">
-          <div className="arena-section-heading">
-            <div>
-              <p className="user-page-kicker">Round {currentRound.round_number}</p>
-              <h2>Tutte le partite</h2>
-            </div>
-          </div>
-          <div className="arena-mini-match-track">
-            {currentRound.matches.map((match) => (
-              <article className="arena-mini-match-card" key={match.id}>
-                <TeamMark logoUrl={match.home_team_logo_url} name={match.home_team} />
-                <span>VS</span>
-                <TeamMark logoUrl={match.away_team_logo_url} name={match.away_team} />
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
 
       {canManageEntry ? (
         <section className="arena-game-info-banner">

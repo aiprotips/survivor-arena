@@ -6841,9 +6841,9 @@ a {
 
   .arena-game-hero {
     display: grid;
-    gap: clamp(1rem, 3.8vw, 1.35rem);
+    gap: clamp(0.74rem, 2.8vw, 1.05rem);
     overflow: hidden;
-    padding: clamp(1rem, 4vw, 1.45rem);
+    padding: clamp(0.86rem, 3vw, 1.18rem);
   }
 
   .arena-game-hero-copy {
@@ -6854,9 +6854,9 @@ a {
 
   .arena-game-hero-copy h1 {
     color: var(--color-white);
-    font-size: clamp(2.1rem, 10vw, 4.6rem);
+    font-size: clamp(1.72rem, 7.8vw, 3.75rem);
     font-weight: 760;
-    line-height: 0.92;
+    line-height: 0.96;
   }
 
   .arena-game-state,
@@ -6876,7 +6876,7 @@ a {
     font-size: 0.74rem;
     font-weight: 760;
     letter-spacing: 0.08em;
-    padding: 0.52rem 0.72rem;
+    padding: 0.44rem 0.66rem;
     text-transform: uppercase;
   }
 
@@ -6889,12 +6889,32 @@ a {
   }
 
   .arena-game-countdown {
+    position: relative;
     display: grid;
-    gap: 0.18rem;
-    border: 1px solid color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+    gap: 0.24rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
     border-radius: var(--radius-card);
-    background: color-mix(in srgb, var(--color-blue) 10%, transparent);
-    padding: clamp(0.9rem, 3vw, 1.15rem);
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--color-blue) 18%, transparent), transparent 48%),
+      color-mix(in srgb, var(--color-ink) 42%, var(--color-card));
+    padding: clamp(0.74rem, 2.5vw, 1rem);
+  }
+
+  .arena-game-countdown::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent),
+      repeating-linear-gradient(180deg, color-mix(in srgb, var(--color-white) 4%, transparent) 0 1px, transparent 1px 0.62rem);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .arena-game-countdown > * {
+    position: relative;
+    z-index: 1;
   }
 
   .arena-game-countdown span,
@@ -6910,16 +6930,23 @@ a {
 
   .arena-game-countdown strong {
     color: var(--color-white);
-    font-size: clamp(2.2rem, 12vw, 4.5rem);
-    font-weight: 780;
+    font-size: clamp(1.85rem, 8.2vw, 3.35rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    letter-spacing: 0.03em;
     line-height: 0.95;
+    text-shadow: 0 0 28px color-mix(in srgb, var(--color-primary) 28%, transparent);
   }
 
   .arena-game-countdown em {
     color: var(--color-muted);
-    font-size: 0.86rem;
+    font-size: 0.78rem;
     font-style: normal;
     font-weight: 620;
+  }
+
+  .arena-game-countdown-timer {
+    animation: arena-countdown-tick 360ms ease-out;
   }
 
   .arena-game-countdown-warning {
@@ -6934,13 +6961,18 @@ a {
   }
 
   .arena-game-countdown-pulse {
-    animation: arena-countdown-pulse 1.1s ease-in-out infinite;
+    animation: arena-countdown-pulse 0.72s ease-in-out infinite;
+  }
+
+  .arena-game-countdown-pulse .arena-game-countdown-timer {
+    color: var(--color-danger);
+    text-shadow: 0 0 32px color-mix(in srgb, var(--color-danger) 36%, transparent);
   }
 
   .arena-game-hero-stats {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.58rem;
+    gap: 0.46rem;
   }
 
   .arena-game-hero-stats span {
@@ -6950,7 +6982,7 @@ a {
     border: 1px solid color-mix(in srgb, var(--color-border) 56%, transparent);
     border-radius: var(--radius-base);
     background: color-mix(in srgb, var(--color-surface) 46%, transparent);
-    padding: 0.72rem;
+    padding: 0.58rem 0.62rem;
   }
 
   .arena-game-hero-stats svg {
@@ -6961,7 +6993,7 @@ a {
   .arena-game-hero-stats strong {
     overflow-wrap: anywhere;
     color: var(--color-white);
-    font-size: clamp(1rem, 4vw, 1.25rem);
+    font-size: clamp(0.92rem, 3.4vw, 1.12rem);
     font-weight: 760;
     letter-spacing: 0;
     text-transform: none;
@@ -6978,23 +7010,24 @@ a {
     color: var(--color-white);
     font-size: 0.86rem;
     font-weight: 700;
-    padding: 0.75rem 1rem;
+    padding: 0.64rem 0.9rem;
     box-shadow: 0 12px 32px color-mix(in srgb, var(--color-survival) 12%, transparent);
   }
 
   .arena-game-section {
     display: grid;
-    gap: clamp(0.9rem, 3vw, 1.15rem);
-    padding: clamp(1rem, 3.8vw, 1.35rem);
+    gap: clamp(0.72rem, 2.5vw, 0.95rem);
+    overflow: hidden;
+    padding: clamp(0.82rem, 3vw, 1.08rem);
   }
 
   .arena-game-life-carousel,
   .arena-popular-track,
   .arena-mini-match-track {
     display: flex;
-    gap: 0.78rem;
+    gap: 0.62rem;
     overflow-x: auto;
-    padding: 0.12rem 0.1rem 0.35rem;
+    padding: 0.24rem 0.32rem 0.46rem;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
   }
@@ -7007,23 +7040,23 @@ a {
 
   .arena-game-life-card {
     display: grid;
-    flex: 0 0 7.8rem;
+    flex: 0 0 5.95rem;
     justify-items: center;
-    gap: 0.5rem;
+    gap: 0.32rem;
     border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
     border-radius: var(--radius-card);
     background: color-mix(in srgb, var(--color-surface) 56%, transparent);
     color: var(--color-white);
     font: inherit;
-    padding: 0.92rem 0.75rem;
+    padding: 0.66rem 0.5rem;
     scroll-snap-align: start;
     transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
   }
 
   .arena-game-life-card-selected {
     border-color: color-mix(in srgb, var(--color-gold) 48%, var(--color-border));
-    box-shadow: 0 0 28px color-mix(in srgb, var(--color-gold) 14%, transparent);
-    transform: translateY(-2px) scale(1.035);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-gold) 16%, transparent), 0 0 18px color-mix(in srgb, var(--color-gold) 12%, transparent);
+    transform: translateY(-1px) scale(1.02);
   }
 
   .arena-game-life-card-dead {
@@ -7033,21 +7066,21 @@ a {
   .arena-game-heart {
     position: relative;
     display: grid;
-    width: 4.45rem;
+    width: 3.2rem;
     aspect-ratio: 1;
     place-items: center;
     color: var(--color-danger);
   }
 
   .arena-game-life-card-picked .arena-game-heart {
-    color: var(--color-blue-soft);
+    color: color-mix(in srgb, var(--color-ink) 68%, var(--color-blue));
   }
 
   .arena-game-heart > svg {
-    width: 4.1rem;
-    height: 4.1rem;
+    width: 3rem;
+    height: 3rem;
     fill: currentColor;
-    filter: drop-shadow(0 10px 24px color-mix(in srgb, currentColor 24%, transparent));
+    filter: drop-shadow(0 8px 16px color-mix(in srgb, currentColor 20%, transparent));
     stroke-width: 1.35;
   }
 
@@ -7078,7 +7111,9 @@ a {
 
   .arena-game-heart .arena-team-mark {
     position: absolute;
-    width: 2rem;
+    width: 1.55rem;
+    border: 0;
+    background-color: transparent;
     background-size: contain;
   }
 
@@ -7086,7 +7121,7 @@ a {
     overflow: hidden;
     max-width: 100%;
     color: var(--color-white);
-    font-size: 0.86rem;
+    font-size: 0.76rem;
     font-weight: 750;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -7094,7 +7129,7 @@ a {
 
   .arena-game-match-list {
     display: grid;
-    gap: 0.72rem;
+    gap: 0.58rem;
   }
 
   .arena-game-match-card {
@@ -7102,11 +7137,11 @@ a {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    gap: 0.72rem;
+    gap: 0.56rem;
     border: 1px solid color-mix(in srgb, var(--color-border) 64%, transparent);
     border-radius: var(--radius-card);
     background: color-mix(in srgb, var(--color-surface) 52%, transparent);
-    padding: 0.76rem;
+    padding: 0.62rem;
     transition: transform 180ms ease, border-color 180ms ease;
   }
 
@@ -7118,27 +7153,27 @@ a {
     position: relative;
     display: grid;
     justify-items: center;
-    gap: 0.52rem;
-    min-height: 7.8rem;
+    gap: 0.42rem;
+    min-height: 6.8rem;
     min-width: 0;
     border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
     border-radius: var(--radius-card);
     background: color-mix(in srgb, var(--color-card) 62%, transparent);
     color: var(--color-white);
     font: inherit;
-    padding: 0.86rem 0.62rem;
+    padding: 0.68rem 0.52rem;
     transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
   }
 
   .arena-game-team-button .arena-team-mark {
-    width: clamp(3rem, 18vw, 4.45rem);
+    width: clamp(2.65rem, 15vw, 3.8rem);
     background-size: contain;
   }
 
   .arena-game-team-button span {
     overflow: hidden;
     max-width: 100%;
-    font-size: 0.92rem;
+    font-size: 0.84rem;
     font-weight: 760;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -7148,8 +7183,8 @@ a {
   .arena-game-team-button:focus-visible,
   .arena-game-team-button-selected {
     border-color: color-mix(in srgb, var(--color-primary) 58%, var(--color-border));
-    box-shadow: 0 0 30px color-mix(in srgb, var(--color-blue) 16%, transparent);
-    transform: translateY(-2px);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 12%, transparent), 0 0 18px color-mix(in srgb, var(--color-blue) 12%, transparent);
+    transform: translateY(-1px);
   }
 
   .arena-game-team-button-selected {
@@ -7172,13 +7207,13 @@ a {
 
   .arena-game-vs {
     display: grid;
-    width: 2.35rem;
+    width: 2rem;
     aspect-ratio: 1;
     place-items: center;
     border: 1px solid color-mix(in srgb, var(--color-gold) 34%, transparent);
     border-radius: var(--radius-pill);
     color: var(--color-gold-strong);
-    font-size: 0.72rem;
+    font-size: 0.66rem;
     font-weight: 800;
   }
 
@@ -7223,7 +7258,7 @@ a {
     border: 1px solid color-mix(in srgb, var(--color-border) 64%, transparent);
     border-radius: var(--radius-card);
     background: color-mix(in srgb, var(--color-surface) 52%, transparent);
-    padding: 0.86rem;
+    padding: 0.72rem;
     scroll-snap-align: start;
     text-align: center;
   }
@@ -7286,6 +7321,17 @@ a {
     }
     50% {
       box-shadow: 0 0 32px color-mix(in srgb, var(--color-danger) 18%, transparent);
+    }
+  }
+
+  @keyframes arena-countdown-tick {
+    0% {
+      opacity: 0.72;
+      transform: translateY(0.16rem) scale(0.985);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
   }
 
