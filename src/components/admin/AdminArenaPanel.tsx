@@ -3223,6 +3223,21 @@ function AdminImagesPanel() {
   }
 
   async function saveImageSettings() {
+    const localPreviewSections = adminImageSections.filter((section) => {
+      const selectedAsset = getSelectedImageAsset(section, sectionsState[section.key]);
+
+      return selectedAsset?.local;
+    });
+
+    if (localPreviewSections.length > 0) {
+      setLocalMessage(
+        `Non posso salvare anteprime locali online: aggiungi prima il file in /public/assets e poi usa il percorso /assets/... per ${localPreviewSections
+          .map((section) => section.title)
+          .join(", ")}.`,
+      );
+      return;
+    }
+
     setIsSaving(true);
     setLocalMessage("");
 

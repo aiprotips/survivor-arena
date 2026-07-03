@@ -34,6 +34,14 @@ import { Card } from "@/components/ui/Card";
 import { PremiumDivider } from "@/components/ui/PremiumDivider";
 import { cn } from "@/lib/cn";
 import { formatDeadline, fromDateTimeLocal, isDeadlinePassed, toDateTimeLocal, type MatchResult } from "@/lib/arena-client";
+import {
+  getImageCssVariables,
+  getImageForSection,
+  getImageRotationAssets,
+  hydrateImageSettings,
+  type AdminImageSettings,
+  type HydratedAdminImageSettings,
+} from "@/lib/image-settings";
 
 type Team = {
   id: string;
@@ -156,6 +164,16 @@ type TeamsResponse =
       ok: false;
     };
 
+type ImageSettingsResponse =
+  | {
+      ok: true;
+      settings: AdminImageSettings | null;
+    }
+  | {
+      message: string;
+      ok: false;
+    };
+
 type DraftMatch = {
   awayTeamId: string;
   homeTeamId: string;
@@ -178,13 +196,6 @@ const emptyMatch: DraftMatch = {
   isActive: true,
 };
 
-const dashboardHeroBackgrounds = [
-  "/assets/dashboard-hero-banners.png",
-  "/assets/dashboard-hero-trophy.png",
-  "/assets/dashboard-hero-tunnel.png",
-  "/assets/dashboard-hero-stadium.png",
-];
-
 async function fetchJson<TResponse>(url: string, init?: RequestInit) {
   const response = await fetch(url, {
     credentials: "include",
@@ -196,6 +207,36 @@ async function fetchJson<TResponse>(url: string, init?: RequestInit) {
   });
 
   return (await response.json()) as TResponse;
+}
+
+function useRuntimeImageSettings() {
+  const [settings, setSettings] = useState<HydratedAdminImageSettings>(() => hydrateImageSettings(null));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadImageSettings() {
+      const data = await fetchJson<ImageSettingsResponse>("/api/images");
+
+      if (!isMounted) {
+        return;
+      }
+
+      setSettings(hydrateImageSettings(data.ok ? data.settings : null));
+    }
+
+    loadImageSettings().catch(() => {
+      if (isMounted) {
+        setSettings(hydrateImageSettings(null));
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  return settings;
 }
 
 type FriendsPageView = "manager" | "manager-detail" | "tournament-detail" | "tournaments";
@@ -449,6 +490,7 @@ function useFriendsData(loadTeams = true) {
 
 export function FriendsDashboardContent({ user }: { user: AccountUser }) {
   const { competitions, isLoading, message, mutate } = useFriendsData(false);
+  const imageSettings = useRuntimeImageSettings();
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const activeCompetitions = competitions.filter((competition) => !isFinishedCompetition(competition));
@@ -463,6 +505,12 @@ export function FriendsDashboardContent({ user }: { user: AccountUser }) {
     : null;
   const dashboardTournamentCards = buildDashboardTournamentCards(competitions);
   const archivedTournaments = buildArchivedTournamentRows(finishedCompetitions);
+  const welcomeAssets = getImageRotationAssets(imageSettings, "welcome");
+  const welcomeState = imageSettings.welcome;
+  const welcomeRotationDuration = Math.max(welcomeAssets.length, 1) * 8;
+  const welcomeOverlayOpacity = Math.max(0.18, Math.min(0.88, 0.86 - welcomeState.opacity / 155));
+  const quickJoinImage = getImageForSection(imageSettings, "quickJoin", "dashboard-quick-join");
+  const quickCreateImage = getImageForSection(imageSettings, "quickCreate", "dashboard-quick-create");
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -472,12 +520,28 @@ export function FriendsDashboardContent({ user }: { user: AccountUser }) {
 
   return (
     <div className="dashboard-page-content friends-dashboard-home">
-      <section className="dashboard-hero-card friends-dashboard-hero-card" aria-labelledby="friends-dashboard-title">
-        <div className="friends-dashboard-hero-background" aria-hidden="true">
-          {dashboardHeroBackgrounds.map((background) => (
+      <section
+        className="dashboard-hero-card friends-dashboard-hero-card"
+        aria-labelledby="friends-dashboard-title"
+        style={{ "--dashboard-hero-overlay-opacity": welcomeOverlayOpacity.toFixed(2) } as CSSProperties}
+      >
+        <div
+          className={cn("friends-dashboard-hero-background", welcomeAssets.length <= 1 && "friends-dashboard-hero-background-static")}
+          aria-hidden="true"
+        >
+          {welcomeAssets.map((asset, index) => (
             <span
-              key={background}
-              style={{ "--dashboard-hero-bg": `url("${background}")` } as CSSProperties}
+              key={asset.id}
+              style={
+                {
+                  "--dashboard-hero-bg": `url("${asset.src}")`,
+                  "--dashboard-hero-bg-opacity": String(welcomeState.opacity / 100),
+                  "--dashboard-hero-bg-position": welcomeState.objectPosition,
+                  "--dashboard-hero-bg-size": `${welcomeState.zoom}%`,
+                  animationDelay: `${index * 8}s`,
+                  animationDuration: `${welcomeRotationDuration}s`,
+                } as CSSProperties
+              }
             />
           ))}
         </div>
@@ -505,6 +569,7 @@ export function FriendsDashboardContent({ user }: { user: AccountUser }) {
           {!isLoading && dashboardTournament ? (
             <TournamentActiveShowcaseCard
               className="friends-dashboard-feature-card"
+              imageSettings={imageSettings}
               tournament={dashboardTournament}
             />
           ) : !isLoading ? (
@@ -516,14 +581,23 @@ export function FriendsDashboardContent({ user }: { user: AccountUser }) {
         </div>
 
         <div className="friends-dashboard-quick-grid" aria-label="Azioni rapide Friends">
-          <button className="friends-dashboard-action-card friends-dashboard-action-blue" onClick={() => setIsJoinOpen(true)} type="button">
+          <button
+            className="friends-dashboard-action-card friends-dashboard-action-blue"
+            onClick={() => setIsJoinOpen(true)}
+            style={getImageCssVariables("dashboard-action", quickJoinImage)}
+            type="button"
+          >
             <span aria-hidden="true">
               <Plus />
             </span>
             <strong>Partecipa</strong>
             <small>Con codice</small>
           </button>
-          <Link className="friends-dashboard-action-card friends-dashboard-action-gold" href="/area-manager">
+          <Link
+            className="friends-dashboard-action-card friends-dashboard-action-gold"
+            href="/area-manager"
+            style={getImageCssVariables("dashboard-action", quickCreateImage)}
+          >
             <span aria-hidden="true">
               <Swords />
             </span>
@@ -2099,6 +2173,7 @@ function TournamentsView({
   finishedCompetitions: FriendsCompetition[];
   onJoin: () => void;
 }) {
+  const imageSettings = useRuntimeImageSettings();
   const [now, setNow] = useState(() => Date.now());
   const activeTournament = buildActiveTournamentShowcase(activeCompetitions[0], now);
   const archivedTournaments = buildArchivedTournamentRows(finishedCompetitions);
@@ -2119,7 +2194,7 @@ function TournamentsView({
           </Button>
         </div>
         {activeTournament ? (
-          <TournamentActiveShowcaseCard tournament={activeTournament} />
+          <TournamentActiveShowcaseCard imageSettings={imageSettings} tournament={activeTournament} />
         ) : (
           <TournamentEmptyState
             title="Nessun torneo in corso"
@@ -2179,13 +2254,20 @@ function TournamentSectionTitle({ children, id }: { children: ReactNode; id: str
 
 function TournamentActiveShowcaseCard({
   className,
+  imageSettings,
   tournament,
 }: {
   className?: string;
+  imageSettings?: HydratedAdminImageSettings;
   tournament: TournamentShowcase;
 }) {
+  const tournamentImage = getImageForSection(imageSettings ?? hydrateImageSettings(null), "tournament", tournament.id);
+
   return (
-    <article className={cn("tournaments-active-card", className)}>
+    <article
+      className={cn("tournaments-active-card", className)}
+      style={getImageCssVariables("tournament-card", tournamentImage)}
+    >
       <div className="tournaments-active-content">
         <div className="tournaments-active-copy">
           <span className="tournaments-active-badge">{tournament.isDemo ? "Anteprima torneo" : "Torneo in corso"}</span>
