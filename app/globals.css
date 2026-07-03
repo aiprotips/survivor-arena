@@ -5237,10 +5237,20 @@ a {
   }
 
   .friends-dashboard-hero-card {
+    width: 100vw;
+    margin-top: calc(clamp(1.5rem, 5vw, 3rem) * -1);
+    margin-inline: calc(50% - 50vw);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     min-height: clamp(10rem, 36vw, 17rem);
     align-items: center;
     justify-items: center;
     align-content: center;
+    padding-inline: max(var(--spacing-page-x), env(safe-area-inset-left));
     text-align: center;
   }
 
@@ -5299,6 +5309,7 @@ a {
     gap: 0.34rem;
     justify-items: center;
     margin-inline: auto;
+    padding-inline: var(--spacing-page-x);
   }
 
   .friends-dashboard-hero-card .dashboard-hero-copy h1 {
@@ -10932,6 +10943,7 @@ a {
       align-items: center;
       align-content: center;
       justify-items: center;
+      margin-top: calc(clamp(2.2rem, 5vw, 3.6rem) * -1);
       min-height: clamp(14rem, 27vw, 20rem);
       text-align: center;
     }
