@@ -64,14 +64,14 @@ export const imageSectionDefaults: Record<AdminImageSectionKey, ImageSectionDefa
     defaultOpacity: 38,
     defaultPosition: "center center",
     defaultZoom: 115,
-    staticAssets: [],
+    staticAssets: [...projectImageAssets.action, ...projectImageAssets.dashboard],
   },
   quickJoin: {
     defaultBehavior: "fixed",
     defaultOpacity: 34,
     defaultPosition: "center center",
     defaultZoom: 115,
-    staticAssets: [],
+    staticAssets: [...projectImageAssets.action, ...projectImageAssets.dashboard],
   },
   siteBackground: {
     defaultBehavior: "fixed",

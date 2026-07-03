@@ -421,7 +421,7 @@ const adminImageSections: Array<{
     key: "quickJoin",
     preview: "quickJoin",
     recommended: "Consigliato 900x520",
-    staticAssets: [],
+    staticAssets: [...projectImageAssets.action, ...projectImageAssets.dashboard],
     title: "Immagine tasto Partecipa",
   },
   {
@@ -434,7 +434,7 @@ const adminImageSections: Array<{
     key: "quickCreate",
     preview: "quickCreate",
     recommended: "Consigliato 900x520",
-    staticAssets: [],
+    staticAssets: [...projectImageAssets.action, ...projectImageAssets.dashboard],
     title: "Immagine tasto Crea",
   },
   {
