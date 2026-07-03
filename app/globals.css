@@ -67,6 +67,505 @@
   --stat-icon-size: clamp(2.25rem, 9vw, 3rem);
 }
 
+@layer components {
+  .public-arenas-page {
+    min-height: 100vh;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 0, color-mix(in srgb, var(--color-blue-hover) 9%, transparent), transparent 32rem),
+      radial-gradient(circle at 86% 40rem, color-mix(in srgb, var(--color-gold) 6%, transparent), transparent 26rem),
+      var(--color-background);
+    color: var(--color-text-primary);
+  }
+
+  .public-arenas-section {
+    width: min(calc(100% - (var(--spacing-page-x) * 2)), var(--layout-max-width));
+    margin-inline: auto;
+  }
+
+  .public-arenas-hero {
+    position: relative;
+    isolation: isolate;
+    min-height: clamp(31rem, calc(100svh - 5rem), 43rem);
+    overflow: hidden;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-background);
+  }
+
+  .public-arenas-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 72% 42%, color-mix(in srgb, var(--color-blue-hover) 28%, transparent), transparent 19rem),
+      radial-gradient(circle at 80% 40%, color-mix(in srgb, var(--color-gold) 16%, transparent), transparent 15rem),
+      linear-gradient(90deg, color-mix(in srgb, var(--color-background) 94%, transparent), color-mix(in srgb, var(--color-background) 70%, transparent) 42%, color-mix(in srgb, var(--color-background) 22%, transparent) 76%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-background) 14%, transparent), transparent 48%, color-mix(in srgb, var(--color-background) 94%, transparent));
+  }
+
+  .public-arenas-hero-image,
+  .public-arenas-private-image,
+  .public-arenas-final-image {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background-size: cover;
+    filter: saturate(1.1) contrast(1.08);
+  }
+
+  .public-arenas-hero-image {
+    background-image: var(--public-arenas-hero-image);
+    background-position: var(--public-arenas-hero-image-position, center);
+    opacity: var(--public-arenas-hero-image-opacity, 0.92);
+    transform: scale(1.012);
+  }
+
+  .public-arenas-hero-inner {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    width: min(calc(100% - (var(--spacing-page-x) * 2)), var(--layout-max-width));
+    min-height: inherit;
+    margin-inline: auto;
+    padding-block: clamp(3.3rem, 7vw, 5.8rem);
+    align-items: center;
+    gap: clamp(2rem, 5vw, 4rem);
+  }
+
+  .public-arenas-hero-copy {
+    display: grid;
+    max-width: min(100%, 35rem);
+    gap: clamp(1rem, 2.5vw, 1.35rem);
+  }
+
+  .public-arenas-hero-copy h1,
+  .public-arenas-final-copy h2 {
+    margin: 0;
+    color: var(--color-white);
+    font-size: clamp(3.3rem, 10vw, 6rem);
+    font-weight: 850;
+    letter-spacing: 0;
+    line-height: 0.88;
+    text-transform: uppercase;
+  }
+
+  .public-arenas-hero-copy h1 span,
+  .public-arenas-final-copy h2 span,
+  .public-arenas-private-copy h2 span {
+    display: block;
+    color: var(--color-button-blue-hover);
+  }
+
+  .public-arenas-hero-copy p,
+  .public-arenas-private-copy p,
+  .public-arenas-final-copy p,
+  .public-arenas-step-card p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: clamp(0.94rem, 2.2vw, 1.05rem);
+    font-weight: 560;
+    line-height: 1.65;
+  }
+
+  .public-arenas-actions {
+    display: grid;
+    width: min(100%, 21rem);
+    gap: 0.8rem;
+    margin-top: 0.45rem;
+  }
+
+  .ui-button.public-arenas-cta,
+  .ui-button.public-arenas-final-button {
+    min-height: 3.15rem;
+    padding-inline: 1.35rem;
+  }
+
+  .public-arenas-hero-emblem {
+    display: none;
+  }
+
+  .public-arenas-glass-frame {
+    display: grid;
+    width: clamp(12rem, 22vw, 18rem);
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-blue-hover) 62%, transparent);
+    border-radius: calc(var(--radius-card) * 1.35);
+    background:
+      radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--color-gold) 20%, transparent), transparent 52%),
+      color-mix(in srgb, var(--color-card) 24%, transparent);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-white) 8%, transparent),
+      0 0 42px color-mix(in srgb, var(--color-blue-hover) 24%, transparent);
+    backdrop-filter: blur(3px);
+  }
+
+  .public-arenas-glass-frame svg {
+    width: 45%;
+    height: 45%;
+    color: var(--color-gold);
+    filter: drop-shadow(0 0 18px color-mix(in srgb, var(--color-gold) 30%, transparent));
+    stroke-width: 1.45;
+  }
+
+  .public-arenas-steps {
+    padding-block: clamp(1.85rem, 5vw, 2.8rem) clamp(1.3rem, 4vw, 2rem);
+  }
+
+  .public-arenas-steps h2 {
+    margin: 0 0 clamp(1.1rem, 2.8vw, 1.55rem);
+    color: var(--color-white);
+    font-size: clamp(1.28rem, 3.2vw, 1.78rem);
+    font-weight: 820;
+    letter-spacing: 0.03em;
+    line-height: 1.12;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .public-arenas-step-grid {
+    display: grid;
+    gap: clamp(0.8rem, 2vw, 1rem);
+  }
+
+  .public-arenas-step-card {
+    position: relative;
+    display: grid;
+    min-height: 13.5rem;
+    justify-items: center;
+    align-content: center;
+    gap: 0.65rem;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background:
+      radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--color-blue-hover) 20%, transparent), transparent 9.5rem),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-card-strong) 60%, transparent), color-mix(in srgb, var(--color-card) 94%, transparent));
+    padding: clamp(1.15rem, 3vw, 1.55rem);
+    text-align: center;
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-white) 3%, transparent),
+      var(--shadow-card);
+  }
+
+  .public-arenas-step-number {
+    color: color-mix(in srgb, var(--color-button-blue-hover) 78%, var(--color-muted));
+    font-size: 1.02rem;
+    font-weight: 820;
+    line-height: 1;
+  }
+
+  .public-arenas-step-icon {
+    display: grid;
+    width: clamp(3.8rem, 9vw, 5rem);
+    aspect-ratio: 1;
+    place-items: center;
+    border-radius: var(--radius-pill);
+    background:
+      radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--color-blue-hover) 46%, transparent), transparent 72%),
+      color-mix(in srgb, var(--color-blue) 18%, transparent);
+    color: var(--color-button-blue-hover);
+    box-shadow: 0 0 34px color-mix(in srgb, var(--color-blue-hover) 19%, transparent);
+  }
+
+  .public-arenas-step-icon svg {
+    width: 52%;
+    height: 52%;
+    stroke-width: 1.75;
+  }
+
+  .public-arenas-step-card h3 {
+    margin: 0.3rem 0 0;
+    color: var(--color-white);
+    font-size: clamp(0.9rem, 2vw, 1rem);
+    font-weight: 790;
+    line-height: 1.15;
+    text-transform: uppercase;
+  }
+
+  .public-arenas-step-card p {
+    max-width: 15rem;
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
+  .public-arenas-private,
+  .public-arenas-final {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-card);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-white) 3%, transparent),
+      var(--shadow-card);
+  }
+
+  .public-arenas-private {
+    display: grid;
+    min-height: clamp(16rem, 30vw, 20rem);
+    margin-top: clamp(0.85rem, 2vw, 1.2rem);
+    align-items: center;
+    padding: clamp(1.25rem, 4vw, 2.4rem);
+  }
+
+  .public-arenas-private::after,
+  .public-arenas-final::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--color-card) 90%, transparent), color-mix(in srgb, var(--color-card) 60%, transparent) 45%, color-mix(in srgb, var(--color-card) 18%, transparent)),
+      radial-gradient(circle at 74% 50%, color-mix(in srgb, var(--color-blue-hover) 20%, transparent), transparent 19rem);
+  }
+
+  .public-arenas-private-image {
+    background-image: var(--public-arenas-private-image);
+    background-position: var(--public-arenas-private-image-position, center);
+    opacity: var(--public-arenas-private-image-opacity, 0.76);
+  }
+
+  .public-arenas-private-visual {
+    display: none;
+  }
+
+  .public-arenas-private-copy {
+    display: grid;
+    max-width: 35rem;
+    gap: 0.72rem;
+  }
+
+  .public-arenas-kicker {
+    margin: 0;
+    color: var(--color-button-blue-hover);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .public-arenas-private-copy h2 {
+    margin: 0;
+    color: var(--color-white);
+    font-size: clamp(2rem, 5.8vw, 3.3rem);
+    font-weight: 850;
+    letter-spacing: 0;
+    line-height: 0.94;
+    text-transform: uppercase;
+  }
+
+  .public-arenas-private-copy h2 span {
+    color: var(--color-gold-strong);
+  }
+
+  .public-arenas-private-points {
+    display: grid;
+    gap: 0.75rem;
+    margin: clamp(0.8rem, 2vw, 1.2rem) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .public-arenas-private-points li {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--color-muted);
+    font-size: 0.77rem;
+    font-weight: 650;
+    line-height: 1.3;
+  }
+
+  .public-arenas-private-points svg {
+    width: 1.05rem;
+    height: 1.05rem;
+    flex: 0 0 auto;
+    color: var(--color-gold);
+    stroke-width: 1.8;
+  }
+
+  .public-arenas-final {
+    display: grid;
+    gap: clamp(1.2rem, 4vw, 2rem);
+    min-height: clamp(15rem, 30vw, 18rem);
+    margin-top: clamp(1rem, 2.5vw, 1.25rem);
+    padding: clamp(1.35rem, 4.5vw, 2.8rem);
+    align-items: center;
+  }
+
+  .public-arenas-final::after {
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--color-card) 94%, transparent), color-mix(in srgb, var(--color-card) 48%, transparent) 57%, color-mix(in srgb, var(--color-card) 74%, transparent)),
+      radial-gradient(circle at 78% 50%, color-mix(in srgb, var(--color-gold) 16%, transparent), transparent 18rem);
+  }
+
+  .public-arenas-final-image {
+    background-image: var(--public-arenas-final-image);
+    background-position: var(--public-arenas-final-image-position, center);
+    opacity: var(--public-arenas-final-image-opacity, 0.78);
+  }
+
+  .public-arenas-final-copy {
+    display: grid;
+    max-width: 39rem;
+    gap: 0.82rem;
+  }
+
+  .public-arenas-final-copy svg {
+    width: 2rem;
+    height: 2rem;
+    color: var(--color-gold);
+    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--color-gold) 24%, transparent));
+    stroke-width: 1.6;
+  }
+
+  .public-arenas-final-copy h2 {
+    font-size: clamp(2.45rem, 8vw, 4.5rem);
+  }
+
+  .ui-button.public-arenas-final-button {
+    width: min(100%, 17rem);
+  }
+}
+
+@media (min-width: 48rem) {
+  .public-arenas-hero-inner {
+    grid-template-columns: minmax(0, 0.8fr) minmax(20rem, 0.72fr);
+  }
+
+  .public-arenas-hero-emblem {
+    display: grid;
+    justify-items: center;
+    align-items: center;
+  }
+
+  .public-arenas-step-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .public-arenas-step-card:not(:last-child)::after {
+    content: "→";
+    position: absolute;
+    top: 50%;
+    right: -1rem;
+    z-index: 2;
+    color: color-mix(in srgb, var(--color-button-blue-hover) 80%, transparent);
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1;
+    transform: translate(50%, -50%);
+    text-shadow: 0 0 18px color-mix(in srgb, var(--color-blue-hover) 40%, transparent);
+  }
+
+  .public-arenas-private {
+    grid-template-columns: minmax(13rem, 0.42fr) minmax(0, 0.58fr);
+  }
+
+  .public-arenas-private-visual {
+    display: grid;
+    width: clamp(7rem, 14vw, 10rem);
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 32%, transparent);
+    border-radius: var(--radius-pill);
+    background:
+      radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--color-gold) 24%, transparent), transparent 66%),
+      color-mix(in srgb, var(--color-card) 30%, transparent);
+    color: var(--color-gold);
+    box-shadow: 0 0 42px color-mix(in srgb, var(--color-gold) 16%, transparent);
+  }
+
+  .public-arenas-private-visual svg {
+    width: 46%;
+    height: 46%;
+    stroke-width: 1.55;
+  }
+
+  .public-arenas-private-points {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .public-arenas-final {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+@media (max-width: 47.99rem) {
+  .public-arenas-hero {
+    min-height: clamp(34rem, 86svh, 40rem);
+  }
+
+  .public-arenas-hero::after {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--color-background) 8%, transparent), color-mix(in srgb, var(--color-background) 22%, transparent) 34%, color-mix(in srgb, var(--color-background) 90%, transparent)),
+      radial-gradient(circle at 70% 52%, color-mix(in srgb, var(--color-blue-hover) 18%, transparent), transparent 15rem);
+  }
+
+  .public-arenas-hero-image {
+    background-position: 58% center;
+    opacity: calc(var(--public-arenas-hero-image-opacity, 0.92) * 0.84);
+  }
+
+  .public-arenas-hero-inner {
+    padding-block: clamp(2.4rem, 10vw, 3.5rem) 2.4rem;
+    align-items: start;
+  }
+
+  .public-arenas-hero-copy {
+    max-width: 24rem;
+    margin-top: clamp(0.7rem, 7vh, 3.3rem);
+  }
+
+  .public-arenas-hero-copy h1 {
+    font-size: clamp(3.1rem, 14vw, 4.9rem);
+  }
+
+  .public-arenas-actions {
+    width: 100%;
+    margin-top: 0.35rem;
+  }
+
+  .public-arenas-step-card {
+    min-height: 12.4rem;
+    padding: 1.1rem 1.2rem;
+  }
+
+  .public-arenas-private {
+    min-height: 20rem;
+    padding: 1.35rem;
+  }
+
+  .public-arenas-private::after,
+  .public-arenas-final::after {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--color-card) 84%, transparent), color-mix(in srgb, var(--color-card) 58%, transparent) 62%, color-mix(in srgb, var(--color-card) 92%, transparent)),
+      radial-gradient(circle at 50% 0, color-mix(in srgb, var(--color-blue-hover) 20%, transparent), transparent 13rem);
+  }
+
+  .public-arenas-private-image {
+    background-position: 55% center;
+    opacity: calc(var(--public-arenas-private-image-opacity, 0.76) * 0.72);
+  }
+
+  .public-arenas-private-points {
+    margin-top: 1rem;
+  }
+
+  .public-arenas-final {
+    min-height: 17rem;
+  }
+
+  .public-arenas-final-image {
+    background-position: center;
+    opacity: calc(var(--public-arenas-final-image-opacity, 0.78) * 0.7);
+  }
+}
+
 @media (min-width: 48rem) {
   .public-home-hero {
     min-height: clamp(38rem, calc(100svh - 5rem), 49rem);
