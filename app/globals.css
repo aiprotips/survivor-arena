@@ -137,7 +137,7 @@
 
 @media (max-width: 47.99rem) {
   .public-home-hero {
-    min-height: clamp(35rem, 88svh, 43rem);
+    min-height: clamp(31rem, 76svh, 38rem);
   }
 
   .public-home-hero::after {
@@ -813,7 +813,7 @@ a {
 
   @media (max-width: 47.99rem) {
     .public-home-hero {
-      min-height: clamp(35rem, 88svh, 43rem);
+      min-height: clamp(31rem, 76svh, 38rem);
     }
 
     .public-home-hero::after {
