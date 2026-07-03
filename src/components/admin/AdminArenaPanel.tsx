@@ -421,7 +421,7 @@ const adminImageSections: Array<{
     key: "quickJoin",
     preview: "quickJoin",
     recommended: "Consigliato 900x520",
-    staticAssets: [...projectImageAssets.action, ...projectImageAssets.dashboard],
+    staticAssets: [],
     title: "Immagine tasto Partecipa",
   },
   {
@@ -434,7 +434,7 @@ const adminImageSections: Array<{
     key: "quickCreate",
     preview: "quickCreate",
     recommended: "Consigliato 900x520",
-    staticAssets: [...projectImageAssets.action, ...projectImageAssets.dashboard],
+    staticAssets: [],
     title: "Immagine tasto Crea",
   },
   {
@@ -2996,18 +2996,22 @@ function TeamLogo({
 
 function createDefaultImageState(): Record<AdminImageSectionKey, AdminImageSectionState> {
   return adminImageSections.reduce(
-    (state, section) => ({
-      ...state,
-      [section.key]: {
-        behavior: section.defaultBehavior,
-        customAssets: [],
-        hiddenAssetIds: [],
-        objectPosition: section.defaultPosition,
-        opacity: section.defaultOpacity,
-        selectedAssetId: section.staticAssets[0]?.id ?? "",
-        zoom: section.defaultZoom,
-      },
-    }),
+    (state, section) => {
+      const defaultAssetId = section.key === "quickJoin" || section.key === "quickCreate" ? "" : (section.staticAssets[0]?.id ?? "");
+
+      return {
+        ...state,
+        [section.key]: {
+          behavior: section.defaultBehavior,
+          customAssets: [],
+          hiddenAssetIds: [],
+          objectPosition: section.defaultPosition,
+          opacity: section.defaultOpacity,
+          selectedAssetId: defaultAssetId,
+          zoom: section.defaultZoom,
+        },
+      };
+    },
     {} as Record<AdminImageSectionKey, AdminImageSectionState>,
   );
 }
@@ -3035,6 +3039,10 @@ function getSectionAssets(section: (typeof adminImageSections)[number], state: A
 
 function getSelectedImageAsset(section: (typeof adminImageSections)[number], state: AdminImageSectionState) {
   const assets = getSectionAssets(section, state);
+
+  if (section.key === "quickJoin" || section.key === "quickCreate") {
+    return assets.find((asset) => asset.id === state.selectedAssetId);
+  }
 
   return assets.find((asset) => asset.id === state.selectedAssetId) ?? assets[0] ?? section.staticAssets[0];
 }
@@ -3214,10 +3222,13 @@ function AdminImagesPanel() {
             hiddenAssetIds: [...new Set([...sectionState.hiddenAssetIds, asset.id])],
           };
       const availableAssets = getSectionAssets(section, nextState);
+      const selectedAssetId = section.key === "quickJoin" || section.key === "quickCreate"
+        ? ""
+        : (availableAssets[0]?.id ?? section.staticAssets[0]?.id ?? "");
 
       return {
         ...nextState,
-        selectedAssetId: availableAssets[0]?.id ?? section.staticAssets[0]?.id ?? "",
+        selectedAssetId,
       };
     });
   }
@@ -3405,6 +3416,23 @@ function AdminImagesPanel() {
               </div>
 
               <div className="admin-image-gallery" aria-label={`Catalogo ${section.title}`}>
+                {section.key === "quickJoin" || section.key === "quickCreate" ? (
+                  <article className={cn("admin-image-thumb admin-image-thumb-empty", !selectedAsset && "admin-image-thumb-active")}>
+                    <button
+                      onClick={() =>
+                        updateSection(section.key, (current) => ({
+                          ...current,
+                          selectedAssetId: "",
+                        }))
+                      }
+                      type="button"
+                    >
+                      <span />
+                      <strong>Nessuna immagine</strong>
+                      <small>Campo vuoto modificabile</small>
+                    </button>
+                  </article>
+                ) : null}
                 {assets.map((asset) => (
                   <article
                     className={cn("admin-image-thumb", asset.id === selectedAsset?.id && "admin-image-thumb-active")}
@@ -3461,7 +3489,7 @@ function ImagePreview({
     "--admin-image-overlay-opacity": overlayOpacity.toFixed(2),
     "--admin-image-position": position,
     "--admin-image-size": `${zoom}%`,
-    "--admin-image-url": `url("${asset?.src ?? "/assets/arena-stadium.jpg"}")`,
+    "--admin-image-url": asset ? `url("${asset.src}")` : "linear-gradient(135deg, transparent, transparent)",
   } as CSSProperties;
 
   return (

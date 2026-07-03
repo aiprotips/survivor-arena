@@ -4208,19 +4208,6 @@ a {
     pointer-events: none;
   }
 
-  .friends-dashboard-action-card::after {
-    content: "";
-    position: absolute;
-    inset: 0.35rem 0.35rem 0.35rem auto;
-    width: min(42%, 5.4rem);
-    background: url("/assets/survivor-arena-logo.png") right center / contain no-repeat;
-    opacity: 0.13;
-    filter:
-      drop-shadow(0 0 14px color-mix(in srgb, var(--color-blue-hover) 38%, transparent))
-      saturate(1.12);
-    pointer-events: none;
-  }
-
   .friends-dashboard-action-card:hover {
     border-color: color-mix(in srgb, var(--color-blue-hover) 50%, var(--color-border));
     transform: translateY(-1px);
@@ -4270,13 +4257,6 @@ a {
       radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--color-gold) 18%, transparent), transparent 8rem),
       linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 8%, transparent), color-mix(in srgb, var(--color-ink) 44%, transparent)),
       var(--dashboard-action-bg, none) var(--dashboard-action-bg-position, center) / var(--dashboard-action-bg-size, cover) no-repeat;
-  }
-
-  .friends-dashboard-action-gold::after {
-    opacity: 0.18;
-    filter:
-      drop-shadow(0 0 14px color-mix(in srgb, var(--color-gold) 42%, transparent))
-      saturate(1.18);
   }
 
   .friends-dashboard-action-gold span {
@@ -6894,6 +6874,23 @@ a {
       var(--admin-image-url);
     background-position: center;
     background-size: cover;
+  }
+
+  .admin-image-thumb-empty > button:first-child > span {
+    display: grid;
+    place-items: center;
+    border: 1px dashed color-mix(in srgb, var(--color-border) 88%, transparent);
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--color-card) 72%, transparent), color-mix(in srgb, var(--color-surface) 54%, transparent));
+  }
+
+  .admin-image-thumb-empty > button:first-child > span::before {
+    content: "Vuoto";
+    color: var(--color-muted-soft);
+    font-size: 0.68rem;
+    font-weight: 760;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .admin-image-thumb strong {

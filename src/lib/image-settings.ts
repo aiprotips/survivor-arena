@@ -64,14 +64,14 @@ export const imageSectionDefaults: Record<AdminImageSectionKey, ImageSectionDefa
     defaultOpacity: 38,
     defaultPosition: "center center",
     defaultZoom: 115,
-    staticAssets: [...projectImageAssets.action, ...projectImageAssets.dashboard],
+    staticAssets: [],
   },
   quickJoin: {
     defaultBehavior: "fixed",
     defaultOpacity: 34,
     defaultPosition: "center center",
     defaultZoom: 115,
-    staticAssets: [...projectImageAssets.action, ...projectImageAssets.dashboard],
+    staticAssets: [],
   },
   siteBackground: {
     defaultBehavior: "fixed",
@@ -102,6 +102,7 @@ export function createDefaultImageState(): HydratedAdminImageSettings {
   return imageSectionKeys.reduce(
     (state, key) => {
       const section = imageSectionDefaults[key];
+      const defaultAssetId = key === "quickJoin" || key === "quickCreate" ? "" : (section.staticAssets[0]?.id ?? "");
 
       return {
         ...state,
@@ -111,7 +112,7 @@ export function createDefaultImageState(): HydratedAdminImageSettings {
           hiddenAssetIds: [],
           objectPosition: section.defaultPosition,
           opacity: section.defaultOpacity,
-          selectedAssetId: section.staticAssets[0]?.id ?? "",
+          selectedAssetId: defaultAssetId,
           zoom: section.defaultZoom,
         },
       };
@@ -159,6 +160,10 @@ export function getSectionAssets(key: AdminImageSectionKey, state: AdminImageSec
 
 export function getSelectedImageAsset(key: AdminImageSectionKey, state: AdminImageSectionState) {
   const assets = getSectionAssets(key, state);
+
+  if (key === "quickJoin" || key === "quickCreate") {
+    return assets.find((asset) => asset.id === state.selectedAssetId);
+  }
 
   return assets.find((asset) => asset.id === state.selectedAssetId) ?? assets[0] ?? imageSectionDefaults[key].staticAssets[0];
 }
@@ -249,7 +254,7 @@ export function getImageCssVariables(
   image: ReturnType<typeof getImageForSection>,
 ) {
   return {
-    [`--${prefix}-bg`]: `url("${image.asset?.src ?? "/assets/arena-stadium.jpg"}")`,
+    [`--${prefix}-bg`]: image.asset ? `url("${image.asset.src}")` : "linear-gradient(135deg, transparent, transparent)",
     [`--${prefix}-bg-opacity`]: String(image.state.opacity / 100),
     [`--${prefix}-bg-position`]: image.state.objectPosition,
     [`--${prefix}-bg-size`]: `${image.state.zoom}%`,
