@@ -220,6 +220,8 @@ type AdminImageSectionKey =
   | "quickCreate"
   | "siteBackground";
 
+type AdminImageBehavior = "fixed" | "randomOnCreate" | "rotate";
+
 type AdminImageAsset = {
   id: string;
   label: string;
@@ -228,6 +230,7 @@ type AdminImageAsset = {
 };
 
 type AdminImageSectionState = {
+  behavior: AdminImageBehavior;
   customAssets: AdminImageAsset[];
   hiddenAssetIds: string[];
   objectPosition: string;
@@ -336,6 +339,12 @@ const projectImageAssets: Record<string, AdminImageAsset[]> = {
 };
 
 const adminImageSections: Array<{
+  behaviors?: Array<{
+    description: string;
+    label: string;
+    value: AdminImageBehavior;
+  }>;
+  defaultBehavior: AdminImageBehavior;
   defaultOpacity: number;
   defaultPosition: string;
   defaultZoom: number;
@@ -348,6 +357,19 @@ const adminImageSections: Array<{
   title: string;
 }> = [
   {
+    behaviors: [
+      {
+        description: "Le immagini attive si alternano nella card Bentornato.",
+        label: "Alterna immagini",
+        value: "rotate",
+      },
+      {
+        description: "Usa sempre l'immagine selezionata come immagine di benvenuto.",
+        label: "Immagine fissa",
+        value: "fixed",
+      },
+    ],
+    defaultBehavior: "rotate",
     defaultOpacity: 82,
     defaultPosition: "center center",
     defaultZoom: 100,
@@ -360,6 +382,24 @@ const adminImageSections: Array<{
     title: "Immagini di benvenuto",
   },
   {
+    behaviors: [
+      {
+        description: "Ogni nuova competizione riceve una delle immagini attive.",
+        label: "Random alla creazione",
+        value: "randomOnCreate",
+      },
+      {
+        description: "La card torneo può alternare le immagini attive.",
+        label: "Alterna immagini",
+        value: "rotate",
+      },
+      {
+        description: "Usa sempre l'immagine selezionata per le card torneo.",
+        label: "Immagine fissa",
+        value: "fixed",
+      },
+    ],
+    defaultBehavior: "randomOnCreate",
     defaultOpacity: 78,
     defaultPosition: "center center",
     defaultZoom: 108,
@@ -372,6 +412,7 @@ const adminImageSections: Array<{
     title: "Immagini tornei",
   },
   {
+    defaultBehavior: "fixed",
     defaultOpacity: 34,
     defaultPosition: "center center",
     defaultZoom: 115,
@@ -384,6 +425,7 @@ const adminImageSections: Array<{
     title: "Immagine tasto Partecipa",
   },
   {
+    defaultBehavior: "fixed",
     defaultOpacity: 38,
     defaultPosition: "center center",
     defaultZoom: 115,
@@ -396,6 +438,7 @@ const adminImageSections: Array<{
     title: "Immagine tasto Crea",
   },
   {
+    defaultBehavior: "fixed",
     defaultOpacity: 18,
     defaultPosition: "center center",
     defaultZoom: 100,
@@ -2956,6 +2999,7 @@ function createDefaultImageState(): Record<AdminImageSectionKey, AdminImageSecti
     (state, section) => ({
       ...state,
       [section.key]: {
+        behavior: section.defaultBehavior,
         customAssets: [],
         hiddenAssetIds: [],
         objectPosition: section.defaultPosition,
@@ -2966,6 +3010,10 @@ function createDefaultImageState(): Record<AdminImageSectionKey, AdminImageSecti
     }),
     {} as Record<AdminImageSectionKey, AdminImageSectionState>,
   );
+}
+
+function isAdminImageBehavior(value: unknown): value is AdminImageBehavior {
+  return value === "fixed" || value === "randomOnCreate" || value === "rotate";
 }
 
 function cleanProjectAssetPath(value: string) {
@@ -3015,6 +3063,7 @@ function hydrateImageState(settings: AdminImageSettings | null): Record<AdminIma
       ? saved.hiddenAssetIds.filter((assetId): assetId is string => typeof assetId === "string")
       : [];
     const sectionState = {
+      behavior: isAdminImageBehavior(saved?.behavior) ? saved.behavior : defaults[section.key].behavior,
       customAssets,
       hiddenAssetIds,
       objectPosition: typeof saved?.objectPosition === "string" ? saved.objectPosition : defaults[section.key].objectPosition,
@@ -3244,6 +3293,30 @@ function AdminImagesPanel() {
                 zoom={sectionState.zoom}
               />
 
+              {section.behaviors ? (
+                <div className="admin-image-behavior-control" role="radiogroup" aria-label={`Comportamento ${section.title}`}>
+                  {section.behaviors.map((behavior) => (
+                    <button
+                      className={cn(
+                        "admin-image-behavior-option",
+                        sectionState.behavior === behavior.value && "admin-image-behavior-option-active",
+                      )}
+                      key={behavior.value}
+                      onClick={() =>
+                        updateSection(section.key, (current) => ({
+                          ...current,
+                          behavior: behavior.value,
+                        }))
+                      }
+                      type="button"
+                    >
+                      <strong>{behavior.label}</strong>
+                      <span>{behavior.description}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
               <div className="admin-image-controls">
                 <label>
                   <span>Trasparenza</span>
@@ -3367,8 +3440,10 @@ function ImagePreview({
   preview: "welcome" | "tournament" | "quickJoin" | "quickCreate" | "site";
   zoom: number;
 }) {
+  const overlayOpacity = Math.max(0.12, Math.min(0.68, 0.68 - opacity / 170));
   const style = {
     "--admin-image-opacity": String(opacity / 100),
+    "--admin-image-overlay-opacity": overlayOpacity.toFixed(2),
     "--admin-image-position": position,
     "--admin-image-size": `${zoom}%`,
     "--admin-image-url": `url("${asset?.src ?? "/assets/arena-stadium.jpg"}")`,
