@@ -181,34 +181,6 @@
     padding-inline: 1.35rem;
   }
 
-  .public-arenas-hero-emblem {
-    display: none;
-  }
-
-  .public-arenas-glass-frame {
-    display: grid;
-    width: clamp(12rem, 22vw, 18rem);
-    aspect-ratio: 1;
-    place-items: center;
-    border: 1px solid color-mix(in srgb, var(--color-blue-hover) 62%, transparent);
-    border-radius: calc(var(--radius-card) * 1.35);
-    background:
-      radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--color-gold) 20%, transparent), transparent 52%),
-      color-mix(in srgb, var(--color-card) 24%, transparent);
-    box-shadow:
-      inset 0 0 0 1px color-mix(in srgb, var(--color-white) 8%, transparent),
-      0 0 42px color-mix(in srgb, var(--color-blue-hover) 24%, transparent);
-    backdrop-filter: blur(3px);
-  }
-
-  .public-arenas-glass-frame svg {
-    width: 45%;
-    height: 45%;
-    color: var(--color-gold);
-    filter: drop-shadow(0 0 18px color-mix(in srgb, var(--color-gold) 30%, transparent));
-    stroke-width: 1.45;
-  }
-
   .public-arenas-steps {
     padding-block: clamp(1.85rem, 5vw, 2.8rem) clamp(1.3rem, 4vw, 2rem);
   }
@@ -436,12 +408,6 @@
 @media (min-width: 48rem) {
   .public-arenas-hero-inner {
     grid-template-columns: minmax(0, 0.8fr) minmax(20rem, 0.72fr);
-  }
-
-  .public-arenas-hero-emblem {
-    display: grid;
-    justify-items: center;
-    align-items: center;
   }
 
   .public-arenas-step-grid {

@@ -53,12 +53,6 @@ export function PublicArenasPreview() {
                 </ButtonLink>
               </div>
             </div>
-            <div className="public-arenas-hero-emblem" aria-hidden="true">
-              <div className="public-arenas-glass-frame">
-                <Trophy />
-              </div>
-              <span />
-            </div>
           </div>
         </section>
 
