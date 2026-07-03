@@ -3,26 +3,75 @@ export const heroImages = {
   mobile: "/assets/hero-mobile.jpg",
 } as const;
 
+export type PublicHomeImageSlot = {
+  alt: string;
+  objectPosition: string;
+  opacity: number;
+  src: string;
+};
+
+export const publicHomeImages = {
+  hero: {
+    alt: "Trofeo dorato in uno stadio illuminato.",
+    objectPosition: "center center",
+    opacity: 0.94,
+    src: "/assets/dashboard-hero-trophy.png",
+  },
+  privateArena: {
+    alt: "Ingresso premium di una arena privata.",
+    objectPosition: "center center",
+    opacity: 0.74,
+    src: "/assets/dashboard-hero-banners.png",
+  },
+  finalCta: {
+    alt: "Arena notturna pronta per la sfida finale.",
+    objectPosition: "center center",
+    opacity: 0.78,
+    src: "/assets/dashboard-hero-stadium.png",
+  },
+} as const;
+
+export const howItWorksSteps = [
+  {
+    copy: "Apri una sfida privata e prepara il campo per il tuo gruppo.",
+    icon: "users",
+    number: "01",
+    title: "Crea la tua Arena",
+  },
+  {
+    copy: "Condividi l'invito e porta dentro solo chi vuoi davvero sfidare.",
+    icon: "trophy",
+    number: "02",
+    title: "Invita gli amici",
+  },
+  {
+    copy: "Ogni round conta. Una scelta alla volta, fino all'ultimo rimasto.",
+    icon: "crown",
+    number: "03",
+    title: "Sopravvivi",
+  },
+] as const;
+
 export const homeStats = [
   {
     icon: "trophy",
-    label: "Arene Attive",
-    value: "12",
+    label: "Arene create",
+    value: "2.453",
   },
   {
     icon: "users",
-    label: "Utenti Attivi",
-    value: "8.732",
+    label: "Utenti",
+    value: "18.752",
   },
   {
-    icon: "prize",
-    label: "Coppe in Palio",
-    value: "125.000 Coppe",
+    icon: "zap",
+    label: "Round giocati",
+    value: "236.812",
   },
   {
     icon: "crown",
-    label: "Vincitori Totali",
-    value: "342",
+    label: "Competizioni concluse",
+    value: "5.981",
   },
 ] as const;
 
