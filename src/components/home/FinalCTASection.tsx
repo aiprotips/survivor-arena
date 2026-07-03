@@ -1,15 +1,19 @@
+"use client";
+
 import { ArrowRight } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { publicHomeImages } from "@/content/home";
-import { getPublicHomeImageStyle } from "@/components/home/imageSlotStyle";
+import { useRuntimeImageSlotStyle } from "@/components/home/useRuntimeImageSlotStyle";
 
 export function FinalCTASection() {
+  const imageStyle = useRuntimeImageSlotStyle("public-home-final", "publicHomeFinal", publicHomeImages.finalCta);
+
   return (
     <section
       aria-labelledby="public-home-final-title"
       className="public-home-section public-home-final"
       data-image-slot="public-home.finalCta"
-      style={getPublicHomeImageStyle("public-home-final", publicHomeImages.finalCta)}
+      style={imageStyle}
     >
       <div className="public-home-final-image" aria-hidden="true" />
       <div className="public-home-final-copy">

@@ -218,7 +218,13 @@ type AdminImageSectionKey =
   | "tournament"
   | "quickJoin"
   | "quickCreate"
-  | "siteBackground";
+  | "siteBackground"
+  | "publicHomeHero"
+  | "publicHomePrivate"
+  | "publicHomeFinal"
+  | "publicArenasHero"
+  | "publicArenasPrivate"
+  | "publicArenasFinal";
 
 type AdminImageBehavior = "fixed" | "randomOnCreate" | "rotate";
 
@@ -336,7 +342,23 @@ const projectImageAssets: Record<string, AdminImageAsset[]> = {
     { id: "welcome-tunnel", label: "Tunnel arena", src: "/assets/dashboard-hero-tunnel.png" },
     { id: "welcome-stadium", label: "Stadio aperto", src: "/assets/dashboard-hero-stadium.png" },
   ],
+  publicHome: [
+    { id: "public-home-hero-trophy", label: "Home hero trofeo", src: "/assets/dashboard-hero-trophy.png" },
+    { id: "public-home-private-banners", label: "Home arene private", src: "/assets/dashboard-hero-banners.png" },
+    { id: "public-home-final-stadium", label: "Home CTA stadio", src: "/assets/dashboard-hero-stadium.png" },
+  ],
+  publicArenas: [
+    { id: "public-arenas-hero-banners", label: "Arene hero ingresso", src: "/assets/dashboard-hero-banners.png" },
+    { id: "public-arenas-private-tunnel", label: "Arene private tunnel", src: "/assets/dashboard-hero-tunnel.png" },
+    { id: "public-arenas-final-trophy", label: "Arene CTA trofeo", src: "/assets/dashboard-hero-trophy.png" },
+  ],
 };
+
+function prioritizeImageAsset(assets: AdminImageAsset[], assetId: string) {
+  const selected = assets.find((asset) => asset.id === assetId);
+
+  return selected ? [selected, ...assets.filter((asset) => asset.id !== assetId)] : assets;
+}
 
 const adminImageSections: Array<{
   behaviors?: Array<{
@@ -449,6 +471,108 @@ const adminImageSections: Array<{
     recommended: "Consigliato 1920x1080",
     staticAssets: [...projectImageAssets.arena, ...projectImageAssets.dashboard],
     title: "Sfondo sito",
+  },
+  {
+    defaultBehavior: "fixed",
+    defaultOpacity: 94,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    description: "Sfondo principale della Hero nella Home pubblica.",
+    icon: Sparkles,
+    key: "publicHomeHero",
+    preview: "tournament",
+    recommended: "Home pubblica - Hero, 1920x1080",
+    staticAssets: [
+      ...prioritizeImageAsset(projectImageAssets.publicHome, "public-home-hero-trophy"),
+      ...projectImageAssets.dashboard,
+      ...projectImageAssets.arena,
+    ],
+    title: "Home pubblica - Hero",
+  },
+  {
+    defaultBehavior: "fixed",
+    defaultOpacity: 74,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    description: "Immagine del banner Arene private nella Home pubblica.",
+    icon: Shield,
+    key: "publicHomePrivate",
+    preview: "site",
+    recommended: "Home pubblica - Banner, 1920x720",
+    staticAssets: [
+      ...prioritizeImageAsset(projectImageAssets.publicHome, "public-home-private-banners"),
+      ...projectImageAssets.dashboard,
+      ...projectImageAssets.arena,
+    ],
+    title: "Home pubblica - Arene private",
+  },
+  {
+    defaultBehavior: "fixed",
+    defaultOpacity: 78,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    description: "Immagine del banner finale nella Home pubblica.",
+    icon: Crown,
+    key: "publicHomeFinal",
+    preview: "tournament",
+    recommended: "Home pubblica - CTA finale, 1920x720",
+    staticAssets: [
+      ...prioritizeImageAsset(projectImageAssets.publicHome, "public-home-final-stadium"),
+      ...projectImageAssets.dashboard,
+      ...projectImageAssets.arena,
+    ],
+    title: "Home pubblica - CTA finale",
+  },
+  {
+    defaultBehavior: "fixed",
+    defaultOpacity: 92,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    description: "Sfondo principale della Hero nella pagina pubblica Arene.",
+    icon: Images,
+    key: "publicArenasHero",
+    preview: "tournament",
+    recommended: "Arene pubblica - Hero, 1920x1080",
+    staticAssets: [
+      ...prioritizeImageAsset(projectImageAssets.publicArenas, "public-arenas-hero-banners"),
+      ...projectImageAssets.dashboard,
+      ...projectImageAssets.arena,
+    ],
+    title: "Arene pubblica - Hero",
+  },
+  {
+    defaultBehavior: "fixed",
+    defaultOpacity: 76,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    description: "Immagine del banner accesso privato nella pagina Arene.",
+    icon: Shield,
+    key: "publicArenasPrivate",
+    preview: "site",
+    recommended: "Arene pubblica - Banner, 1920x720",
+    staticAssets: [
+      ...prioritizeImageAsset(projectImageAssets.publicArenas, "public-arenas-private-tunnel"),
+      ...projectImageAssets.dashboard,
+      ...projectImageAssets.arena,
+    ],
+    title: "Arene pubblica - Privata",
+  },
+  {
+    defaultBehavior: "fixed",
+    defaultOpacity: 78,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    description: "Immagine del banner finale nella pagina pubblica Arene.",
+    icon: Trophy,
+    key: "publicArenasFinal",
+    preview: "tournament",
+    recommended: "Arene pubblica - CTA finale, 1920x720",
+    staticAssets: [
+      ...prioritizeImageAsset(projectImageAssets.publicArenas, "public-arenas-final-trophy"),
+      ...projectImageAssets.dashboard,
+      ...projectImageAssets.arena,
+    ],
+    title: "Arene pubblica - CTA finale",
   },
 ];
 

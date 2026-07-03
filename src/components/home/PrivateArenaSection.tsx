@@ -1,15 +1,19 @@
+"use client";
+
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { publicHomeImages } from "@/content/home";
-import { getPublicHomeImageStyle } from "@/components/home/imageSlotStyle";
+import { useRuntimeImageSlotStyle } from "@/components/home/useRuntimeImageSlotStyle";
 
 export function PrivateArenaSection() {
+  const imageStyle = useRuntimeImageSlotStyle("public-home-private", "publicHomePrivate", publicHomeImages.privateArena);
+
   return (
     <section
       aria-labelledby="public-home-private-title"
       className="public-home-section public-home-banner public-home-private"
       data-image-slot="public-home.privateArena"
-      style={getPublicHomeImageStyle("public-home-private", publicHomeImages.privateArena)}
+      style={imageStyle}
     >
       <div className="public-home-banner-image" aria-hidden="true" />
       <div className="public-home-banner-copy">

@@ -6,5 +6,6 @@ export function getPublicHomeImageStyle(prefix: string, image: PublicHomeImageSl
     [`--${prefix}-image`]: `url("${image.src}")`,
     [`--${prefix}-image-opacity`]: String(image.opacity),
     [`--${prefix}-image-position`]: image.objectPosition,
+    [`--${prefix}-image-scale`]: String((image.zoom ?? 100) / 100),
   } as CSSProperties;
 }

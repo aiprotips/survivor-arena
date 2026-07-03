@@ -8,6 +8,7 @@ export type PublicHomeImageSlot = {
   objectPosition: string;
   opacity: number;
   src: string;
+  zoom?: number;
 };
 
 export const publicHomeImages = {

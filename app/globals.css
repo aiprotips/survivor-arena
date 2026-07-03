@@ -118,7 +118,7 @@
     background-image: var(--public-arenas-hero-image);
     background-position: var(--public-arenas-hero-image-position, center);
     opacity: var(--public-arenas-hero-image-opacity, 0.92);
-    transform: scale(1.012);
+    transform: scale(calc(var(--public-arenas-hero-image-scale, 1) * 1.012));
   }
 
   .public-arenas-hero-inner {
@@ -298,6 +298,7 @@
     background-image: var(--public-arenas-private-image);
     background-position: var(--public-arenas-private-image-position, center);
     opacity: var(--public-arenas-private-image-opacity, 0.76);
+    transform: scale(var(--public-arenas-private-image-scale, 1));
   }
 
   .public-arenas-private-visual {
@@ -380,6 +381,7 @@
     background-image: var(--public-arenas-final-image);
     background-position: var(--public-arenas-final-image-position, center);
     opacity: var(--public-arenas-final-image-opacity, 0.78);
+    transform: scale(var(--public-arenas-final-image-scale, 1));
   }
 
   .public-arenas-final-copy {
@@ -798,7 +800,7 @@ a {
     background-size: cover;
     opacity: var(--public-home-hero-image-opacity, 0.94);
     filter: saturate(1.08) contrast(1.08);
-    transform: scale(1.015);
+    transform: scale(calc(var(--public-home-hero-image-scale, 1) * 1.015));
   }
 
   .public-home-hero-inner {
@@ -992,6 +994,7 @@ a {
     background-size: cover;
     opacity: var(--public-home-private-image-opacity, 0.74);
     filter: saturate(1.1) contrast(1.04);
+    transform: scale(var(--public-home-private-image-scale, 1));
   }
 
   .public-home-banner-copy {
@@ -1123,6 +1126,7 @@ a {
     background-image: var(--public-home-final-image);
     background-position: var(--public-home-final-image-position, center);
     opacity: var(--public-home-final-image-opacity, 0.78);
+    transform: scale(var(--public-home-final-image-scale, 1));
   }
 
   .public-home-final-copy {

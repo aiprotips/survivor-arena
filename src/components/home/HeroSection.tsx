@@ -1,15 +1,19 @@
+"use client";
+
 import { ArrowRight } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { publicHomeImages } from "@/content/home";
-import { getPublicHomeImageStyle } from "@/components/home/imageSlotStyle";
+import { useRuntimeImageSlotStyle } from "@/components/home/useRuntimeImageSlotStyle";
 
 export function HeroSection() {
+  const imageStyle = useRuntimeImageSlotStyle("public-home-hero", "publicHomeHero", publicHomeImages.hero);
+
   return (
     <section
       aria-labelledby="public-home-hero-title"
       className="public-home-hero"
       data-image-slot="public-home.hero"
-      style={getPublicHomeImageStyle("public-home-hero", publicHomeImages.hero)}
+      style={imageStyle}
     >
       <div className="public-home-hero-image" aria-hidden="true" />
       <div className="public-home-hero-inner">

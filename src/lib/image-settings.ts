@@ -5,7 +5,13 @@ export type AdminImageSectionKey =
   | "tournament"
   | "quickJoin"
   | "quickCreate"
-  | "siteBackground";
+  | "siteBackground"
+  | "publicHomeHero"
+  | "publicHomePrivate"
+  | "publicHomeFinal"
+  | "publicArenasHero"
+  | "publicArenasPrivate"
+  | "publicArenasFinal";
 
 export type AdminImageBehavior = "fixed" | "randomOnCreate" | "rotate";
 
@@ -56,7 +62,23 @@ export const projectImageAssets: Record<string, AdminImageAsset[]> = {
     { id: "welcome-tunnel", label: "Tunnel arena", src: "/assets/dashboard-hero-tunnel.png" },
     { id: "welcome-stadium", label: "Stadio aperto", src: "/assets/dashboard-hero-stadium.png" },
   ],
+  publicHome: [
+    { id: "public-home-hero-trophy", label: "Home hero trofeo", src: "/assets/dashboard-hero-trophy.png" },
+    { id: "public-home-private-banners", label: "Home arene private", src: "/assets/dashboard-hero-banners.png" },
+    { id: "public-home-final-stadium", label: "Home CTA stadio", src: "/assets/dashboard-hero-stadium.png" },
+  ],
+  publicArenas: [
+    { id: "public-arenas-hero-banners", label: "Arene hero ingresso", src: "/assets/dashboard-hero-banners.png" },
+    { id: "public-arenas-private-tunnel", label: "Arene private tunnel", src: "/assets/dashboard-hero-tunnel.png" },
+    { id: "public-arenas-final-trophy", label: "Arene CTA trofeo", src: "/assets/dashboard-hero-trophy.png" },
+  ],
 };
+
+function prioritizeAsset(assets: AdminImageAsset[], assetId: string) {
+  const selected = assets.find((asset) => asset.id === assetId);
+
+  return selected ? [selected, ...assets.filter((asset) => asset.id !== assetId)] : assets;
+}
 
 export const imageSectionDefaults: Record<AdminImageSectionKey, ImageSectionDefaults> = {
   quickCreate: {
@@ -93,6 +115,72 @@ export const imageSectionDefaults: Record<AdminImageSectionKey, ImageSectionDefa
     defaultPosition: "center center",
     defaultZoom: 100,
     staticAssets: projectImageAssets.dashboard,
+  },
+  publicHomeHero: {
+    defaultBehavior: "fixed",
+    defaultOpacity: 94,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    staticAssets: [
+      ...prioritizeAsset(projectImageAssets.publicHome, "public-home-hero-trophy"),
+      ...projectImageAssets.dashboard,
+      ...projectImageAssets.arena,
+    ],
+  },
+  publicHomePrivate: {
+    defaultBehavior: "fixed",
+    defaultOpacity: 74,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    staticAssets: [
+      ...prioritizeAsset(projectImageAssets.publicHome, "public-home-private-banners"),
+      ...projectImageAssets.dashboard,
+      ...projectImageAssets.arena,
+    ],
+  },
+  publicHomeFinal: {
+    defaultBehavior: "fixed",
+    defaultOpacity: 78,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    staticAssets: [
+      ...prioritizeAsset(projectImageAssets.publicHome, "public-home-final-stadium"),
+      ...projectImageAssets.dashboard,
+      ...projectImageAssets.arena,
+    ],
+  },
+  publicArenasHero: {
+    defaultBehavior: "fixed",
+    defaultOpacity: 92,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    staticAssets: [
+      ...prioritizeAsset(projectImageAssets.publicArenas, "public-arenas-hero-banners"),
+      ...projectImageAssets.dashboard,
+      ...projectImageAssets.arena,
+    ],
+  },
+  publicArenasPrivate: {
+    defaultBehavior: "fixed",
+    defaultOpacity: 76,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    staticAssets: [
+      ...prioritizeAsset(projectImageAssets.publicArenas, "public-arenas-private-tunnel"),
+      ...projectImageAssets.dashboard,
+      ...projectImageAssets.arena,
+    ],
+  },
+  publicArenasFinal: {
+    defaultBehavior: "fixed",
+    defaultOpacity: 78,
+    defaultPosition: "center center",
+    defaultZoom: 100,
+    staticAssets: [
+      ...prioritizeAsset(projectImageAssets.publicArenas, "public-arenas-final-trophy"),
+      ...projectImageAssets.dashboard,
+      ...projectImageAssets.arena,
+    ],
   },
 };
 

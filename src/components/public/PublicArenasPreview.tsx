@@ -1,3 +1,5 @@
+"use client";
+
 import {
   ArrowRight,
   CalendarClock,
@@ -12,7 +14,7 @@ import {
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { PublicFooter } from "@/components/home/PublicFooter";
 import { ButtonLink } from "@/components/ui/Button";
-import { getPublicHomeImageStyle } from "@/components/home/imageSlotStyle";
+import { useRuntimeImageSlotStyle } from "@/components/home/useRuntimeImageSlotStyle";
 import { arenaHowItWorksSteps, arenaPrivatePoints, publicArenasImages } from "@/content/public-arenas";
 
 const stepIcons = {
@@ -25,6 +27,14 @@ const stepIcons = {
 const privatePointIcons = [UsersRound, ShieldCheck, UserCheck] as const;
 
 export function PublicArenasPreview() {
+  const heroImageStyle = useRuntimeImageSlotStyle("public-arenas-hero", "publicArenasHero", publicArenasImages.hero);
+  const privateImageStyle = useRuntimeImageSlotStyle(
+    "public-arenas-private",
+    "publicArenasPrivate",
+    publicArenasImages.privateArena,
+  );
+  const finalImageStyle = useRuntimeImageSlotStyle("public-arenas-final", "publicArenasFinal", publicArenasImages.finalCta);
+
   return (
     <>
       <SiteHeader />
@@ -33,7 +43,7 @@ export function PublicArenasPreview() {
           aria-labelledby="public-arenas-hero-title"
           className="public-arenas-hero"
           data-image-slot="public-arenas.hero"
-          style={getPublicHomeImageStyle("public-arenas-hero", publicArenasImages.hero)}
+          style={heroImageStyle}
         >
           <div className="public-arenas-hero-image" aria-hidden="true" />
           <div className="public-arenas-hero-inner">
@@ -80,7 +90,7 @@ export function PublicArenasPreview() {
           aria-labelledby="public-arenas-private-title"
           className="public-arenas-section public-arenas-private"
           data-image-slot="public-arenas.privateArena"
-          style={getPublicHomeImageStyle("public-arenas-private", publicArenasImages.privateArena)}
+          style={privateImageStyle}
         >
           <div className="public-arenas-private-image" aria-hidden="true" />
           <div className="public-arenas-private-visual" aria-hidden="true">
@@ -112,7 +122,7 @@ export function PublicArenasPreview() {
           aria-labelledby="public-arenas-final-title"
           className="public-arenas-section public-arenas-final"
           data-image-slot="public-arenas.finalCta"
-          style={getPublicHomeImageStyle("public-arenas-final", publicArenasImages.finalCta)}
+          style={finalImageStyle}
         >
           <div className="public-arenas-final-image" aria-hidden="true" />
           <div className="public-arenas-final-copy">
