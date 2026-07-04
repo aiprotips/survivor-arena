@@ -40,7 +40,7 @@ export const serieA2026Teams = [
     name: "Atalanta",
     shortName: "Atalanta",
     slug: "atalanta",
-    logoUrl: "/assets/serie-a-2026-2027/atalanta.svg",
+    logoUrl: "/assets/serie-a-2026-2027/atalanta.png",
     active: true
   },
   {
@@ -48,7 +48,7 @@ export const serieA2026Teams = [
     name: "Bologna",
     shortName: "Bologna",
     slug: "bologna",
-    logoUrl: "/assets/serie-a-2026-2027/bologna.svg",
+    logoUrl: "/assets/serie-a-2026-2027/bologna.png",
     active: true
   },
   {
@@ -56,7 +56,7 @@ export const serieA2026Teams = [
     name: "Cagliari",
     shortName: "Cagliari",
     slug: "cagliari",
-    logoUrl: "/assets/serie-a-2026-2027/cagliari.svg",
+    logoUrl: "/assets/serie-a-2026-2027/cagliari.png",
     active: true
   },
   {
@@ -64,7 +64,7 @@ export const serieA2026Teams = [
     name: "Como",
     shortName: "Como",
     slug: "como",
-    logoUrl: "/assets/serie-a-2026-2027/como.svg",
+    logoUrl: "/assets/serie-a-2026-2027/como.png",
     active: true
   },
   {
@@ -72,7 +72,7 @@ export const serieA2026Teams = [
     name: "Fiorentina",
     shortName: "Fiorentina",
     slug: "fiorentina",
-    logoUrl: "/assets/serie-a-2026-2027/fiorentina.svg",
+    logoUrl: "/assets/serie-a-2026-2027/fiorentina.png",
     active: true
   },
   {
@@ -80,7 +80,7 @@ export const serieA2026Teams = [
     name: "Frosinone",
     shortName: "Frosinone",
     slug: "frosinone",
-    logoUrl: "/assets/serie-a-2026-2027/frosinone.svg",
+    logoUrl: "/assets/serie-a-2026-2027/frosinone.png",
     active: true
   },
   {
@@ -88,7 +88,7 @@ export const serieA2026Teams = [
     name: "Genoa",
     shortName: "Genoa",
     slug: "genoa",
-    logoUrl: "/assets/serie-a-2026-2027/genoa.svg",
+    logoUrl: "/assets/serie-a-2026-2027/genoa.png",
     active: true
   },
   {
@@ -96,7 +96,7 @@ export const serieA2026Teams = [
     name: "Inter",
     shortName: "Inter",
     slug: "inter",
-    logoUrl: "/assets/serie-a-2026-2027/inter.svg",
+    logoUrl: "/assets/serie-a-2026-2027/inter.png",
     active: true
   },
   {
@@ -104,7 +104,7 @@ export const serieA2026Teams = [
     name: "Juventus",
     shortName: "Juventus",
     slug: "juventus",
-    logoUrl: "/assets/serie-a-2026-2027/juventus.svg",
+    logoUrl: "/assets/serie-a-2026-2027/juventus.png",
     active: true
   },
   {
@@ -112,7 +112,7 @@ export const serieA2026Teams = [
     name: "Lazio",
     shortName: "Lazio",
     slug: "lazio",
-    logoUrl: "/assets/serie-a-2026-2027/lazio.svg",
+    logoUrl: "/assets/serie-a-2026-2027/lazio.png",
     active: true
   },
   {
@@ -120,7 +120,7 @@ export const serieA2026Teams = [
     name: "Lecce",
     shortName: "Lecce",
     slug: "lecce",
-    logoUrl: "/assets/serie-a-2026-2027/lecce.svg",
+    logoUrl: "/assets/serie-a-2026-2027/lecce.png",
     active: true
   },
   {
@@ -128,7 +128,7 @@ export const serieA2026Teams = [
     name: "Milan",
     shortName: "Milan",
     slug: "milan",
-    logoUrl: "/assets/serie-a-2026-2027/milan.svg",
+    logoUrl: "/assets/serie-a-2026-2027/milan.png",
     active: true
   },
   {
@@ -136,7 +136,7 @@ export const serieA2026Teams = [
     name: "Monza",
     shortName: "Monza",
     slug: "monza",
-    logoUrl: "/assets/serie-a-2026-2027/monza.svg",
+    logoUrl: "/assets/serie-a-2026-2027/monza.png",
     active: true
   },
   {
@@ -144,7 +144,7 @@ export const serieA2026Teams = [
     name: "Napoli",
     shortName: "Napoli",
     slug: "napoli",
-    logoUrl: "/assets/serie-a-2026-2027/napoli.svg",
+    logoUrl: "/assets/serie-a-2026-2027/napoli.png",
     active: true
   },
   {
@@ -152,7 +152,7 @@ export const serieA2026Teams = [
     name: "Parma",
     shortName: "Parma",
     slug: "parma",
-    logoUrl: "/assets/serie-a-2026-2027/parma.svg",
+    logoUrl: "/assets/serie-a-2026-2027/parma.png",
     active: true
   },
   {
@@ -160,7 +160,7 @@ export const serieA2026Teams = [
     name: "Roma",
     shortName: "Roma",
     slug: "roma",
-    logoUrl: "/assets/serie-a-2026-2027/roma.svg",
+    logoUrl: "/assets/serie-a-2026-2027/roma.png",
     active: true
   },
   {
@@ -168,7 +168,7 @@ export const serieA2026Teams = [
     name: "Sassuolo",
     shortName: "Sassuolo",
     slug: "sassuolo",
-    logoUrl: "/assets/serie-a-2026-2027/sassuolo.svg",
+    logoUrl: "/assets/serie-a-2026-2027/sassuolo.png",
     active: true
   },
   {
@@ -176,7 +176,7 @@ export const serieA2026Teams = [
     name: "Torino",
     shortName: "Torino",
     slug: "torino",
-    logoUrl: "/assets/serie-a-2026-2027/torino.svg",
+    logoUrl: "/assets/serie-a-2026-2027/torino.png",
     active: true
   },
   {
@@ -184,7 +184,7 @@ export const serieA2026Teams = [
     name: "Udinese",
     shortName: "Udinese",
     slug: "udinese",
-    logoUrl: "/assets/serie-a-2026-2027/udinese.svg",
+    logoUrl: "/assets/serie-a-2026-2027/udinese.png",
     active: true
   },
   {
@@ -192,7 +192,7 @@ export const serieA2026Teams = [
     name: "Venezia",
     shortName: "Venezia",
     slug: "venezia",
-    logoUrl: "/assets/serie-a-2026-2027/venezia.svg",
+    logoUrl: "/assets/serie-a-2026-2027/venezia.png",
     active: true
   }
 ] as const satisfies readonly AutomaticFixtureTeamSeed[];
