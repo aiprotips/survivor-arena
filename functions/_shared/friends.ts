@@ -5,10 +5,16 @@ import {
   getTeam,
   isDeadlinePassed,
   listTeams,
+  normalizeTeamName,
   type ArenaError,
   type MatchResult,
   type SelectionSide,
 } from "./arena";
+import {
+  getAutomaticFixtureMatchday,
+  getNextAutomaticFixtureMatchday,
+  listAutomaticFixtureCompetitions,
+} from "./automatic-fixtures";
 import { createUserInboxMessage } from "./messages";
 import { findUserByIdentifier } from "./users";
 
@@ -22,6 +28,7 @@ export type FriendsCompetitionRow = {
   description: string | null;
   id: string;
   invite_code: string;
+  fixture_competition_id: string | null;
   name: string;
   owner_user_id: string;
   owner_username?: string;
@@ -37,6 +44,8 @@ export type FriendsRoundRow = {
   competition_id: string;
   created_at: string;
   deadline_at: string | null;
+  fixture_competition_id: string | null;
+  fixture_matchday: number | null;
   id: string;
   round_number: number;
   status: FriendsRoundStatus;
@@ -130,9 +139,14 @@ type FriendsMatchInput = {
   isActive: boolean;
 };
 
+type FriendsMatchMode = "automatic" | "manual";
+
 export type FriendsCompetitionInput = {
   deadlineAt: string | null;
   description: string | null;
+  fixtureCompetitionId: string | null;
+  fixtureMatchday: number | null;
+  matchMode: FriendsMatchMode;
   matches: FriendsMatchInput[];
   name: string;
   rules: string | null;
@@ -159,6 +173,12 @@ function toOptionalText(value: unknown) {
   const text = toText(value);
 
   return text ? text : null;
+}
+
+function toPositiveInteger(value: unknown) {
+  const parsed = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function teamUsageKey(teamId: string, teamName: string) {
@@ -216,6 +236,7 @@ export async function ensureFriendsSchema(db: D1Database) {
     )`,
   );
   await runSchema(db, "ALTER TABLE friends_competitions ADD COLUMN show_popular_picks_before_deadline INTEGER NOT NULL DEFAULT 0");
+  await runSchema(db, "ALTER TABLE friends_competitions ADD COLUMN fixture_competition_id TEXT");
   await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_competitions_owner ON friends_competitions (owner_user_id, status)");
   await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_competitions_invite_code ON friends_competitions (invite_code)");
   await runSchema(
@@ -232,6 +253,8 @@ export async function ensureFriendsSchema(db: D1Database) {
       UNIQUE (competition_id, round_number)
     )`,
   );
+  await runSchema(db, "ALTER TABLE friends_rounds ADD COLUMN fixture_competition_id TEXT");
+  await runSchema(db, "ALTER TABLE friends_rounds ADD COLUMN fixture_matchday INTEGER");
   await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_rounds_competition ON friends_rounds (competition_id, round_number)");
   await runSchema(
     db,
@@ -337,6 +360,10 @@ export async function ensureFriendsSchema(db: D1Database) {
 
 export function parseFriendsCompetitionInput(body: Record<string, unknown>): FriendsCompetitionInput {
   const name = toText(body.name);
+  const rawMatchMode = toText(body.matchMode ?? body.match_mode ?? body.insertMode ?? body.insert_mode).toLowerCase();
+  const matchMode: FriendsMatchMode = rawMatchMode === "automatic" ? "automatic" : "manual";
+  const fixtureCompetitionId = toOptionalText(body.fixtureCompetitionId ?? body.fixture_competition_id);
+  const fixtureMatchday = toPositiveInteger(body.fixtureMatchday ?? body.fixture_matchday);
   const matchesInput = Array.isArray(body.matches) ? body.matches : [];
   const matches = matchesInput.map((match) => {
     const item = match && typeof match === "object" ? match as Record<string, unknown> : {};
@@ -349,15 +376,67 @@ export function parseFriendsCompetitionInput(body: Record<string, unknown>): Fri
   });
 
   assertFriends(name.length >= 3, "Inserisci un nome competizione valido.");
-  assertFriends(matches.length > 0, "Aggiungi almeno un match al round iniziale.");
+  if (matchMode === "automatic") {
+    assertFriends(fixtureCompetitionId, "Seleziona una competizione automatica.");
+    assertFriends(fixtureMatchday, "Seleziona una giornata valida.");
+  } else {
+    assertFriends(matches.length > 0, "Aggiungi almeno un match al round iniziale.");
+  }
 
   return {
     deadlineAt: toOptionalText(body.deadlineAt ?? body.deadline_at),
     description: toOptionalText(body.description),
+    fixtureCompetitionId,
+    fixtureMatchday,
+    matchMode,
     matches,
     name,
     rules: toOptionalText(body.rules),
   };
+}
+
+export function listFriendsAutomaticCompetitions() {
+  return listAutomaticFixtureCompetitions();
+}
+
+async function buildAutomaticMatchInputs(
+  db: D1Database,
+  fixtureCompetitionId: string | null,
+  fixtureMatchday: number | null,
+) {
+  assertFriends(fixtureCompetitionId, "Seleziona una competizione automatica.");
+  assertFriends(fixtureMatchday, "Seleziona una giornata valida.");
+
+  const fixture = getAutomaticFixtureMatchday(fixtureCompetitionId, fixtureMatchday);
+  assertFriends(fixture, "Giornata automatica non trovata.", 404);
+
+  const teamRows = await listTeams(db);
+  const rowsByNormalizedName = new Map(teamRows.map((team) => [normalizeTeamName(team.name), team]));
+  const seedBySlug = new Map(fixture.competition.teams.map((team) => [team.slug, team]));
+
+  return fixture.matchday.matches.map((match) => {
+    const homeSeed = seedBySlug.get(match.homeTeamSlug);
+    const awaySeed = seedBySlug.get(match.awayTeamSlug);
+
+    assertFriends(homeSeed && awaySeed, "Squadre automatiche non trovate nel calendario.", 500);
+
+    const homeTeam = rowsByNormalizedName.get(normalizeTeamName(homeSeed.name));
+    const awayTeam = rowsByNormalizedName.get(normalizeTeamName(awaySeed.name));
+
+    assertFriends(homeTeam && awayTeam, "Squadre automatiche non presenti nel catalogo.", 500);
+
+    return {
+      awayTeamId: awayTeam.id,
+      homeTeamId: homeTeam.id,
+      isActive: true,
+    } satisfies FriendsMatchInput;
+  });
+}
+
+async function resolveCompetitionMatches(db: D1Database, input: FriendsCompetitionInput) {
+  return input.matchMode === "automatic"
+    ? buildAutomaticMatchInputs(db, input.fixtureCompetitionId, input.fixtureMatchday)
+    : input.matches;
 }
 
 export function getFriendsError(error: unknown, fallback = "Operazione Friends non riuscita.") {
@@ -417,6 +496,8 @@ async function logFriendsEvent(
 export async function createFriendsCompetition(db: D1Database, input: FriendsCompetitionInput, ownerUserId: string) {
   await ensureFriendsSchema(db);
   assertFriends(input.deadlineAt, "Imposta una deadline per creare la competizione.");
+  const matches = await resolveCompetitionMatches(db, input);
+  assertFriends(matches.length > 0, "Aggiungi almeno un match al round iniziale.");
 
   const now = nowIso();
   const competitionId = crypto.randomUUID();
@@ -428,8 +509,8 @@ export async function createFriendsCompetition(db: D1Database, input: FriendsCom
     .prepare(
       `INSERT INTO friends_competitions (
         id, owner_user_id, name, description, rules, invite_code, status, current_round_number,
-        created_at, updated_at, published_at, completed_at
-      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 1, ?8, ?8, ?9, NULL)`,
+        fixture_competition_id, created_at, updated_at, published_at, completed_at
+      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 1, ?8, ?9, ?9, ?10, NULL)`,
     )
     .bind(
       competitionId,
@@ -439,6 +520,7 @@ export async function createFriendsCompetition(db: D1Database, input: FriendsCom
       input.rules,
       createInviteCode(),
       status,
+      input.matchMode === "automatic" ? input.fixtureCompetitionId : null,
       now,
       now,
     )
@@ -447,13 +529,22 @@ export async function createFriendsCompetition(db: D1Database, input: FriendsCom
   await db
     .prepare(
       `INSERT INTO friends_rounds (
-        id, competition_id, round_number, deadline_at, status, created_at, updated_at, calculated_at
-      ) VALUES (?1, ?2, 1, ?3, ?4, ?5, ?5, NULL)`,
+        id, competition_id, round_number, deadline_at, status, fixture_competition_id, fixture_matchday,
+        created_at, updated_at, calculated_at
+      ) VALUES (?1, ?2, 1, ?3, ?4, ?5, ?6, ?7, ?7, NULL)`,
     )
-    .bind(roundId, competitionId, input.deadlineAt, roundStatus, now)
+    .bind(
+      roundId,
+      competitionId,
+      input.deadlineAt,
+      roundStatus,
+      input.matchMode === "automatic" ? input.fixtureCompetitionId : null,
+      input.matchMode === "automatic" ? input.fixtureMatchday : null,
+      now,
+    )
     .run();
 
-  for (const match of input.matches) {
+  for (const match of matches) {
     await insertFriendsMatch(db, {
       awayTeamId: match.awayTeamId,
       competitionId,
@@ -555,7 +646,17 @@ async function getFriendsCompetition(db: D1Database, competitionId: string) {
 async function listFriendsRounds(db: D1Database, competitionId: string) {
   const rows = await db
     .prepare(
-      `SELECT id, competition_id, round_number, deadline_at, status, created_at, updated_at, calculated_at
+      `SELECT
+         id,
+         competition_id,
+         round_number,
+         deadline_at,
+         status,
+         created_at,
+         updated_at,
+         calculated_at,
+         fixture_competition_id,
+         fixture_matchday
        FROM friends_rounds
        WHERE competition_id = ?1
        ORDER BY round_number ASC`,
@@ -598,7 +699,17 @@ async function listFriendsMatches(db: D1Database, roundId: string) {
 async function getFriendsRound(db: D1Database, roundId: string) {
   return db
     .prepare(
-      `SELECT id, competition_id, round_number, deadline_at, status, created_at, updated_at, calculated_at
+      `SELECT
+         id,
+         competition_id,
+         round_number,
+         deadline_at,
+         status,
+         created_at,
+         updated_at,
+         calculated_at,
+         fixture_competition_id,
+         fixture_matchday
        FROM friends_rounds
        WHERE id = ?1
        LIMIT 1`,
@@ -610,7 +721,17 @@ async function getFriendsRound(db: D1Database, roundId: string) {
 async function getCurrentFriendsRound(db: D1Database, competition: FriendsCompetitionRow) {
   return db
     .prepare(
-      `SELECT id, competition_id, round_number, deadline_at, status, created_at, updated_at, calculated_at
+      `SELECT
+         id,
+         competition_id,
+         round_number,
+         deadline_at,
+         status,
+         created_at,
+         updated_at,
+         calculated_at,
+         fixture_competition_id,
+         fixture_matchday
        FROM friends_rounds
        WHERE competition_id = ?1 AND round_number = ?2
        LIMIT 1`,
@@ -1481,6 +1602,88 @@ export async function updateFriendsMatch(
   return getFriendsCompetitionBundle(db, input.competitionId, input.organizerId);
 }
 
+export async function addFriendsAutomaticMatchday(
+  db: D1Database,
+  input: {
+    competitionId: string;
+    fixtureCompetitionId: string | null;
+    fixtureMatchday: number | null;
+    organizerId: string;
+    roundId: string;
+  },
+) {
+  await ensureFriendsSchema(db);
+  const competition = await assertOwner(db, input.competitionId, input.organizerId);
+  const round = await getFriendsRound(db, input.roundId);
+  assertFriends(round && round.competition_id === input.competitionId, "Round non trovato.", 404);
+  assertFriends(round.status !== "CALCULATED", "Round già calcolato.", 409);
+
+  const matches = await buildAutomaticMatchInputs(db, input.fixtureCompetitionId, input.fixtureMatchday);
+  const now = nowIso();
+  let inserted = 0;
+
+  for (const match of matches) {
+    const existing = await db
+      .prepare(
+        `SELECT id
+         FROM friends_matches
+         WHERE round_id = ?1 AND home_team_id = ?2 AND away_team_id = ?3
+         LIMIT 1`,
+      )
+      .bind(input.roundId, match.homeTeamId, match.awayTeamId)
+      .first<{ id: string }>();
+
+    if (existing) {
+      continue;
+    }
+
+    await insertFriendsMatch(db, {
+      awayTeamId: match.awayTeamId,
+      competitionId: input.competitionId,
+      homeTeamId: match.homeTeamId,
+      isActive: true,
+      roundId: input.roundId,
+    });
+    inserted += 1;
+  }
+
+  await db
+    .prepare(
+      `UPDATE friends_rounds
+       SET fixture_competition_id = ?1,
+           fixture_matchday = ?2,
+           updated_at = ?3
+       WHERE id = ?4`,
+    )
+    .bind(input.fixtureCompetitionId, input.fixtureMatchday, now, round.id)
+    .run();
+
+  await db
+    .prepare(
+      `UPDATE friends_competitions
+       SET fixture_competition_id = COALESCE(fixture_competition_id, ?1),
+           updated_at = ?2
+       WHERE id = ?3`,
+    )
+    .bind(input.fixtureCompetitionId, now, competition.id)
+    .run();
+
+  await logFriendsEvent(db, {
+    competitionId: input.competitionId,
+    eventType: "friends_automatic_matchday_imported",
+    message: `Giornata automatica importata: ${inserted} match aggiunti.`,
+    metadata: {
+      fixtureCompetitionId: input.fixtureCompetitionId,
+      fixtureMatchday: input.fixtureMatchday,
+      inserted,
+    },
+    roundId: input.roundId,
+    userId: input.organizerId,
+  });
+
+  return getFriendsCompetitionBundle(db, input.competitionId, input.organizerId);
+}
+
 export async function updateFriendsMatchActiveState(
   db: D1Database,
   input: {
@@ -1809,14 +2012,28 @@ async function completeFriendsCompetition(db: D1Database, competition: FriendsCo
 async function ensureNextFriendsRound(db: D1Database, competition: FriendsCompetitionRow, currentRound: FriendsRoundRow) {
   const nextRoundNumber = currentRound.round_number + 1;
   const now = nowIso();
+  const suggestedNextFixture = getNextAutomaticFixtureMatchday(
+    currentRound.fixture_competition_id,
+    currentRound.fixture_matchday,
+  );
+  const suggestedFixtureCompetitionId = suggestedNextFixture?.competition.id ?? currentRound.fixture_competition_id ?? null;
+  const suggestedFixtureMatchday = suggestedNextFixture?.matchday.number ?? null;
 
   await db
     .prepare(
       `INSERT OR IGNORE INTO friends_rounds (
-        id, competition_id, round_number, deadline_at, status, created_at, updated_at, calculated_at
-      ) VALUES (?1, ?2, ?3, NULL, 'PENDING', ?4, ?4, NULL)`,
+        id, competition_id, round_number, deadline_at, status, fixture_competition_id, fixture_matchday,
+        created_at, updated_at, calculated_at
+      ) VALUES (?1, ?2, ?3, NULL, 'PENDING', ?4, ?5, ?6, ?6, NULL)`,
     )
-    .bind(crypto.randomUUID(), competition.id, nextRoundNumber, now)
+    .bind(
+      crypto.randomUUID(),
+      competition.id,
+      nextRoundNumber,
+      suggestedFixtureCompetitionId,
+      suggestedFixtureMatchday,
+      now,
+    )
     .run();
   await db
     .prepare("UPDATE friends_competitions SET status = 'ACTIVE', current_round_number = ?1, updated_at = ?2 WHERE id = ?3")

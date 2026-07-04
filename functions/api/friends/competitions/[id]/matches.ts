@@ -1,7 +1,13 @@
 /// <reference types="@cloudflare/workers-types" />
 
 import { requireUser } from "../../../../_shared/access";
-import { deleteFriendsMatch, getFriendsError, updateFriendsMatch, updateFriendsMatchActiveState } from "../../../../_shared/friends";
+import {
+  addFriendsAutomaticMatchday,
+  deleteFriendsMatch,
+  getFriendsError,
+  updateFriendsMatch,
+  updateFriendsMatchActiveState,
+} from "../../../../_shared/friends";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../../../_shared/http";
 
 type Env = {
@@ -28,6 +34,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   try {
+    const matchMode = String(body.matchMode ?? body.match_mode ?? "").toLowerCase();
+
+    if (matchMode === "automatic") {
+      const competition = await addFriendsAutomaticMatchday(context.env.DB, {
+        competitionId: getParam(context.params.id),
+        fixtureCompetitionId: String(body.fixtureCompetitionId ?? body.fixture_competition_id ?? ""),
+        fixtureMatchday: Number.parseInt(String(body.fixtureMatchday ?? body.fixture_matchday ?? ""), 10),
+        organizerId: auth.user.id,
+        roundId: String(body.roundId ?? body.round_id ?? ""),
+      });
+
+      return json({ competition, ok: true }, { status: 201 });
+    }
+
     const competition = await updateFriendsMatch(context.env.DB, {
       awayTeamId: String(body.awayTeamId ?? body.away_team_id ?? ""),
       competitionId: getParam(context.params.id),

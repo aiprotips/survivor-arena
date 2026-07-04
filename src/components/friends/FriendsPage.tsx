@@ -49,6 +49,23 @@ type Team = {
   name: string;
 };
 
+type AutomaticMatchday = {
+  label: string;
+  matchCount: number;
+  number: number;
+  sourceDate: string | null;
+};
+
+type AutomaticCompetition = {
+  country: string;
+  id: string;
+  matchdays: AutomaticMatchday[];
+  name: string;
+  season: string;
+  sourceName: string;
+  sourceUrl: string;
+};
+
 type FriendsMatch = {
   away_team: string;
   away_team_id: string;
@@ -65,6 +82,8 @@ type FriendsMatch = {
 type FriendsRound = {
   calculated_at: string | null;
   deadline_at: string | null;
+  fixture_competition_id: string | null;
+  fixture_matchday: number | null;
   id: string;
   matches: FriendsMatch[];
   round_number: number;
@@ -114,6 +133,7 @@ type FriendsCompetition = {
     username: string | null;
   }>;
   id: string;
+  fixture_competition_id: string | null;
   invitation_count: number;
   invite_code: string;
   is_owner: boolean;
@@ -164,6 +184,16 @@ type TeamsResponse =
       ok: false;
     };
 
+type AutomaticCompetitionsResponse =
+  | {
+      competitions: AutomaticCompetition[];
+      ok: true;
+    }
+  | {
+      message: string;
+      ok: false;
+    };
+
 type ImageSettingsResponse =
   | {
       ok: true;
@@ -178,6 +208,13 @@ type DraftMatch = {
   awayTeamId: string;
   homeTeamId: string;
   isActive: boolean;
+};
+
+type MatchInsertMode = "automatic" | "manual";
+
+type AutomaticFixtureSelection = {
+  competitionId: string;
+  matchday: number;
 };
 
 type FriendsMutate = (url: string, init?: RequestInit) => Promise<FriendsCompetition | null>;
@@ -195,6 +232,30 @@ const emptyMatch: DraftMatch = {
   homeTeamId: "",
   isActive: true,
 };
+
+function getDefaultAutomaticFixtureSelection(
+  automaticCompetitions: AutomaticCompetition[],
+  preferredCompetitionId?: string | null,
+  preferredMatchday?: number | null,
+): AutomaticFixtureSelection {
+  const competition =
+    automaticCompetitions.find((item) => item.id === preferredCompetitionId) ?? automaticCompetitions[0] ?? null;
+  const matchday =
+    competition?.matchdays.find((item) => item.number === preferredMatchday) ?? competition?.matchdays[0] ?? null;
+
+  return {
+    competitionId: competition?.id ?? "",
+    matchday: matchday?.number ?? 0,
+  };
+}
+
+function getAutomaticCompetition(automaticCompetitions: AutomaticCompetition[], competitionId: string) {
+  return automaticCompetitions.find((competition) => competition.id === competitionId) ?? null;
+}
+
+function getAutomaticMatchday(competition: AutomaticCompetition | null, matchday: number) {
+  return competition?.matchdays.find((item) => item.number === matchday) ?? null;
+}
 
 async function fetchJson<TResponse>(url: string, init?: RequestInit) {
   const response = await fetch(url, {
@@ -404,6 +465,7 @@ function buildFriendsPopularChoices(competition: FriendsCompetition, round: Frie
 }
 
 function useFriendsData(loadTeams = true) {
+  const [automaticCompetitions, setAutomaticCompetitions] = useState<AutomaticCompetition[]>([]);
   const [competitions, setCompetitions] = useState<FriendsCompetition[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedId, setSelectedId] = useState("");
@@ -418,6 +480,7 @@ function useFriendsData(loadTeams = true) {
     async function loadInitialData() {
       const competitionData = await fetchJson<FriendsResponse>("/api/friends/competitions");
       const teamData = loadTeams ? await fetchJson<TeamsResponse>("/api/friends/teams") : null;
+      const automaticData = loadTeams ? await fetchJson<AutomaticCompetitionsResponse>("/api/friends/automatic-competitions") : null;
 
       if (!isMounted) {
         return;
@@ -435,6 +498,14 @@ function useFriendsData(loadTeams = true) {
           setTeams(teamData.teams);
         } else {
           setMessage(teamData.message);
+        }
+      }
+
+      if (automaticData) {
+        if (automaticData.ok) {
+          setAutomaticCompetitions(automaticData.competitions);
+        } else {
+          setMessage(automaticData.message);
         }
       }
 
@@ -476,6 +547,7 @@ function useFriendsData(loadTeams = true) {
   }
 
   return {
+    automaticCompetitions,
     competitions,
     isLoading,
     message,
@@ -667,7 +739,7 @@ export function FriendsPage({
   user: AccountUser;
   view?: FriendsPageView;
 }) {
-  const { competitions, isLoading, message, mutate, selected, teams } = useFriendsData(true);
+  const { automaticCompetitions, competitions, isLoading, message, mutate, selected, teams } = useFriendsData(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const activeCompetitions = competitions.filter((competition) => !isFinishedCompetition(competition));
@@ -720,6 +792,7 @@ export function FriendsPage({
           isLoading={isLoading}
           mutate={mutate}
           showManagerTools={isManagerDetail}
+          automaticCompetitions={automaticCompetitions}
           teams={teams}
           user={user}
         />
@@ -740,6 +813,7 @@ export function FriendsPage({
         <CreateCompetitionModal
           onClose={() => setIsCreateOpen(false)}
           onCreate={mutate}
+          automaticCompetitions={automaticCompetitions}
           teams={teams}
         />
       ) : null}
@@ -755,6 +829,7 @@ export function FriendsPage({
 }
 
 function FriendsDetailView({
+  automaticCompetitions,
   backHref,
   backLabel,
   competition,
@@ -764,6 +839,7 @@ function FriendsDetailView({
   teams,
   user,
 }: {
+  automaticCompetitions: AutomaticCompetition[];
   backHref: string;
   backLabel: string;
   competition: FriendsCompetition | null;
@@ -793,6 +869,7 @@ function FriendsDetailView({
     return (
       <FriendsManagerCompetitionView
         backHref={backHref}
+        automaticCompetitions={automaticCompetitions}
         competition={competition}
         mutate={mutate}
         teams={teams}
@@ -834,12 +911,14 @@ type FriendsManagerModal =
   | null;
 
 function FriendsManagerCompetitionView({
+  automaticCompetitions,
   backHref,
   competition,
   mutate,
   teams,
   user,
 }: {
+  automaticCompetitions: AutomaticCompetition[];
   backHref: string;
   competition: FriendsCompetition;
   mutate: FriendsMutate;
@@ -960,7 +1039,14 @@ function FriendsManagerCompetitionView({
       ) : null}
 
       {modal?.type === "add-match" && currentRound ? (
-        <AddMatchModal competition={competition} currentRound={currentRound} mutate={mutate} onClose={() => setModal(null)} teams={teams} />
+        <AddMatchModal
+          automaticCompetitions={automaticCompetitions}
+          competition={competition}
+          currentRound={currentRound}
+          mutate={mutate}
+          onClose={() => setModal(null)}
+          teams={teams}
+        />
       ) : null}
 
       {modal?.type === "deadline" && currentRound ? (
@@ -1581,12 +1667,14 @@ function AddParticipantModal({
 }
 
 function AddMatchModal({
+  automaticCompetitions,
   competition,
   currentRound,
   mutate,
   onClose,
   teams,
 }: {
+  automaticCompetitions: AutomaticCompetition[];
   competition: FriendsCompetition;
   currentRound: FriendsRound;
   mutate: FriendsMutate;
@@ -1594,13 +1682,31 @@ function AddMatchModal({
   teams: Team[];
 }) {
   const [newMatch, setNewMatch] = useState<DraftMatch>({ ...emptyMatch });
+  const [matchMode, setMatchMode] = useState<MatchInsertMode>(automaticCompetitions.length > 0 ? "automatic" : "manual");
+  const [fixtureSelection, setFixtureSelection] = useState<AutomaticFixtureSelection>(() =>
+    getDefaultAutomaticFixtureSelection(automaticCompetitions, currentRound.fixture_competition_id, currentRound.fixture_matchday),
+  );
+  const selectedAutomaticCompetition = getAutomaticCompetition(automaticCompetitions, fixtureSelection.competitionId);
+  const selectedAutomaticMatchday = getAutomaticMatchday(selectedAutomaticCompetition, fixtureSelection.matchday);
+  const isAutomaticReady = Boolean(selectedAutomaticCompetition && selectedAutomaticMatchday);
+  const isManualReady = Boolean(newMatch.homeTeamId && newMatch.awayTeamId && newMatch.homeTeamId !== newMatch.awayTeamId);
 
   async function submit() {
+    const body =
+      matchMode === "automatic"
+        ? {
+            fixtureCompetitionId: fixtureSelection.competitionId,
+            fixtureMatchday: fixtureSelection.matchday,
+            matchMode,
+            roundId: currentRound.id,
+          }
+        : {
+            ...newMatch,
+            roundId: currentRound.id,
+          };
+
     const updated = await mutate(`/api/friends/competitions/${competition.id}/matches`, {
-      body: JSON.stringify({
-        ...newMatch,
-        roundId: currentRound.id,
-      }),
+      body: JSON.stringify(body),
       method: "POST",
     });
 
@@ -1611,16 +1717,36 @@ function AddMatchModal({
 
   return (
     <ManagerModalShell kicker="Round corrente" onClose={onClose} title="Aggiungi Match">
-      <div className="friends-manager-form-grid">
-        <TeamSelect label="Squadra Casa" onChange={(value) => setNewMatch((current) => ({ ...current, homeTeamId: value }))} teams={teams} value={newMatch.homeTeamId} />
-        <TeamSelect label="Squadra Trasferta" onChange={(value) => setNewMatch((current) => ({ ...current, awayTeamId: value }))} teams={teams} value={newMatch.awayTeamId} />
-      </div>
+      <MatchInsertModeControl
+        automaticDisabled={automaticCompetitions.length === 0}
+        mode={matchMode}
+        onChange={setMatchMode}
+      />
+
+      {matchMode === "automatic" ? (
+        <AutomaticFixturePicker
+          automaticCompetitions={automaticCompetitions}
+          onChange={setFixtureSelection}
+          selection={fixtureSelection}
+        />
+      ) : (
+        <div className="friends-manager-form-grid">
+          <TeamSelect label="Squadra Casa" onChange={(value) => setNewMatch((current) => ({ ...current, homeTeamId: value }))} teams={teams} value={newMatch.homeTeamId} />
+          <TeamSelect label="Squadra Trasferta" onChange={(value) => setNewMatch((current) => ({ ...current, awayTeamId: value }))} teams={teams} value={newMatch.awayTeamId} />
+        </div>
+      )}
+
+      {matchMode === "automatic" ? (
+        <p className="friends-manager-form-note">
+          Verranno importate tutte le partite della giornata selezionata nel round corrente. Eventuali match già presenti non verranno duplicati.
+        </p>
+      ) : null}
       <div className="arena-modal-actions">
         <Button onClick={onClose} type="button" variant="secondary">
           Annulla
         </Button>
-        <Button disabled={!newMatch.homeTeamId || !newMatch.awayTeamId || newMatch.homeTeamId === newMatch.awayTeamId} onClick={() => void submit()} type="button">
-          Aggiungi
+        <Button disabled={matchMode === "automatic" ? !isAutomaticReady : !isManualReady} onClick={() => void submit()} type="button">
+          {matchMode === "automatic" ? "Carica giornata" : "Aggiungi"}
         </Button>
       </div>
     </ManagerModalShell>
@@ -2571,10 +2697,12 @@ function ManagerView({
 }
 
 function CreateCompetitionModal({
+  automaticCompetitions,
   onClose,
   onCreate,
   teams,
 }: {
+  automaticCompetitions: AutomaticCompetition[];
   onClose: () => void;
   onCreate: (url: string, init?: RequestInit) => Promise<FriendsCompetition | null>;
   teams: Team[];
@@ -2595,7 +2723,7 @@ function CreateCompetitionModal({
         <button aria-label="Chiudi creazione competizione" className="admin-modal-close" onClick={onClose} type="button">
           ×
         </button>
-        <CreateFriendsWizard onCreate={create} teams={teams} />
+        <CreateFriendsWizard automaticCompetitions={automaticCompetitions} onCreate={create} teams={teams} />
       </Card>
     </div>
   );
@@ -2701,9 +2829,11 @@ function DashboardEmpty({ text, title }: { text: string; title: string }) {
 }
 
 function CreateFriendsWizard({
+  automaticCompetitions,
   onCreate,
   teams,
 }: {
+  automaticCompetitions: AutomaticCompetition[];
   onCreate: (url: string, init?: RequestInit) => Promise<FriendsCompetition | null>;
   teams: Team[];
 }) {
@@ -2715,13 +2845,34 @@ function CreateFriendsWizard({
     rules: "",
   });
   const [matches, setMatches] = useState<DraftMatch[]>([{ ...emptyMatch }]);
+  const [matchMode, setMatchMode] = useState<MatchInsertMode>(automaticCompetitions.length > 0 ? "automatic" : "manual");
+  const [fixtureSelection, setFixtureSelection] = useState<AutomaticFixtureSelection>(() =>
+    getDefaultAutomaticFixtureSelection(automaticCompetitions),
+  );
+  const selectedAutomaticCompetition = getAutomaticCompetition(automaticCompetitions, fixtureSelection.competitionId);
+  const selectedAutomaticMatchday = getAutomaticMatchday(selectedAutomaticCompetition, fixtureSelection.matchday);
+  const isAutomaticReady = Boolean(selectedAutomaticCompetition && selectedAutomaticMatchday);
+  const hasManualMatches = matches.some((match) => match.homeTeamId && match.awayTeamId && match.homeTeamId !== match.awayTeamId);
+  const canContinue =
+    step === 1
+      ? draft.name.trim().length >= 3
+      : step === 3
+        ? matchMode === "automatic"
+          ? isAutomaticReady
+          : hasManualMatches
+        : step === 4
+          ? Boolean(draft.deadline)
+          : true;
 
   async function submit() {
     const competition = await onCreate("/api/friends/competitions", {
       body: JSON.stringify({
         deadlineAt: fromDateTimeLocal(draft.deadline),
         description: draft.description,
-        matches,
+        fixtureCompetitionId: matchMode === "automatic" ? fixtureSelection.competitionId : undefined,
+        fixtureMatchday: matchMode === "automatic" ? fixtureSelection.matchday : undefined,
+        matches: matchMode === "manual" ? matches : [],
+        matchMode,
         name: draft.name,
         rules: draft.rules,
       }),
@@ -2737,6 +2888,8 @@ function CreateFriendsWizard({
         rules: "",
       });
       setMatches([{ ...emptyMatch }]);
+      setMatchMode(automaticCompetitions.length > 0 ? "automatic" : "manual");
+      setFixtureSelection(getDefaultAutomaticFixtureSelection(automaticCompetitions));
     }
   }
 
@@ -2787,50 +2940,71 @@ function CreateFriendsWizard({
 
       {step === 3 ? (
         <div className="admin-stack">
-          {matches.map((match, index) => (
-            <div className="admin-form-grid" key={`draft-match-${index}`}>
-              <TeamSelect
-                label="Squadra casa"
-                onChange={(value) =>
-                  setMatches((current) =>
-                    current.map((item, itemIndex) => itemIndex === index ? { ...item, homeTeamId: value } : item),
-                  )
-                }
-                teams={teams}
-                value={match.homeTeamId}
+          <MatchInsertModeControl
+            automaticDisabled={automaticCompetitions.length === 0}
+            mode={matchMode}
+            onChange={setMatchMode}
+          />
+
+          {matchMode === "automatic" ? (
+            <>
+              <AutomaticFixturePicker
+                automaticCompetitions={automaticCompetitions}
+                onChange={setFixtureSelection}
+                selection={fixtureSelection}
               />
-              <TeamSelect
-                label="Squadra trasferta"
-                onChange={(value) =>
-                  setMatches((current) =>
-                    current.map((item, itemIndex) => itemIndex === index ? { ...item, awayTeamId: value } : item),
-                  )
-                }
-                teams={teams}
-                value={match.awayTeamId}
-              />
-              <label className="admin-checkbox-row">
-                <input
-                  checked={match.isActive}
-                  onChange={(event) =>
-                    setMatches((current) =>
-                      current.map((item, itemIndex) => itemIndex === index ? { ...item, isActive: event.target.checked } : item),
-                    )
-                  }
-                  type="checkbox"
-                />
-                Match attivo
-              </label>
-            </div>
-          ))}
-          <Button
-            onClick={() => setMatches((current) => [...current, { ...emptyMatch }])}
-            type="button"
-            variant="secondary"
-          >
-            <Plus aria-hidden="true" className="admin-button-icon" />
-            Aggiungi match
-          </Button>
+              <p className="friends-manager-form-note">
+                Confermando caricherai automaticamente tutte le partite della giornata scelta. La deadline resta nello step successivo.
+              </p>
+            </>
+          ) : (
+            <>
+              {matches.map((match, index) => (
+                <div className="admin-form-grid" key={`draft-match-${index}`}>
+                  <TeamSelect
+                    label="Squadra casa"
+                    onChange={(value) =>
+                      setMatches((current) =>
+                        current.map((item, itemIndex) => itemIndex === index ? { ...item, homeTeamId: value } : item),
+                      )
+                    }
+                    teams={teams}
+                    value={match.homeTeamId}
+                  />
+                  <TeamSelect
+                    label="Squadra trasferta"
+                    onChange={(value) =>
+                      setMatches((current) =>
+                        current.map((item, itemIndex) => itemIndex === index ? { ...item, awayTeamId: value } : item),
+                      )
+                    }
+                    teams={teams}
+                    value={match.awayTeamId}
+                  />
+                  <label className="admin-checkbox-row">
+                    <input
+                      checked={match.isActive}
+                      onChange={(event) =>
+                        setMatches((current) =>
+                          current.map((item, itemIndex) => itemIndex === index ? { ...item, isActive: event.target.checked } : item),
+                        )
+                      }
+                      type="checkbox"
+                    />
+                    Match attivo
+                  </label>
+                </div>
+              ))}
+              <Button
+                onClick={() => setMatches((current) => [...current, { ...emptyMatch }])}
+                type="button"
+                variant="secondary"
+              >
+                <Plus aria-hidden="true" className="admin-button-icon" />
+                Aggiungi match
+              </Button>
+            </>
+          )}
         </div>
       ) : null}
 
@@ -2853,6 +3027,11 @@ function CreateFriendsWizard({
           <p className="admin-muted">
             La competizione verrà creata attiva subito. Sarà visibile solo a te, agli utenti invitati e ai partecipanti.
           </p>
+          <p className="admin-muted">
+            {matchMode === "automatic" && selectedAutomaticCompetition && selectedAutomaticMatchday
+              ? `${selectedAutomaticCompetition.name} · ${selectedAutomaticMatchday.label} · ${selectedAutomaticMatchday.matchCount} partite automatiche`
+              : `${matches.filter((match) => match.homeTeamId && match.awayTeamId && match.homeTeamId !== match.awayTeamId).length} match manuali configurati`}
+          </p>
         </div>
       ) : null}
 
@@ -2861,11 +3040,11 @@ function CreateFriendsWizard({
           Indietro
         </Button>
         {step < 5 ? (
-          <Button onClick={() => setStep((current) => Math.min(5, current + 1))} type="button">
+          <Button disabled={!canContinue} onClick={() => setStep((current) => Math.min(5, current + 1))} type="button">
             Continua
           </Button>
         ) : (
-          <Button onClick={() => void submit()} type="button">
+          <Button disabled={!canContinue} onClick={() => void submit()} type="button">
             Crea competizione
           </Button>
         )}
@@ -3578,6 +3757,112 @@ function ParticipantControls({
         Rimuovi
       </button>
     </span>
+  );
+}
+
+function MatchInsertModeControl({
+  automaticDisabled,
+  mode,
+  onChange,
+}: {
+  automaticDisabled: boolean;
+  mode: MatchInsertMode;
+  onChange: (mode: MatchInsertMode) => void;
+}) {
+  return (
+    <div className="friends-match-mode-control" role="group" aria-label="Metodo inserimento match">
+      <button
+        className={cn("friends-match-mode-button", mode === "automatic" && "friends-match-mode-button-active")}
+        disabled={automaticDisabled}
+        onClick={() => onChange("automatic")}
+        type="button"
+      >
+        <span>Inserimento Automatico</span>
+        <small>Carica una giornata completa</small>
+      </button>
+      <button
+        className={cn("friends-match-mode-button", mode === "manual" && "friends-match-mode-button-active")}
+        onClick={() => onChange("manual")}
+        type="button"
+      >
+        <span>Inserimento Manuale</span>
+        <small>Aggiungi una partita alla volta</small>
+      </button>
+    </div>
+  );
+}
+
+function AutomaticFixturePicker({
+  automaticCompetitions,
+  onChange,
+  selection,
+}: {
+  automaticCompetitions: AutomaticCompetition[];
+  onChange: (selection: AutomaticFixtureSelection) => void;
+  selection: AutomaticFixtureSelection;
+}) {
+  const selectedCompetition = getAutomaticCompetition(automaticCompetitions, selection.competitionId);
+  const selectedMatchday = getAutomaticMatchday(selectedCompetition, selection.matchday);
+
+  if (automaticCompetitions.length === 0) {
+    return (
+      <div className="friends-auto-fixture-empty">
+        <strong>Nessun calendario automatico disponibile.</strong>
+        <p>Puoi comunque usare l&apos;inserimento manuale e aggiungere le partite una alla volta.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="friends-auto-fixture-picker">
+      <div className="friends-manager-form-grid">
+        <label>
+          Competizione
+          <select
+            className="admin-select"
+            onChange={(event) => {
+              const nextCompetition = getAutomaticCompetition(automaticCompetitions, event.target.value);
+              onChange({
+                competitionId: nextCompetition?.id ?? "",
+                matchday: nextCompetition?.matchdays[0]?.number ?? 0,
+              });
+            }}
+            value={selection.competitionId}
+          >
+            {automaticCompetitions.map((competition) => (
+              <option key={competition.id} value={competition.id}>
+                {competition.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Giornata
+          <select
+            className="admin-select"
+            onChange={(event) => onChange({ ...selection, matchday: Number(event.target.value) })}
+            value={selection.matchday}
+          >
+            {selectedCompetition?.matchdays.map((matchday) => (
+              <option key={matchday.number} value={matchday.number}>
+                {matchday.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="friends-auto-fixture-summary">
+        <Trophy aria-hidden="true" />
+        <div>
+          <strong>{selectedCompetition?.name ?? "Competizione automatica"}</strong>
+          <p>
+            {selectedMatchday
+              ? `${selectedMatchday.label}: ${selectedMatchday.matchCount} partite pronte da importare.`
+              : "Seleziona una giornata per caricare i match."}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 

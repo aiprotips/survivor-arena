@@ -1,5 +1,6 @@
 /// <reference types="@cloudflare/workers-types" />
 
+import { automaticFixtureTeamSeeds } from "./automatic-fixtures";
 import { nationalTeamSeeds } from "./national-teams";
 
 export type TournamentStatus = "PENDING" | "ACTIVE" | "LOCKED" | "COMPLETED" | "CANCELLED";
@@ -64,9 +65,13 @@ export type TeamRow = {
   created_at: string;
   created_by: string | null;
   id: string;
+  is_active?: number;
   logo_url: string | null;
   name: string;
   normalized_name: string;
+  short_name?: string | null;
+  slug?: string | null;
+  source?: string | null;
   updated_at: string;
 };
 
@@ -167,8 +172,17 @@ function toOptionalString(value: unknown) {
   return text ? text : null;
 }
 
-function normalizeTeamName(value: string) {
+export function normalizeTeamName(value: string) {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function slugifyTeamName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function isValidLogoValue(value: string | null) {
@@ -280,6 +294,12 @@ async function ensureTeamsSchema(db: D1Database) {
     .run();
 
   await runOptionalSchemaStatement(db, "CREATE INDEX IF NOT EXISTS idx_teams_name ON teams (normalized_name)");
+  await runOptionalSchemaStatement(db, "ALTER TABLE teams ADD COLUMN short_name TEXT");
+  await runOptionalSchemaStatement(db, "ALTER TABLE teams ADD COLUMN slug TEXT");
+  await runOptionalSchemaStatement(db, "ALTER TABLE teams ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1");
+  await runOptionalSchemaStatement(db, "ALTER TABLE teams ADD COLUMN source TEXT");
+  await runOptionalSchemaStatement(db, "CREATE INDEX IF NOT EXISTS idx_teams_slug ON teams (slug)");
+  await runOptionalSchemaStatement(db, "CREATE INDEX IF NOT EXISTS idx_teams_source ON teams (source)");
   await runOptionalSchemaStatement(
     db,
     "ALTER TABLE tournament_matches ADD COLUMN home_team_id TEXT REFERENCES teams (id) ON DELETE SET NULL",
@@ -470,10 +490,23 @@ export async function listTeams(db: D1Database) {
   try {
     await ensureTeamsSchema(db);
     await seedNationalTeams(db);
+    await seedAutomaticFixtureTeams(db);
     rows = await db
       .prepare(
-        `SELECT id, name, normalized_name, logo_url, created_by, created_at, updated_at
+        `SELECT
+           id,
+           name,
+           normalized_name,
+           logo_url,
+           created_by,
+           created_at,
+           updated_at,
+           short_name,
+           slug,
+           COALESCE(is_active, 1) AS is_active,
+           source
          FROM teams
+         WHERE COALESCE(is_active, 1) = 1
          ORDER BY name ASC`,
       )
       .all<TeamRow>();
@@ -502,10 +535,12 @@ async function seedNationalTeams(db: D1Database) {
   for (const team of nationalTeamSeeds) {
     await db
       .prepare(
-        `INSERT OR IGNORE INTO teams (id, name, normalized_name, logo_url, created_by, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5)`,
+        `INSERT OR IGNORE INTO teams (
+           id, name, normalized_name, logo_url, created_by, created_at, updated_at, short_name, slug, is_active, source
+         )
+         VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?2, ?6, 1, 'national-teams')`,
       )
-      .bind(`national-${team.code.toLowerCase()}`, team.name, normalizeTeamName(team.name), team.logoUrl, now)
+      .bind(`national-${team.code.toLowerCase()}`, team.name, normalizeTeamName(team.name), team.logoUrl, now, slugifyTeamName(team.name))
       .run();
   }
 
@@ -521,12 +556,77 @@ async function seedNationalTeams(db: D1Database) {
   }
 }
 
+async function seedAutomaticFixtureTeams(db: D1Database) {
+  const now = nowIso();
+  const existingAutomaticTeams = await db
+    .prepare("SELECT COUNT(*) AS count FROM teams WHERE source LIKE 'fixture:%'")
+    .first<{ count: number }>();
+  let createdCount = 0;
+
+  for (const team of automaticFixtureTeamSeeds) {
+    const normalizedName = normalizeTeamName(team.name);
+    const existing = await getTeamByNormalizedName(db, normalizedName);
+    const source = `fixture:${team.sourceCompetitionId}`;
+
+    if (existing) {
+      await db
+        .prepare(
+          `UPDATE teams
+	       SET logo_url = ?1,
+	           short_name = ?2,
+	           slug = ?3,
+	           is_active = 1,
+	           source = ?4,
+	           updated_at = ?5
+	       WHERE id = ?6`,
+	    )
+        .bind(team.logoUrl, team.shortName, team.slug, source, now, existing.id)
+        .run();
+      continue;
+    }
+
+    await db
+      .prepare(
+        `INSERT INTO teams (
+          id, name, normalized_name, logo_url, created_by, created_at, updated_at, short_name, slug, is_active, source
+        ) VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?6, ?7, 1, ?8)`,
+      )
+      .bind(team.id, team.name, normalizedName, team.logoUrl, now, team.shortName, team.slug, source)
+      .run();
+    createdCount += 1;
+  }
+
+  if ((existingAutomaticTeams?.count ?? 0) === 0 && createdCount > 0) {
+    try {
+      await logArenaEvent(db, {
+        eventType: "automatic_fixture_teams_seeded",
+        message: `Catalogo squadre automatiche importato: ${createdCount} squadre.`,
+      });
+    } catch (error) {
+      if (!isMissingSchemaField(error)) {
+        throw error;
+      }
+    }
+  }
+}
+
 export async function getTeam(db: D1Database, teamId: string) {
   await ensureTeamsSchema(db);
 
   return db
     .prepare(
-      `SELECT id, name, normalized_name, logo_url, created_by, created_at, updated_at
+      `SELECT
+         id,
+         name,
+         normalized_name,
+         logo_url,
+         created_by,
+         created_at,
+         updated_at,
+         short_name,
+         slug,
+         COALESCE(is_active, 1) AS is_active,
+         source
        FROM teams
        WHERE id = ?1
        LIMIT 1`,
@@ -540,7 +640,18 @@ async function getTeamByNormalizedName(db: D1Database, normalizedName: string) {
 
   return db
     .prepare(
-      `SELECT id, name, normalized_name, logo_url, created_by, created_at, updated_at
+      `SELECT
+         id,
+         name,
+         normalized_name,
+         logo_url,
+         created_by,
+         created_at,
+         updated_at,
+         short_name,
+         slug,
+         COALESCE(is_active, 1) AS is_active,
+         source
        FROM teams
        WHERE normalized_name = ?1
        LIMIT 1`,
@@ -572,10 +683,12 @@ export async function createTeam(
 
   await db
     .prepare(
-      `INSERT INTO teams (id, name, normalized_name, logo_url, created_by, created_at, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)`,
+      `INSERT INTO teams (
+         id, name, normalized_name, logo_url, created_by, created_at, updated_at, short_name, slug, is_active, source
+       )
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, ?2, ?7, 1, 'custom')`,
     )
-    .bind(teamId, name, normalizedName, logoUrl, input.adminId, now)
+    .bind(teamId, name, normalizedName, logoUrl, input.adminId, now, slugifyTeamName(name))
     .run();
 
   await logArenaEvent(db, {
@@ -618,10 +731,12 @@ export async function updateTeam(
        SET name = ?1,
            normalized_name = ?2,
            logo_url = ?3,
-           updated_at = ?4
-       WHERE id = ?5`,
+           short_name = ?1,
+           slug = ?4,
+           updated_at = ?5
+       WHERE id = ?6`,
     )
-    .bind(name, normalizedName, logoUrl, nowIso(), input.teamId)
+    .bind(name, normalizedName, logoUrl, slugifyTeamName(name), nowIso(), input.teamId)
     .run();
 
   await db
