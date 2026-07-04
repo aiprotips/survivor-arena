@@ -249,6 +249,26 @@ function getDefaultAutomaticFixtureSelection(
   };
 }
 
+function getValidAutomaticFixtureSelection(
+  automaticCompetitions: AutomaticCompetition[],
+  selection: AutomaticFixtureSelection,
+) {
+  if (automaticCompetitions.length === 0) {
+    return selection;
+  }
+
+  const selectedCompetition = getAutomaticCompetition(automaticCompetitions, selection.competitionId) ?? automaticCompetitions[0] ?? null;
+  const selectedMatchday =
+    selectedCompetition?.matchdays.find((item) => item.number === selection.matchday) ??
+    selectedCompetition?.matchdays[0] ??
+    null;
+
+  return {
+    competitionId: selectedCompetition?.id ?? "",
+    matchday: selectedMatchday?.number ?? 0,
+  };
+}
+
 function getAutomaticCompetition(automaticCompetitions: AutomaticCompetition[], competitionId: string) {
   return automaticCompetitions.find((competition) => competition.id === competitionId) ?? null;
 }
@@ -1686,8 +1706,9 @@ function AddMatchModal({
   const [fixtureSelection, setFixtureSelection] = useState<AutomaticFixtureSelection>(() =>
     getDefaultAutomaticFixtureSelection(automaticCompetitions, currentRound.fixture_competition_id, currentRound.fixture_matchday),
   );
-  const selectedAutomaticCompetition = getAutomaticCompetition(automaticCompetitions, fixtureSelection.competitionId);
-  const selectedAutomaticMatchday = getAutomaticMatchday(selectedAutomaticCompetition, fixtureSelection.matchday);
+  const validFixtureSelection = getValidAutomaticFixtureSelection(automaticCompetitions, fixtureSelection);
+  const selectedAutomaticCompetition = getAutomaticCompetition(automaticCompetitions, validFixtureSelection.competitionId);
+  const selectedAutomaticMatchday = getAutomaticMatchday(selectedAutomaticCompetition, validFixtureSelection.matchday);
   const isAutomaticReady = Boolean(selectedAutomaticCompetition && selectedAutomaticMatchday);
   const isManualReady = Boolean(newMatch.homeTeamId && newMatch.awayTeamId && newMatch.homeTeamId !== newMatch.awayTeamId);
 
@@ -1695,8 +1716,8 @@ function AddMatchModal({
     const body =
       matchMode === "automatic"
         ? {
-            fixtureCompetitionId: fixtureSelection.competitionId,
-            fixtureMatchday: fixtureSelection.matchday,
+            fixtureCompetitionId: validFixtureSelection.competitionId,
+            fixtureMatchday: validFixtureSelection.matchday,
             matchMode,
             roundId: currentRound.id,
           }
@@ -1727,7 +1748,7 @@ function AddMatchModal({
         <AutomaticFixturePicker
           automaticCompetitions={automaticCompetitions}
           onChange={setFixtureSelection}
-          selection={fixtureSelection}
+          selection={validFixtureSelection}
         />
       ) : (
         <div className="friends-manager-form-grid">
@@ -2849,8 +2870,9 @@ function CreateFriendsWizard({
   const [fixtureSelection, setFixtureSelection] = useState<AutomaticFixtureSelection>(() =>
     getDefaultAutomaticFixtureSelection(automaticCompetitions),
   );
-  const selectedAutomaticCompetition = getAutomaticCompetition(automaticCompetitions, fixtureSelection.competitionId);
-  const selectedAutomaticMatchday = getAutomaticMatchday(selectedAutomaticCompetition, fixtureSelection.matchday);
+  const validFixtureSelection = getValidAutomaticFixtureSelection(automaticCompetitions, fixtureSelection);
+  const selectedAutomaticCompetition = getAutomaticCompetition(automaticCompetitions, validFixtureSelection.competitionId);
+  const selectedAutomaticMatchday = getAutomaticMatchday(selectedAutomaticCompetition, validFixtureSelection.matchday);
   const isAutomaticReady = Boolean(selectedAutomaticCompetition && selectedAutomaticMatchday);
   const hasManualMatches = matches.some((match) => match.homeTeamId && match.awayTeamId && match.homeTeamId !== match.awayTeamId);
   const canContinue =
@@ -2869,8 +2891,8 @@ function CreateFriendsWizard({
       body: JSON.stringify({
         deadlineAt: fromDateTimeLocal(draft.deadline),
         description: draft.description,
-        fixtureCompetitionId: matchMode === "automatic" ? fixtureSelection.competitionId : undefined,
-        fixtureMatchday: matchMode === "automatic" ? fixtureSelection.matchday : undefined,
+        fixtureCompetitionId: matchMode === "automatic" ? validFixtureSelection.competitionId : undefined,
+        fixtureMatchday: matchMode === "automatic" ? validFixtureSelection.matchday : undefined,
         matches: matchMode === "manual" ? matches : [],
         matchMode,
         name: draft.name,
@@ -2951,7 +2973,7 @@ function CreateFriendsWizard({
               <AutomaticFixturePicker
                 automaticCompetitions={automaticCompetitions}
                 onChange={setFixtureSelection}
-                selection={fixtureSelection}
+                selection={validFixtureSelection}
               />
               <p className="friends-manager-form-note">
                 Confermando caricherai automaticamente tutte le partite della giornata scelta. La deadline resta nello step successivo.
@@ -3801,8 +3823,9 @@ function AutomaticFixturePicker({
   onChange: (selection: AutomaticFixtureSelection) => void;
   selection: AutomaticFixtureSelection;
 }) {
-  const selectedCompetition = getAutomaticCompetition(automaticCompetitions, selection.competitionId);
-  const selectedMatchday = getAutomaticMatchday(selectedCompetition, selection.matchday);
+  const pickerSelection = getValidAutomaticFixtureSelection(automaticCompetitions, selection);
+  const selectedCompetition = getAutomaticCompetition(automaticCompetitions, pickerSelection.competitionId);
+  const selectedMatchday = getAutomaticMatchday(selectedCompetition, pickerSelection.matchday);
 
   if (automaticCompetitions.length === 0) {
     return (
@@ -3827,7 +3850,7 @@ function AutomaticFixturePicker({
                 matchday: nextCompetition?.matchdays[0]?.number ?? 0,
               });
             }}
-            value={selection.competitionId}
+            value={pickerSelection.competitionId}
           >
             {automaticCompetitions.map((competition) => (
               <option key={competition.id} value={competition.id}>
@@ -3840,8 +3863,8 @@ function AutomaticFixturePicker({
           Giornata
           <select
             className="admin-select"
-            onChange={(event) => onChange({ ...selection, matchday: Number(event.target.value) })}
-            value={selection.matchday}
+            onChange={(event) => onChange({ ...pickerSelection, matchday: Number(event.target.value) })}
+            value={pickerSelection.matchday}
           >
             {selectedCompetition?.matchdays.map((matchday) => (
               <option key={matchday.number} value={matchday.number}>
