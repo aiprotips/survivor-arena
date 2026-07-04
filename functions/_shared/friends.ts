@@ -211,6 +211,47 @@ async function runSchema(db: D1Database, statement: string) {
   }
 }
 
+async function ensureFriendsParticipantsPendingStatus(db: D1Database) {
+  const row = await db
+    .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'friends_participants' LIMIT 1")
+    .first<{ sql: string }>();
+  const sql = row?.sql ?? "";
+
+  if (!sql.includes("CHECK") || sql.includes("'PENDING'")) {
+    return;
+  }
+
+  await runSchema(db, "PRAGMA foreign_keys=off");
+  await runSchema(db, "DROP TABLE IF EXISTS friends_participants_pending_migration");
+  await runSchema(
+    db,
+    `CREATE TABLE friends_participants_pending_migration (
+      id TEXT PRIMARY KEY NOT NULL,
+      competition_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'PENDING', 'REMOVED', 'ELIMINATED', 'WINNER')),
+      joined_at TEXT NOT NULL,
+      removed_at TEXT,
+      UNIQUE (competition_id, user_id),
+      FOREIGN KEY (competition_id) REFERENCES friends_competitions (id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    )`,
+  );
+  await runSchema(
+    db,
+    `INSERT INTO friends_participants_pending_migration (
+      id, competition_id, user_id, status, joined_at, removed_at
+    )
+    SELECT id, competition_id, user_id, status, joined_at, removed_at
+    FROM friends_participants`,
+  );
+  await runSchema(db, "DROP TABLE friends_participants");
+  await runSchema(db, "ALTER TABLE friends_participants_pending_migration RENAME TO friends_participants");
+  await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_participants_competition ON friends_participants (competition_id, status)");
+  await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_participants_user ON friends_participants (user_id, status)");
+  await runSchema(db, "PRAGMA foreign_keys=on");
+}
+
 export async function ensureFriendsSchema(db: D1Database) {
   if (friendsSchemaReady) {
     return;
@@ -299,6 +340,7 @@ export async function ensureFriendsSchema(db: D1Database) {
       UNIQUE (competition_id, user_id)
     )`,
   );
+  await ensureFriendsParticipantsPendingStatus(db);
   await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_participants_competition ON friends_participants (competition_id, status)");
   await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_participants_user ON friends_participants (user_id, status)");
   await runSchema(
