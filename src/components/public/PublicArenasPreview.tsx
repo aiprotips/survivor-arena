@@ -54,7 +54,7 @@ export function PublicArenasPreview() {
               </h1>
               <p>Arene private. Solo tu e i tuoi amici. Crea, invita, sfida. Solo uno sopravvive.</p>
               <div className="public-arenas-actions">
-                <ButtonLink className="public-arenas-cta" href="/register">
+                <ButtonLink className="public-arenas-cta" href="/login">
                   Crea la tua Arena
                   <ArrowRight aria-hidden="true" className="public-home-button-icon" />
                 </ButtonLink>
@@ -133,7 +133,7 @@ export function PublicArenasPreview() {
             </h2>
             <p>Crea ora la tua arena e inizia la sfida. La gloria aspetta solo te.</p>
           </div>
-          <ButtonLink className="public-arenas-final-button" href="/register">
+          <ButtonLink className="public-arenas-final-button" href="/login">
             Crea la tua Arena
             <ArrowRight aria-hidden="true" className="public-home-button-icon" />
           </ButtonLink>

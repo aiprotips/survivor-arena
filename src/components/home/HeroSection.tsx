@@ -24,7 +24,7 @@ export function HeroSection() {
           </h1>
           <p>Crea la tua arena privata e sfida i tuoi amici. Solo il migliore vincera.</p>
           <div className="public-home-hero-actions">
-            <ButtonLink className="public-home-cta" href="/register">
+            <ButtonLink className="public-home-cta" href="/login">
               Crea la tua Arena
               <ArrowRight aria-hidden="true" className="public-home-button-icon" />
             </ButtonLink>

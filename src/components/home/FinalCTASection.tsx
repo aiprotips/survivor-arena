@@ -23,7 +23,7 @@ export function FinalCTASection() {
         </h2>
         <p>Invita, sfida, vinci. La leggenda comincia da qui.</p>
       </div>
-      <ButtonLink className="public-home-final-button" href="/register">
+      <ButtonLink className="public-home-final-button" href="/login">
         Crea la tua Arena
         <ArrowRight aria-hidden="true" className="public-home-button-icon" />
       </ButtonLink>
