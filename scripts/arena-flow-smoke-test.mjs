@@ -15,6 +15,7 @@ const password = "ArenaTest1!";
 const stamp = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 const nodeBin = process.execPath;
 const wranglerBin = "node_modules/wrangler/bin/wrangler.js";
+const localD1Name = process.env.SURVIVOR_ARENA_TEST_D1_NAME ?? "survivor-arena-db";
 const testResults = [];
 const teamCache = new Map();
 
@@ -33,13 +34,17 @@ function sql(value) {
 function runLocalSql(command) {
   execFileSync(
     nodeBin,
-    [wranglerBin, "d1", "execute", "survivor-arena-db", "--local", "--command", command],
+    [wranglerBin, "d1", "execute", localD1Name, "--local", "--command", command],
     {
       cwd: process.cwd(),
       env: process.env,
       stdio: "ignore",
     },
   );
+}
+
+function clearLocalRateLimits() {
+  runLocalSql("DELETE FROM rate_limits;");
 }
 
 async function step(name, fn) {
@@ -137,6 +142,21 @@ async function register(client, prefix, overrides = {}) {
     body: payload,
     method: "POST",
   });
+  if (response.status === 429) {
+    clearLocalRateLimits();
+    const retry = await client.request("/api/register", {
+      body: payload,
+      method: "POST",
+    });
+
+    expectStatus(retry, 201, `register ${prefix}`);
+    assert(/^SA-[A-Z0-9]{8}$/.test(retry.data.user.user_code), "invalid user code", retry.data);
+
+    return {
+      ...payload,
+      user: retry.data.user,
+    };
+  }
 
   expectStatus(response, 201, `register ${prefix}`);
   assert(/^SA-[A-Z0-9]{8}$/.test(response.data.user.user_code), "invalid user code", response.data);
@@ -437,10 +457,9 @@ async function main() {
   let userLives;
   let userSessionAfterPrize;
 
-  await step("D1 health endpoint responds", async () => {
+  await step("D1 health endpoint blocks anonymous users", async () => {
     const response = await anonymous.request("/api/d1-health");
-    expectStatus(response, 200, "d1 health");
-    assert(response.data.ok === true, "d1 health not ok", response.data);
+    expectStatus(response, 401, "anonymous d1 health");
   });
 
   await step("protected pages redirect anonymous users", async () => {
@@ -563,6 +582,10 @@ async function main() {
     const list = await admin.request("/api/admin/tournaments");
     expectStatus(list, 200, "admin tournaments list");
     assert(Array.isArray(list.data.tournaments), "admin tournaments list malformed", list.data);
+
+    const health = await admin.request("/api/d1-health");
+    expectStatus(health, 200, "admin d1 health");
+    assert(health.data.ok === true, "admin d1 health not ok", health.data);
   });
 
   await step("admin tournament validation, pending delete, deadline and match checks work", async () => {

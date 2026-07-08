@@ -4,6 +4,7 @@ import { validateConfirmPassword, validatePassword } from "../../../src/lib/auth
 import { requireUser } from "../../_shared/access";
 import { verifyPassword } from "../../_shared/crypto";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../_shared/http";
+import { enforceRateLimit, rateLimitResponse } from "../../_shared/rate-limit";
 import { findUserById, updateUserPassword } from "../../_shared/users";
 
 type Env = {
@@ -18,6 +19,17 @@ export const onRequestPatch: PagesFunction<Env> = async ({ env, request }) => {
   const auth = await requireUser(env.DB, request);
   if (!auth.user) {
     return auth.response;
+  }
+
+  const limit = await enforceRateLimit(env.DB, request, {
+    identifier: auth.user.id,
+    limit: 10,
+    scope: "account:password",
+    windowSeconds: 15 * 60,
+  });
+
+  if (!limit.allowed) {
+    return rateLimitResponse(limit.retryAfterSeconds);
   }
 
   const body = await readJsonObject(request);

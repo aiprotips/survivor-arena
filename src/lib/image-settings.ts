@@ -213,27 +213,60 @@ export function isAdminImageBehavior(value: unknown): value is AdminImageBehavio
   return value === "fixed" || value === "randomOnCreate" || value === "rotate";
 }
 
+function cleanString(value: unknown, maxLength: number) {
+  return String(value ?? "")
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function normalizeAssetId(value: unknown) {
+  const id = cleanString(value, 80);
+
+  return /^[A-Za-z0-9_-]+$/.test(id) ? id : "";
+}
+
+function normalizeImageSrc(value: unknown) {
+  const src = cleanString(value, 240);
+
+  if (
+    !src.startsWith("/assets/") ||
+    src.includes("..") ||
+    src.includes("//") ||
+    /["'\\\s]/.test(src) ||
+    !/\.(avif|gif|jpe?g|png|svg|webp)$/i.test(src)
+  ) {
+    return "";
+  }
+
+  return src;
+}
+
+function normalizeObjectPosition(value: unknown, fallback: string) {
+  const position = cleanString(value, 48);
+
+  return /^[A-Za-z0-9.% -]+$/.test(position) ? position : fallback;
+}
+
 function toSavedAsset(asset: unknown): AdminImageAsset | null {
   if (!asset || typeof asset !== "object") {
     return null;
   }
 
   const candidate = asset as Partial<AdminImageAsset>;
+  const id = normalizeAssetId(candidate.id);
+  const label = cleanString(candidate.label, 80);
+  const src = normalizeImageSrc(candidate.src);
 
-  if (
-    typeof candidate.id !== "string" ||
-    typeof candidate.label !== "string" ||
-    typeof candidate.src !== "string" ||
-    !candidate.src.startsWith("/")
-  ) {
+  if (!id || label.length < 1 || !src) {
     return null;
   }
 
   return {
-    id: candidate.id,
-    label: candidate.label,
+    id,
+    label,
     local: candidate.local === true,
-    src: candidate.src,
+    src,
   };
 }
 
@@ -269,15 +302,18 @@ export function hydrateImageSettings(settings: AdminImageSettings | null): Hydra
       ? saved.customAssets.map(toSavedAsset).filter((asset): asset is AdminImageAsset => Boolean(asset))
       : [];
     const hiddenAssetIds = Array.isArray(saved?.hiddenAssetIds)
-      ? saved.hiddenAssetIds.filter((assetId): assetId is string => typeof assetId === "string")
+      ? saved.hiddenAssetIds
+        .map(normalizeAssetId)
+        .filter(Boolean)
       : [];
+    const selectedAssetId = normalizeAssetId(saved?.selectedAssetId);
     const sectionState: AdminImageSectionState = {
       behavior: isAdminImageBehavior(saved?.behavior) ? saved.behavior : defaults[key].behavior,
       customAssets,
       hiddenAssetIds,
-      objectPosition: typeof saved?.objectPosition === "string" ? saved.objectPosition : defaults[key].objectPosition,
+      objectPosition: normalizeObjectPosition(saved?.objectPosition, defaults[key].objectPosition),
       opacity: typeof saved?.opacity === "number" ? Math.min(100, Math.max(0, saved.opacity)) : defaults[key].opacity,
-      selectedAssetId: typeof saved?.selectedAssetId === "string" ? saved.selectedAssetId : defaults[key].selectedAssetId,
+      selectedAssetId: selectedAssetId || defaults[key].selectedAssetId,
       zoom: typeof saved?.zoom === "number" ? Math.min(160, Math.max(100, saved.zoom)) : defaults[key].zoom,
     };
     const selectedAsset = getSelectedImageAsset(key, sectionState);

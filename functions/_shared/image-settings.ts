@@ -1,5 +1,6 @@
 /// <reference types="@cloudflare/workers-types" />
 
+import { hydrateImageSettings, type AdminImageSettings } from "../../src/lib/image-settings";
 import { ensurePlatformSchema } from "./platform";
 
 export const IMAGE_SETTINGS_KEY = "admin_image_settings";
@@ -28,7 +29,8 @@ export async function getStoredImageSettings(db: D1Database) {
 export async function saveStoredImageSettings(db: D1Database, settings: Record<string, unknown>) {
   await ensurePlatformSchema(db);
 
-  const value = JSON.stringify(settings);
+  const sanitizedSettings = hydrateImageSettings(settings as AdminImageSettings);
+  const value = JSON.stringify(sanitizedSettings);
   if (value.length > MAX_SETTINGS_BYTES) {
     throw new Error("Configurazione immagini troppo grande.");
   }
@@ -42,5 +44,5 @@ export async function saveStoredImageSettings(db: D1Database, settings: Record<s
     .bind(IMAGE_SETTINGS_KEY, value, new Date().toISOString())
     .run();
 
-  return settings;
+  return sanitizedSettings;
 }

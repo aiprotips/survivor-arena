@@ -10,6 +10,7 @@ import {
 } from "../../src/lib/auth-validation";
 import { consumePasswordResetCode } from "../_shared/account-flows";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../_shared/http";
+import { enforceRateLimit, rateLimitResponse } from "../_shared/rate-limit";
 import {
   deleteUserSessions,
   findUserByUsernameAndPhone,
@@ -44,6 +45,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     return missingDatabase();
   }
 
+  const ipLimit = await enforceRateLimit(env.DB, request, {
+    limit: 20,
+    scope: "password-reset-confirm:ip",
+    windowSeconds: 15 * 60,
+  });
+
+  if (!ipLimit.allowed) {
+    return rateLimitResponse(ipLimit.retryAfterSeconds);
+  }
+
   const body = await readJsonObject(request);
   const username = normalizeUsername(body?.username ?? body?.identifier);
   const phone = normalizePhone(body?.phone);
@@ -73,6 +84,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   const confirmError = validateConfirmPassword(password, confirmPassword);
   if (confirmError) {
     return json({ field: "confirmPassword", message: confirmError, ok: false }, { status: 400 });
+  }
+
+  const identityLimit = await enforceRateLimit(env.DB, request, {
+    identifier: `${username}:${phone}`,
+    limit: 8,
+    scope: "password-reset-confirm:identity",
+    windowSeconds: 15 * 60,
+  });
+
+  if (!identityLimit.allowed) {
+    return rateLimitResponse(identityLimit.retryAfterSeconds);
   }
 
   const user = await findUserByUsernameAndPhone(env.DB, {

@@ -1,5 +1,8 @@
 /// <reference types="@cloudflare/workers-types" />
 
+import { requireAdmin } from "../_shared/access";
+import { json, missingDatabase } from "../_shared/http";
+
 type Env = {
   DB: D1Database;
 };
@@ -8,35 +11,40 @@ type HealthRow = {
   ok: number;
 };
 
-export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
+export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   if (!env.DB) {
-    return Response.json(
-      {
-        ok: false,
-        binding: "DB",
-        database: "survivor-arena-db",
-        error: "D1 binding DB is not available.",
-      },
-      { status: 500 },
-    );
+    return missingDatabase();
+  }
+
+  const auth = await requireAdmin(env.DB, request);
+  if (!auth.user) {
+    return auth.response;
   }
 
   try {
     const row = await env.DB.prepare("SELECT 1 AS ok").first<HealthRow>();
 
-    return Response.json({
-      ok: row?.ok === 1,
+    if (row?.ok !== 1) {
+      return json(
+        {
+          binding: "DB",
+          message: "Controllo database non riuscito.",
+          ok: false,
+        },
+        { status: 500 },
+      );
+    }
+
+    return json({
       binding: "DB",
-      database: "survivor-arena-db",
-      result: row,
+      ok: true,
     });
-  } catch (error) {
-    return Response.json(
+  } catch {
+    return json(
       {
         ok: false,
         binding: "DB",
-        database: "survivor-arena-db",
-        error: error instanceof Error ? error.message : "Unknown D1 error.",
+        message: "Controllo database non riuscito.",
       },
       { status: 500 },
     );

@@ -3,6 +3,7 @@
 import { requireAdmin } from "../../../_shared/access";
 import { getStoredImageSettings, saveStoredImageSettings } from "../../../_shared/image-settings";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../../_shared/http";
+import { enforceRateLimit, rateLimitResponse } from "../../../_shared/rate-limit";
 
 type Env = {
   DB: D1Database;
@@ -32,6 +33,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   const auth = await requireAdmin(env.DB, request);
   if (!auth.user) {
     return auth.response;
+  }
+
+  const limit = await enforceRateLimit(env.DB, request, {
+    identifier: auth.user.id,
+    limit: 60,
+    scope: "admin:images",
+    windowSeconds: 60 * 60,
+  });
+
+  if (!limit.allowed) {
+    return rateLimitResponse(limit.retryAfterSeconds);
   }
 
   const body = await readJsonObject(request);

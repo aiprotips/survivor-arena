@@ -8,6 +8,7 @@ import {
 } from "../../../../_shared/arena";
 import { requireAdmin } from "../../../../_shared/access";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../../../_shared/http";
+import { enforceRateLimit, rateLimitResponse } from "../../../../_shared/rate-limit";
 import { findUserById } from "../../../../_shared/users";
 
 type Env = {
@@ -30,6 +31,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params, request }
     return auth.response;
   }
 
+  const limit = await enforceRateLimit(env.DB, request, {
+    identifier: auth.user.id,
+    limit: 80,
+    scope: "admin:wallet",
+    windowSeconds: 60 * 60,
+  });
+
+  if (!limit.allowed) {
+    return rateLimitResponse(limit.retryAfterSeconds);
+  }
+
   const userId = getId(params);
   const target = userId ? await findUserById(env.DB, userId) : null;
   if (!target) {
@@ -44,6 +56,26 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, params, request }
     return json(
       {
         message: "Inserisci un importo intero diverso da zero.",
+        ok: false,
+      },
+      { status: 400 },
+    );
+  }
+
+  if (Math.abs(amount) > 1_000_000) {
+    return json(
+      {
+        message: "Importo troppo alto per una singola operazione.",
+        ok: false,
+      },
+      { status: 400 },
+    );
+  }
+
+  if (reason.length > 140) {
+    return json(
+      {
+        message: "La causale è troppo lunga.",
         ok: false,
       },
       { status: 400 },

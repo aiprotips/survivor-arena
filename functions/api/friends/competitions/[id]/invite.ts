@@ -3,6 +3,7 @@
 import { requireUser } from "../../../../_shared/access";
 import { getFriendsError, inviteFriend } from "../../../../_shared/friends";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../../../_shared/http";
+import { enforceRateLimit, rateLimitResponse } from "../../../../_shared/rate-limit";
 
 type Env = {
   DB: D1Database;
@@ -25,6 +26,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const body = await readJsonObject(context.request);
   if (!body) {
     return json({ message: "Richiesta non valida.", ok: false }, { status: 400 });
+  }
+
+  const limit = await enforceRateLimit(context.env.DB, context.request, {
+    identifier: auth.user.id,
+    limit: 60,
+    scope: "friends:invite",
+    windowSeconds: 60 * 60,
+  });
+
+  if (!limit.allowed) {
+    return rateLimitResponse(limit.retryAfterSeconds);
   }
 
   try {

@@ -4,6 +4,7 @@ import { normalizeEmail, validateLoginValues, type LoginField } from "../../src/
 import { getTelegramLinkForUser } from "../_shared/account-flows";
 import { verifyPassword } from "../_shared/crypto";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../_shared/http";
+import { enforceRateLimit, rateLimitResponse } from "../_shared/rate-limit";
 import { createSession } from "../_shared/session";
 import { findUserByIdentifier, toPublicUser, updateLastLogin } from "../_shared/users";
 
@@ -14,6 +15,16 @@ type Env = {
 export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   if (!env.DB) {
     return missingDatabase();
+  }
+
+  const ipLimit = await enforceRateLimit(env.DB, request, {
+    limit: 40,
+    scope: "login:ip",
+    windowSeconds: 15 * 60,
+  });
+
+  if (!ipLimit.allowed) {
+    return rateLimitResponse(ipLimit.retryAfterSeconds);
   }
 
   const body = await readJsonObject(request);
@@ -49,6 +60,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   const identifier = validation.values.identifier.includes("@")
     ? normalizeEmail(validation.values.identifier)
     : validation.values.identifier;
+  const identifierLimit = await enforceRateLimit(env.DB, request, {
+    identifier,
+    limit: 12,
+    scope: "login:identifier",
+    windowSeconds: 15 * 60,
+  });
+
+  if (!identifierLimit.allowed) {
+    return rateLimitResponse(identifierLimit.retryAfterSeconds);
+  }
+
   const user = await findUserByIdentifier(env.DB, identifier);
 
   if (!user) {

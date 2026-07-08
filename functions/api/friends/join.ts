@@ -3,6 +3,7 @@
 import { requireUser } from "../../_shared/access";
 import { getFriendsError, joinFriendsCompetitionByCode } from "../../_shared/friends";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../_shared/http";
+import { enforceRateLimit, rateLimitResponse } from "../../_shared/rate-limit";
 
 type Env = {
   DB: D1Database;
@@ -23,8 +24,20 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     return json({ message: "Richiesta non valida.", ok: false }, { status: 400 });
   }
 
+  const inviteCode = String(body.inviteCode ?? body.invite_code ?? "");
+  const limit = await enforceRateLimit(env.DB, request, {
+    identifier: `${auth.user.id}:${inviteCode}`,
+    limit: 20,
+    scope: "friends:join",
+    windowSeconds: 10 * 60,
+  });
+
+  if (!limit.allowed) {
+    return rateLimitResponse(limit.retryAfterSeconds);
+  }
+
   try {
-    const competition = await joinFriendsCompetitionByCode(env.DB, String(body.inviteCode ?? body.invite_code ?? ""), auth.user.id);
+    const competition = await joinFriendsCompetitionByCode(env.DB, inviteCode, auth.user.id);
 
     return json({ competition, ok: true });
   } catch (error) {

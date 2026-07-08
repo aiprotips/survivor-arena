@@ -1785,7 +1785,14 @@ export async function deleteFriendsMatch(
   await assertOwner(db, input.competitionId, input.organizerId);
   const match = await getFriendsMatch(db, input.matchId);
   assertFriends(match && match.competition_id === input.competitionId, "Match non trovato.", 404);
+  const round = await getFriendsRound(db, match.round_id);
+  assertFriends(round && round.competition_id === input.competitionId, "Round non trovato.", 404);
+  assertFriends(round.status !== "CALCULATED", "Round già calcolato.", 409);
 
+  await db
+    .prepare("DELETE FROM friends_selections WHERE competition_id = ?1 AND round_id = ?2 AND match_id = ?3 AND status = 'PENDING'")
+    .bind(input.competitionId, round.id, match.id)
+    .run();
   await db.prepare("DELETE FROM friends_matches WHERE id = ?1").bind(input.matchId).run();
 
   return getFriendsCompetitionBundle(db, input.competitionId, input.organizerId);

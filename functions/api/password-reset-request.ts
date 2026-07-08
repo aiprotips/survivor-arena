@@ -7,6 +7,7 @@ import {
   getTelegramLinkForUser,
 } from "../_shared/account-flows";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../_shared/http";
+import { enforceRateLimit, rateLimitResponse } from "../_shared/rate-limit";
 import {
   createTelegramAppStartUrl,
   createTelegramStartUrl,
@@ -23,6 +24,16 @@ type Env = TelegramEnv & {
 export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   if (!env.DB) {
     return missingDatabase();
+  }
+
+  const ipLimit = await enforceRateLimit(env.DB, request, {
+    limit: 12,
+    scope: "password-reset-request:ip",
+    windowSeconds: 15 * 60,
+  });
+
+  if (!ipLimit.allowed) {
+    return rateLimitResponse(ipLimit.retryAfterSeconds);
   }
 
   const body = await readJsonObject(request);
@@ -51,6 +62,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
       },
       { status: 400 },
     );
+  }
+
+  const identityLimit = await enforceRateLimit(env.DB, request, {
+    identifier: `${username}:${phone}`,
+    limit: 5,
+    scope: "password-reset-request:identity",
+    windowSeconds: 15 * 60,
+  });
+
+  if (!identityLimit.allowed) {
+    return rateLimitResponse(identityLimit.retryAfterSeconds);
   }
 
   const user = await findUserByUsernameAndPhone(env.DB, {

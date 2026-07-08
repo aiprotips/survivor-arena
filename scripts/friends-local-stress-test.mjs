@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { execFileSync } from "node:child_process";
+
 const baseUrl = new URL(process.env.SURVIVOR_ARENA_TEST_BASE_URL ?? "http://127.0.0.1:8791");
 const allowedHosts = new Set(["127.0.0.1", "localhost", "::1"]);
 
@@ -11,6 +13,10 @@ if (!allowedHosts.has(baseUrl.hostname) && process.env.ALLOW_REMOTE_FRIENDS_TEST
 
 const password = "ArenaStress1!";
 const stamp = `${Date.now().toString(36).slice(-7)}${Math.random().toString(36).slice(2, 5)}`;
+const nodeBin = process.execPath;
+const wranglerBin = "node_modules/wrangler/bin/wrangler.js";
+const localD1Name = process.env.SURVIVOR_ARENA_TEST_D1_NAME ?? "survivor-arena-db";
+const shouldClearRateLimits = process.env.SURVIVOR_ARENA_CLEAR_RATE_LIMITS === "1";
 const scenarioSizes = [10, 8, 20, 50, 5, 3, 12, 16, 7, 25, 4, 18, 30, 6, 14, 22, 9, 35, 11, 28, 13, 40, 15, 24, 19, 32, 21, 45, 26, 50];
 const resultPatterns = [
   ["HOME_WIN", "DRAW", "AWAY_WIN", "POSTPONED", "CANCELLED"],
@@ -64,6 +70,18 @@ function cycle(items, index) {
   return items[index % items.length];
 }
 
+function clearLocalRateLimits() {
+  execFileSync(
+    nodeBin,
+    [wranglerBin, "d1", "execute", localD1Name, "--local", "--command", "DELETE FROM rate_limits;"],
+    {
+      cwd: process.cwd(),
+      env: process.env,
+      stdio: "ignore",
+    },
+  );
+}
+
 async function mapLimit(items, limit, fn) {
   const results = [];
   let cursor = 0;
@@ -84,7 +102,7 @@ class Client {
   cookie = "";
 
   async request(path, options = {}) {
-    const response = await fetch(new URL(path, baseUrl), {
+    let response = await fetch(new URL(path, baseUrl), {
       body: options.body ? JSON.stringify(options.body) : undefined,
       headers: {
         ...(options.body ? { "content-type": "application/json" } : {}),
@@ -93,6 +111,19 @@ class Client {
       method: options.method ?? "GET",
       redirect: options.redirect ?? "follow",
     });
+
+    if (response.status === 429 && shouldClearRateLimits) {
+      clearLocalRateLimits();
+      response = await fetch(new URL(path, baseUrl), {
+        body: options.body ? JSON.stringify(options.body) : undefined,
+        headers: {
+          ...(options.body ? { "content-type": "application/json" } : {}),
+          ...(this.cookie ? { cookie: this.cookie } : {}),
+        },
+        method: options.method ?? "GET",
+        redirect: options.redirect ?? "follow",
+      });
+    }
 
     const setCookie = response.headers.get("set-cookie");
     if (setCookie) {

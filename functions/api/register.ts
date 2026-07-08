@@ -6,6 +6,7 @@ import {
   type RegisterField,
 } from "../../src/lib/auth-validation";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../_shared/http";
+import { enforceRateLimit, rateLimitResponse } from "../_shared/rate-limit";
 import { createUser, findUserByUniqueFields, toPublicUser } from "../_shared/users";
 import { ensureUserComplianceSchema, recordLegalAcceptance } from "../_shared/user-compliance";
 
@@ -32,6 +33,16 @@ function passwordDetails() {
 export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   if (!env.DB) {
     return missingDatabase();
+  }
+
+  const ipLimit = await enforceRateLimit(env.DB, request, {
+    limit: 8,
+    scope: "register:ip",
+    windowSeconds: 60 * 60,
+  });
+
+  if (!ipLimit.allowed) {
+    return rateLimitResponse(ipLimit.retryAfterSeconds);
   }
 
   const body = await readJsonObject(request);
@@ -70,6 +81,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
       },
       { status: 400 },
     );
+  }
+
+  const identityLimit = await enforceRateLimit(env.DB, request, {
+    identifier: `${validation.values.username}:${validation.values.email}:${validation.values.phone}`,
+    limit: 4,
+    scope: "register:identity",
+    windowSeconds: 60 * 60,
+  });
+
+  if (!identityLimit.allowed) {
+    return rateLimitResponse(identityLimit.retryAfterSeconds);
   }
 
   const existingUser = await findUserByUniqueFields(env.DB, validation.values);

@@ -3,6 +3,7 @@
 import { validateConfirmPassword, validatePassword } from "../../../../../src/lib/auth-validation";
 import { requireAdmin } from "../../../../_shared/access";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../../../_shared/http";
+import { enforceRateLimit, rateLimitResponse } from "../../../../_shared/rate-limit";
 import {
   deleteUserSessions,
   findUserById,
@@ -27,6 +28,17 @@ export const onRequestPatch: PagesFunction<Env> = async ({ env, params, request 
   const auth = await requireAdmin(env.DB, request);
   if (!auth.user) {
     return auth.response;
+  }
+
+  const limit = await enforceRateLimit(env.DB, request, {
+    identifier: auth.user.id,
+    limit: 30,
+    scope: "admin:user-password",
+    windowSeconds: 60 * 60,
+  });
+
+  if (!limit.allowed) {
+    return rateLimitResponse(limit.retryAfterSeconds);
   }
 
   const userId = getId(params);

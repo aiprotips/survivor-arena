@@ -186,13 +186,33 @@ function slugifyTeamName(value: string) {
 }
 
 function isValidLogoValue(value: string | null) {
+  if (!value) {
+    return true;
+  }
+
+  if (value.startsWith("/assets/")) {
+    return (
+      value.length <= 240 &&
+      !value.includes("..") &&
+      !value.includes("//") &&
+      !/["'\\\s]/.test(value) &&
+      /\.(avif|gif|jpe?g|png|svg|webp)$/i.test(value)
+    );
+  }
+
+  if (value.startsWith("https://")) {
+    try {
+      const url = new URL(value);
+
+      return url.protocol === "https:" && value.length <= 2048;
+    } catch {
+      return false;
+    }
+  }
+
   return (
-    !value ||
-    ((value.startsWith("https://") ||
-      value.startsWith("http://") ||
-      value.startsWith("data:image/") ||
-      value.startsWith("/assets/")) &&
-      value.length <= 250_000)
+    /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i.test(value) &&
+    value.length <= 250_000
   );
 }
 
@@ -673,6 +693,7 @@ export async function createTeam(
   const logoUrl = input.logoUrl?.trim() || null;
 
   assertArena(name.length >= 2, "Inserisci un nome squadra valido.");
+  assertArena(name.length <= 80, "Nome squadra troppo lungo.");
   assertArena(isValidLogoValue(logoUrl), "Logo non valido. Usa un URL immagine o un file immagine leggero.");
 
   const existing = await getTeamByNormalizedName(db, normalizedName);
@@ -720,6 +741,7 @@ export async function updateTeam(
   const logoUrl = input.logoUrl?.trim() || null;
 
   assertArena(name.length >= 2, "Inserisci un nome squadra valido.");
+  assertArena(name.length <= 80, "Nome squadra troppo lungo.");
   assertArena(isValidLogoValue(logoUrl), "Logo non valido. Usa un URL immagine o un file immagine leggero.");
 
   const existing = await getTeamByNormalizedName(db, normalizedName);

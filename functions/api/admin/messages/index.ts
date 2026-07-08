@@ -2,6 +2,7 @@
 
 import { requireAdmin } from "../../../_shared/access";
 import { json, methodNotAllowed, missingDatabase, readJsonObject } from "../../../_shared/http";
+import { enforceRateLimit, rateLimitResponse } from "../../../_shared/rate-limit";
 
 type Env = {
   DB: D1Database;
@@ -75,6 +76,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     return auth.response;
   }
 
+  const limit = await enforceRateLimit(env.DB, request, {
+    identifier: auth.user.id,
+    limit: 20,
+    scope: "admin:messages",
+    windowSeconds: 60 * 60,
+  });
+
+  if (!limit.allowed) {
+    return rateLimitResponse(limit.retryAfterSeconds);
+  }
+
   const body = await readJsonObject(request);
   const title = cleanText(body?.title);
   const messageBody = cleanText(body?.body);
@@ -88,8 +100,20 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     return json({ field: "title", message: "Inserisci un titolo valido.", ok: false }, { status: 400 });
   }
 
+  if (title.length > 120) {
+    return json({ field: "title", message: "Il titolo è troppo lungo.", ok: false }, { status: 400 });
+  }
+
   if (messageBody.length < 5) {
     return json({ field: "body", message: "Inserisci un messaggio valido.", ok: false }, { status: 400 });
+  }
+
+  if (messageBody.length > 2000) {
+    return json({ field: "body", message: "Il messaggio è troppo lungo.", ok: false }, { status: 400 });
+  }
+
+  if (targetUserIds.length > 500) {
+    return json({ field: "targetUserIds", message: "Troppi destinatari selezionati.", ok: false }, { status: 400 });
   }
 
   const now = new Date().toISOString();
