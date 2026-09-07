@@ -100,6 +100,76 @@ type FriendsSelection = {
   status: string;
 };
 
+type FriendsUserStatus = "NOT_JOINED" | "PENDING" | "ACTIVE" | "ELIMINATED" | "WINNER" | "SHARED_WINNER";
+
+type FriendsLifeRoundOutcome = "SURVIVED" | "ELIMINATED" | "VOID" | "NO_CHOICE" | "NOT_PLAYING" | "PENDING";
+
+type FriendsUserUpdateDetail = {
+  competitionName?: string;
+  eventKind?: "round_result" | "round_started" | "tournament_completed";
+  fixtureMatchday?: number | null;
+  lives?: Array<{
+    lifeId: string;
+    lifeNumber: number;
+    matchLabel: string | null;
+    matchResult: MatchResult | null;
+    matchResultLabel: string;
+    outcome: FriendsLifeRoundOutcome;
+    selectedTeam: string | null;
+  }>;
+  remainingLives?: number;
+  roundNumber?: number;
+  tournamentCompleted?: boolean;
+  userStatus?: string;
+  winners?: Array<{
+    alive_lives: number;
+    decisive_lives: number;
+    participant_id: string;
+    user_id: string;
+    username: string;
+  }>;
+};
+
+type FriendsUserUpdate = {
+  competition_id: string;
+  created_at: string;
+  detail_json: string | null;
+  event_type: string;
+  id: string;
+  participant_id: string | null;
+  round_id: string | null;
+  summary: string;
+  title: string;
+  user_id: string;
+  viewed_at: string | null;
+};
+
+type FriendsHistoryRoundReport = {
+  calculated_at: string | null;
+  fixture_competition_id: string | null;
+  fixture_matchday: number | null;
+  participants: Array<{
+    lives: Array<{
+      life_id: string;
+      life_number: number;
+      match_label: string | null;
+      match_result: MatchResult | null;
+      outcome: FriendsLifeRoundOutcome;
+      selected_team: string | null;
+      selected_team_id: string | null;
+      used_teams_after: string[];
+    }>;
+    participant_id: string;
+    remaining_lives_after_round: number;
+    status: FriendsParticipant["status"];
+    user_id: string;
+    username: string;
+  }>;
+  round_id: string;
+  round_number: number;
+  status: FriendsRound["status"];
+};
+
 type FriendsLife = {
   id: string;
   life_number: number;
@@ -134,6 +204,7 @@ type FriendsCompetition = {
   }>;
   id: string;
   fixture_competition_id: string | null;
+  history_report: FriendsHistoryRoundReport[];
   invitation_count: number;
   invite_code: string;
   is_owner: boolean;
@@ -152,6 +223,8 @@ type FriendsCompetition = {
   rules: string | null;
   show_popular_picks_before_deadline: number;
   status: "PENDING" | "ACTIVE" | "LOCKED" | "COMPLETED" | "CANCELLED";
+  unviewed_updates: FriendsUserUpdate[];
+  user_status: FriendsUserStatus;
 };
 
 type FriendsResponse =
@@ -288,6 +361,116 @@ async function fetchJson<TResponse>(url: string, init?: RequestInit) {
   });
 
   return (await response.json()) as TResponse;
+}
+
+function parseFriendsUpdateDetail(update: FriendsUserUpdate): FriendsUserUpdateDetail {
+  if (!update.detail_json) {
+    return {};
+  }
+
+  try {
+    const detail = JSON.parse(update.detail_json);
+
+    return detail && typeof detail === "object" ? detail as FriendsUserUpdateDetail : {};
+  } catch {
+    return {};
+  }
+}
+
+function getPersonalStatusLabel(status: FriendsUserStatus) {
+  if (status === "ELIMINATED") {
+    return "Sei stato eliminato";
+  }
+
+  if (status === "WINNER") {
+    return "Vincitore";
+  }
+
+  if (status === "SHARED_WINNER") {
+    return "Vincitore condiviso";
+  }
+
+  if (status === "PENDING") {
+    return "In attesa";
+  }
+
+  return "Attivo";
+}
+
+function getCompetitionStatusLabel(status: FriendsCompetition["status"]) {
+  if (status === "COMPLETED") {
+    return "Concluso";
+  }
+
+  if (status === "CANCELLED") {
+    return "Annullato";
+  }
+
+  if (status === "LOCKED") {
+    return "Bloccato";
+  }
+
+  return "In corso";
+}
+
+function getLifeOutcomeLabel(outcome: FriendsLifeRoundOutcome) {
+  if (outcome === "SURVIVED") {
+    return "sopravvissuta";
+  }
+
+  if (outcome === "VOID") {
+    return "salva, match rinviato/annullato";
+  }
+
+  if (outcome === "NO_CHOICE") {
+    return "eliminata, nessuna scelta";
+  }
+
+  if (outcome === "NOT_PLAYING") {
+    return "non in gioco";
+  }
+
+  if (outcome === "PENDING") {
+    return "scelta registrata";
+  }
+
+  return "eliminata";
+}
+
+function getLifeOutcomeSymbol(outcome: FriendsLifeRoundOutcome) {
+  if (outcome === "SURVIVED" || outcome === "VOID") {
+    return "✓";
+  }
+
+  if (outcome === "NOT_PLAYING" || outcome === "PENDING") {
+    return "•";
+  }
+
+  return "×";
+}
+
+function formatMatchResultLabel(result: MatchResult | null) {
+  if (!result || result === "PENDING") {
+    return "Risultato non inserito";
+  }
+
+  if (result === "HOME_WIN") {
+    return "Vittoria casa";
+  }
+
+  if (result === "AWAY_WIN") {
+    return "Vittoria trasferta";
+  }
+
+  if (result === "DRAW") {
+    return "Pareggio";
+  }
+
+  if (result === "POSTPONED") {
+    return "Rinviata";
+  }
+
+  return "Annullata";
 }
 
 function useRuntimeImageSettings() {
@@ -3100,12 +3283,16 @@ function FriendsCompetitionPanel({
   const [choiceEffectKey, setChoiceEffectKey] = useState("");
   const [savedChoice, setSavedChoice] = useState("");
   const [now, setNow] = useState(() => Date.now());
+  const [dismissedUpdateIds, setDismissedUpdateIds] = useState<string[]>([]);
+  const pendingUpdates = (competition.unviewed_updates ?? []).filter((update) => !dismissedUpdateIds.includes(update.id));
   const selectedLife = aliveLives.find((life) => life.id === selectedLifeId) ?? aliveLives[0] ?? null;
   const choicesLocked = !currentRound || currentRound.status !== "OPEN" || isDeadlinePassed(currentRound.deadline_at);
   const deadline = currentRound ? deadlineEdits[currentRound.id] ?? toDateTimeLocal(currentRound.deadline_at) : "";
   const countdown = formatFriendsGameCountdown(currentRound?.deadline_at ?? null, now);
   const popularChoices = currentRound ? buildFriendsPopularChoices(competition, currentRound) : [];
   const shouldShowPopularChoices = choicesLocked || competition.show_popular_picks_before_deadline === 1;
+  const hasNoPlayableLives = !!participant && !isPendingParticipant && aliveLives.length === 0;
+  const canChooseInCurrentRound = !!selectedLife && !choicesLocked && competition.user_status === "ACTIVE";
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 1000);
@@ -3134,9 +3321,32 @@ function FriendsCompetitionPanel({
     });
   }
 
+  async function dismissTournamentUpdates() {
+    const ids = pendingUpdates.map((update) => update.id);
+    setDismissedUpdateIds((current) => Array.from(new Set([...current, ...ids])));
+
+    await fetch("/api/friends/updates", {
+      body: JSON.stringify({ competitionId: competition.id, ids }),
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    }).catch(() => undefined);
+    await mutate(`/api/friends/competitions/${competition.id}`).catch(() => null);
+  }
+
   if (!showManagerTools) {
     return (
       <div className="arena-detail-page">
+        {pendingUpdates.length > 0 ? (
+          <FriendsUserUpdatesModal
+            competition={competition}
+            onClose={() => void dismissTournamentUpdates()}
+            updates={pendingUpdates}
+          />
+        ) : null}
+
         <section className="arena-game-hero">
           <div className="arena-game-hero-copy">
             <p className="user-page-kicker">Torneo Friends</p>
@@ -3144,8 +3354,14 @@ function FriendsCompetitionPanel({
             <div className="arena-game-hero-badges">
               <span className="arena-game-state arena-game-state-status">
                 <Trophy aria-hidden="true" />
-                {competition.status === "ACTIVE" ? "In corso" : competition.status}
+                Torneo {getCompetitionStatusLabel(competition.status)}
               </span>
+              {competition.is_participant ? (
+                <span className={cn("arena-game-state", competition.user_status === "ELIMINATED" && "arena-game-state-danger", (competition.user_status === "WINNER" || competition.user_status === "SHARED_WINNER") && "arena-game-state-gold")}>
+                  <Heart aria-hidden="true" />
+                  {getPersonalStatusLabel(competition.user_status)}
+                </span>
+              ) : null}
               <span className="arena-game-state arena-game-state-muted arena-game-state-code">
                 Codice {competition.invite_code}
               </span>
@@ -3170,6 +3386,8 @@ function FriendsCompetitionPanel({
             </span>
           </div>
         </section>
+
+        <FriendsPersonalStatusNotice competition={competition} />
 
         {savedChoice ? (
           <div className="arena-choice-toast" role="status">
@@ -3215,12 +3433,12 @@ function FriendsCompetitionPanel({
             <div className="arena-section-heading">
               <div>
                 <p className="user-page-kicker">Le tue vite</p>
-                <h2>{selectedLife ? `Scegli per Vita ${selectedLife.life_number}` : "Scegli quale vita giocare"}</h2>
+                <h2>{selectedLife ? `Scegli per Vita ${selectedLife.life_number}` : hasNoPlayableLives ? "Segui l'andamento del round" : "Scegli quale vita giocare"}</h2>
               </div>
-              {choicesLocked ? (
+              {choicesLocked || hasNoPlayableLives ? (
                 <span className="arena-locked-pill">
                   <Lock aria-hidden="true" />
-                  Scelte bloccate
+                  {hasNoPlayableLives ? "Solo consultazione" : "Scelte bloccate"}
                 </span>
               ) : null}
             </div>
@@ -3237,7 +3455,7 @@ function FriendsCompetitionPanel({
               ))}
             </div>
 
-            {!choicesLocked ? (
+            {canChooseInCurrentRound ? (
               <section className="arena-game-section arena-game-section-choices">
                 <div className="arena-section-heading">
                   <div>
@@ -3282,9 +3500,13 @@ function FriendsCompetitionPanel({
               </section>
             ) : (
               <Card className="arena-locked-card">
-                <Lock aria-hidden="true" />
-                <h3>Round in corso</h3>
-                <p>Le scelte sono bloccate. Puoi consultare le scelte pubbliche.</p>
+                {hasNoPlayableLives ? <Shield aria-hidden="true" /> : <Lock aria-hidden="true" />}
+                <h3>{hasNoPlayableLives ? "Modalita' spettatore" : "Round in corso"}</h3>
+                <p>
+                  {hasNoPlayableLives
+                    ? "Non hai piu' vite attive, ma il torneo resta aperto: puoi seguire round, scelte, risultati e storico."
+                    : "Le scelte sono bloccate. Puoi consultare le scelte pubbliche."}
+                </p>
               </Card>
             )}
           </section>
@@ -3331,20 +3553,32 @@ function FriendsCompetitionPanel({
             <p>{choicesLocked ? "Le scelte sono chiuse: attendi il risultato del round." : "Scegli bene: nelle Friends ogni vita racconta la sua storia."}</p>
           </section>
         )}
+
+        <FriendsTournamentReport competition={competition} />
       </div>
     );
   }
 
   return (
     <Card className="dashboard-panel">
+      {pendingUpdates.length > 0 ? (
+        <FriendsUserUpdatesModal
+          competition={competition}
+          onClose={() => void dismissTournamentUpdates()}
+          updates={pendingUpdates}
+        />
+      ) : null}
+
       <div className="dashboard-section-heading">
         <div>
           <p className="user-page-kicker">{competition.is_owner ? "Dashboard organizzatore" : "Competizione Friends"}</p>
           <h2>{competition.name}</h2>
           <p className="admin-muted">{competition.description || "Competizione privata tra amici."}</p>
         </div>
-        <span className="ui-badge ui-badge-gold">{competition.status}</span>
+        <span className="ui-badge ui-badge-gold">Torneo {getCompetitionStatusLabel(competition.status)}</span>
       </div>
+
+      <FriendsPersonalStatusNotice competition={competition} />
 
       <section className="arena-summary-grid" aria-label="Riepilogo Friends">
         <Summary icon={UsersRound} label="Partecipanti" value={String(competition.participants.length)} />
@@ -3664,10 +3898,12 @@ function FriendsCompetitionPanel({
             })}
           </div>
 
-          {!choicesLocked ? (
+          {canChooseInCurrentRound ? (
             <div className="arena-match-choice-grid">
               {currentRound.matches.map((match) => {
                 const selection = selectedLife?.selections.find((item) => item.round_id === currentRound.id);
+                const homeUsed = isFriendsTeamUsedByLife(selectedLife, currentRound, match.home_team_id, match.home_team);
+                const awayUsed = isFriendsTeamUsedByLife(selectedLife, currentRound, match.away_team_id, match.away_team);
 
                 return (
                   <article className="arena-match-choice-card" key={match.id}>
@@ -3678,15 +3914,17 @@ function FriendsCompetitionPanel({
                     </div>
                     <div className="arena-team-actions">
                       <TeamButton
-                        disabled={!match.is_active}
+                        disabled={!match.is_active || homeUsed}
                         isSelected={selection?.selected_team_id === match.home_team_id}
+                        isUsed={homeUsed}
                         logoUrl={match.home_team_logo_url}
                         onClick={() => choose(match, match.home_team_id)}
                         team={match.home_team}
                       />
                       <TeamButton
-                        disabled={!match.is_active}
+                        disabled={!match.is_active || awayUsed}
                         isSelected={selection?.selected_team_id === match.away_team_id}
+                        isUsed={awayUsed}
                         logoUrl={match.away_team_logo_url}
                         onClick={() => choose(match, match.away_team_id)}
                         team={match.away_team}
@@ -3698,9 +3936,13 @@ function FriendsCompetitionPanel({
             </div>
           ) : (
             <Card className="arena-locked-card">
-              <Lock aria-hidden="true" />
-              <h3>Round in corso</h3>
-              <p>Le scelte sono bloccate. Puoi consultare le scelte pubbliche.</p>
+              {hasNoPlayableLives ? <Shield aria-hidden="true" /> : <Lock aria-hidden="true" />}
+              <h3>{hasNoPlayableLives ? "Modalita' spettatore" : "Round in corso"}</h3>
+              <p>
+                {hasNoPlayableLives
+                  ? "Non hai piu' vite attive, ma puoi continuare a gestire e seguire il torneo."
+                  : "Le scelte sono bloccate. Puoi consultare le scelte pubbliche."}
+              </p>
             </Card>
           )}
         </section>
@@ -3726,6 +3968,8 @@ function FriendsCompetitionPanel({
         </section>
       ) : null}
 
+      <FriendsTournamentReport competition={competition} />
+
       <section className="admin-tool-card">
         <div className="dashboard-section-heading">
           <div>
@@ -3747,6 +3991,191 @@ function FriendsCompetitionPanel({
         </div>
       </section>
     </Card>
+  );
+}
+
+function FriendsPersonalStatusNotice({ competition }: { competition: FriendsCompetition }) {
+  if (!competition.participant) {
+    return null;
+  }
+
+  if (competition.user_status === "ELIMINATED") {
+    return (
+      <section className="friends-personal-status friends-personal-status-danger">
+        <Shield aria-hidden="true" />
+        <div>
+          <strong>Sei stato eliminato</strong>
+          <p>Il torneo e&apos; ancora accessibile: puoi seguire i round, vedere le scelte degli altri e consultare tutto lo storico.</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (competition.user_status === "WINNER" || competition.user_status === "SHARED_WINNER") {
+    return (
+      <section className="friends-personal-status friends-personal-status-gold">
+        <Trophy aria-hidden="true" />
+        <div>
+          <strong>{competition.user_status === "SHARED_WINNER" ? "Hai vinto insieme ad altri partecipanti" : "Hai vinto il Survival"}</strong>
+          <p>Il report torneo resta disponibile per ricostruire tutto il percorso fino alla vittoria.</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (competition.user_status === "PENDING") {
+    return (
+      <section className="friends-personal-status">
+        <Clock3 aria-hidden="true" />
+        <div>
+          <strong>Partecipazione in attesa</strong>
+          <p>L&apos;organizzatore deve ancora confermare la tua entrata nel torneo.</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="friends-personal-status">
+      <Heart aria-hidden="true" />
+      <div>
+        <strong>Sei ancora in gioco</strong>
+        <p>Stato torneo: {getCompetitionStatusLabel(competition.status)}. Vite attive: {competition.participant.alive_lives}.</p>
+      </div>
+    </section>
+  );
+}
+
+function FriendsUserUpdatesModal({
+  competition,
+  onClose,
+  updates,
+}: {
+  competition: FriendsCompetition;
+  onClose: () => void;
+  updates: FriendsUserUpdate[];
+}) {
+  const details = updates.map((update) => ({
+    detail: parseFriendsUpdateDetail(update),
+    update,
+  }));
+  const finalDetail = details.find((item) => item.detail.eventKind === "tournament_completed")?.detail;
+  const winners = finalDetail?.winners ?? [];
+
+  return (
+    <div className="arena-modal-backdrop" role="presentation">
+      <Card aria-modal="true" className="arena-modal-card friends-update-modal" role="dialog">
+        <p className="user-page-kicker">Aggiornamenti torneo</p>
+        <h2>{updates.length > 1 ? `Ci sono ${updates.length} aggiornamenti` : updates[0]?.title}</h2>
+        <p className="admin-muted">{competition.name}</p>
+
+        <div className="friends-update-list">
+          {details.map(({ detail, update }) => (
+            <article className="friends-update-card" key={update.id}>
+              <span>{new Date(update.created_at).toLocaleString("it-IT")}</span>
+              <strong>{update.title}</strong>
+              <p>{update.summary}</p>
+              {typeof detail.roundNumber === "number" ? <small>Round {detail.roundNumber}</small> : null}
+              {detail.lives && detail.lives.length > 0 ? (
+                <div className="friends-update-life-list">
+                  {detail.lives.map((life) => (
+                    <div className="friends-update-life-row" key={`${update.id}-${life.lifeId}`}>
+                      <b>Vita #{life.lifeNumber}</b>
+                      <span>{life.selectedTeam ?? "Nessuna scelta"}</span>
+                      <em>{life.matchLabel ? `${life.matchLabel} · ${life.matchResultLabel}` : life.matchResultLabel}</em>
+                      <i className={cn((life.outcome === "SURVIVED" || life.outcome === "VOID") && "friends-update-life-ok")}>
+                        {getLifeOutcomeSymbol(life.outcome)} {getLifeOutcomeLabel(life.outcome)}
+                      </i>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {typeof detail.remainingLives === "number" ? (
+                <small>Vite rimaste: {detail.remainingLives}</small>
+              ) : null}
+            </article>
+          ))}
+        </div>
+
+        {winners.length > 1 ? (
+          <div className="friends-update-winners">
+            <strong>Vincitori condivisi</strong>
+            {winners.map((winner) => (
+              <span key={winner.participant_id}>
+                {winner.username} · {winner.decisive_lives || winner.alive_lives} vite
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <Button onClick={onClose} type="button">
+          Ho capito
+        </Button>
+      </Card>
+    </div>
+  );
+}
+
+function FriendsTournamentReport({ competition }: { competition: FriendsCompetition }) {
+  const reportRounds = competition.history_report.filter((round) => round.status === "CALCULATED");
+
+  return (
+    <section className="admin-tool-card friends-report-section">
+      <div className="dashboard-section-heading">
+        <div>
+          <p className="user-page-kicker">Storico / Report torneo</p>
+          <h3>Ogni round, ogni vita, ogni scelta</h3>
+          <p className="admin-muted">Il report resta consultabile durante il torneo e dopo la conclusione.</p>
+        </div>
+      </div>
+
+      {reportRounds.length > 0 ? (
+        <div className="friends-report-rounds">
+          {reportRounds.map((round) => (
+            <article className="friends-report-round" key={round.round_id}>
+              <div className="friends-report-round-head">
+                <strong>Round {round.round_number}</strong>
+                <span>{round.fixture_matchday ? `Giornata Serie A ${round.fixture_matchday}` : "Giornata manuale"}</span>
+              </div>
+
+              <div className="friends-report-participants">
+                {round.participants.map((participant) => (
+                  <section className="friends-report-participant" key={`${round.round_id}-${participant.participant_id}`}>
+                    <div className="friends-report-participant-head">
+                      <strong>{participant.username}</strong>
+                      <span>Vite rimaste: {participant.remaining_lives_after_round}</span>
+                    </div>
+                    <div className="friends-report-life-list">
+                      {participant.lives.map((life) => (
+                        <article className="friends-report-life" key={`${round.round_id}-${life.life_id}`}>
+                          <div>
+                            <b>Vita #{life.life_number}</b>
+                            <span>{life.selected_team ?? "Nessuna scelta"}</span>
+                            <small>
+                              {life.match_label ? `${life.match_label} · ${formatMatchResultLabel(life.match_result)}` : "Non in gioco nel round"}
+                            </small>
+                          </div>
+                          <em className={cn((life.outcome === "SURVIVED" || life.outcome === "VOID") && "friends-report-life-ok")}>
+                            {getLifeOutcomeSymbol(life.outcome)} {getLifeOutcomeLabel(life.outcome)}
+                          </em>
+                          {life.used_teams_after.length > 0 ? (
+                            <small className="friends-report-used-teams">
+                              Usate: {life.used_teams_after.join(", ")}
+                            </small>
+                          ) : null}
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="admin-muted">Nessun round calcolato. Lo storico comparira&apos; appena l&apos;organizzatore calcola il primo round.</p>
+      )}
+    </section>
   );
 }
 
@@ -3936,21 +4365,25 @@ function Summary({
 function TeamButton({
   disabled,
   isSelected,
+  isUsed = false,
   logoUrl,
   onClick,
   team,
 }: {
   disabled: boolean;
   isSelected: boolean;
+  isUsed?: boolean;
   logoUrl: string | null;
   onClick: () => void;
   team: string;
 }) {
   return (
     <button
+      aria-label={isUsed ? `${team} già usata da questa vita` : `Scegli ${team}`}
       className={cn("arena-team-button", isSelected && "arena-team-button-selected")}
       disabled={disabled}
       onClick={onClick}
+      title={isUsed ? "Già usata da questa vita" : undefined}
       type="button"
     >
       {logoUrl ? (
@@ -3960,7 +4393,7 @@ function TeamButton({
         <span className="arena-team-logo-placeholder">{team.slice(0, 2).toUpperCase()}</span>
       )}
       <span>{team}</span>
-      {isSelected ? <CheckCircle2 aria-hidden="true" /> : <ArrowUpRight aria-hidden="true" />}
+      {isSelected ? <CheckCircle2 aria-hidden="true" /> : isUsed ? <Lock aria-hidden="true" /> : <ArrowUpRight aria-hidden="true" />}
     </button>
   );
 }

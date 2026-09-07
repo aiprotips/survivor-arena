@@ -109,6 +109,73 @@ export type FriendsSelectionRow = {
   updated_at: string;
 };
 
+export type FriendsUserStatus = "NOT_JOINED" | "PENDING" | "ACTIVE" | "ELIMINATED" | "WINNER" | "SHARED_WINNER";
+
+export type FriendsLifeRoundOutcome = "SURVIVED" | "ELIMINATED" | "VOID" | "NO_CHOICE";
+
+export type FriendsLifeRoundResultRow = {
+  competition_id: string;
+  created_at: string;
+  id: string;
+  life_id: string;
+  life_number: number;
+  match_id: string | null;
+  match_label: string | null;
+  match_result: MatchResult | null;
+  outcome: FriendsLifeRoundOutcome;
+  participant_id: string;
+  remaining_lives_after_round: number;
+  round_id: string;
+  selected_side: SelectionSide | null;
+  selected_team: string | null;
+  selected_team_id: string | null;
+  user_id: string;
+};
+
+export type FriendsUserUpdateRow = {
+  competition_id: string;
+  created_at: string;
+  detail_json: string | null;
+  event_type: string;
+  id: string;
+  participant_id: string | null;
+  round_id: string | null;
+  summary: string;
+  title: string;
+  user_id: string;
+  viewed_at: string | null;
+};
+
+export type FriendsHistoryLifeReport = {
+  life_id: string;
+  life_number: number;
+  match_label: string | null;
+  match_result: MatchResult | null;
+  outcome: FriendsLifeRoundOutcome | "NOT_PLAYING" | "PENDING";
+  selected_team: string | null;
+  selected_team_id: string | null;
+  used_teams_after: string[];
+};
+
+export type FriendsHistoryParticipantReport = {
+  lives: FriendsHistoryLifeReport[];
+  participant_id: string;
+  remaining_lives_after_round: number;
+  status: FriendsParticipantRow["status"];
+  user_id: string;
+  username: string;
+};
+
+export type FriendsHistoryRoundReport = {
+  calculated_at: string | null;
+  fixture_competition_id: string | null;
+  fixture_matchday: number | null;
+  participants: FriendsHistoryParticipantReport[];
+  round_id: string;
+  round_number: number;
+  status: FriendsRoundStatus;
+};
+
 export type FriendsCompetitionBundle = FriendsCompetitionRow & {
   can_join: boolean;
   current_round: (FriendsRoundRow & { matches: FriendsMatchRow[] }) | null;
@@ -119,6 +186,7 @@ export type FriendsCompetitionBundle = FriendsCompetitionRow & {
     message: string;
     username: string | null;
   }>;
+  history_report: FriendsHistoryRoundReport[];
   invitation_count: number;
   is_owner: boolean;
   is_participant: boolean;
@@ -131,6 +199,8 @@ export type FriendsCompetitionBundle = FriendsCompetitionRow & {
     username: string;
   }>;
   rounds: Array<FriendsRoundRow & { matches: FriendsMatchRow[] }>;
+  unviewed_updates: FriendsUserUpdateRow[];
+  user_status: FriendsUserStatus;
 };
 
 type FriendsMatchInput = {
@@ -396,6 +466,48 @@ export async function ensureFriendsSchema(db: D1Database) {
     )`,
   );
   await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_events_competition ON friends_events (competition_id, created_at)");
+  await runSchema(
+    db,
+    `CREATE TABLE IF NOT EXISTS friends_life_round_results (
+      id TEXT PRIMARY KEY NOT NULL,
+      competition_id TEXT NOT NULL,
+      round_id TEXT NOT NULL,
+      participant_id TEXT NOT NULL,
+      life_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      life_number INTEGER NOT NULL,
+      selected_team_id TEXT,
+      selected_team TEXT,
+      selected_side TEXT,
+      match_id TEXT,
+      match_label TEXT,
+      match_result TEXT,
+      outcome TEXT NOT NULL CHECK (outcome IN ('SURVIVED', 'ELIMINATED', 'VOID', 'NO_CHOICE')),
+      remaining_lives_after_round INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      UNIQUE (round_id, life_id)
+    )`,
+  );
+  await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_life_round_results_competition ON friends_life_round_results (competition_id, round_id)");
+  await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_life_round_results_life ON friends_life_round_results (life_id, round_id)");
+  await runSchema(
+    db,
+    `CREATE TABLE IF NOT EXISTS friends_user_updates (
+      id TEXT PRIMARY KEY NOT NULL,
+      competition_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      participant_id TEXT,
+      round_id TEXT,
+      event_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      detail_json TEXT,
+      created_at TEXT NOT NULL,
+      viewed_at TEXT
+    )`,
+  );
+  await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_user_updates_user_viewed ON friends_user_updates (user_id, viewed_at, created_at)");
+  await runSchema(db, "CREATE INDEX IF NOT EXISTS idx_friends_user_updates_competition_user ON friends_user_updates (competition_id, user_id, created_at)");
 
   friendsSchemaReady = true;
 }
@@ -965,6 +1077,324 @@ async function getInvitationCount(db: D1Database, competitionId: string) {
   return row?.count ?? 0;
 }
 
+async function listFriendsUserUpdatesForCompetition(db: D1Database, competitionId: string, userId: string) {
+  const rows = await db
+    .prepare(
+      `SELECT id, competition_id, user_id, participant_id, round_id, event_type, title, summary, detail_json, created_at, viewed_at
+       FROM friends_user_updates
+       WHERE competition_id = ?1 AND user_id = ?2 AND viewed_at IS NULL
+       ORDER BY created_at ASC`,
+    )
+    .bind(competitionId, userId)
+    .all<FriendsUserUpdateRow>();
+
+  return rows.results ?? [];
+}
+
+export type FriendsUserUpdateSummary = FriendsUserUpdateRow & {
+  competition_name: string;
+};
+
+export async function listUnviewedFriendsUserUpdates(db: D1Database, userId: string) {
+  await ensureFriendsSchema(db);
+
+  const rows = await db
+    .prepare(
+      `SELECT
+         u.id,
+         u.competition_id,
+         u.user_id,
+         u.participant_id,
+         u.round_id,
+         u.event_type,
+         u.title,
+         u.summary,
+         u.detail_json,
+         u.created_at,
+         u.viewed_at,
+         c.name AS competition_name
+       FROM friends_user_updates u
+       INNER JOIN friends_competitions c ON c.id = u.competition_id
+       WHERE u.user_id = ?1 AND u.viewed_at IS NULL
+       ORDER BY u.created_at ASC
+       LIMIT 40`,
+    )
+    .bind(userId)
+    .all<FriendsUserUpdateSummary>();
+
+  return rows.results ?? [];
+}
+
+export async function markFriendsUserUpdatesViewed(
+  db: D1Database,
+  input: {
+    competitionId?: string | null;
+    ids?: string[];
+    userId: string;
+  },
+) {
+  await ensureFriendsSchema(db);
+
+  const now = nowIso();
+
+  if (input.competitionId) {
+    await db
+      .prepare(
+        `UPDATE friends_user_updates
+         SET viewed_at = COALESCE(viewed_at, ?1)
+         WHERE user_id = ?2 AND competition_id = ?3 AND viewed_at IS NULL`,
+      )
+      .bind(now, input.userId, input.competitionId)
+      .run();
+
+    return { ok: true };
+  }
+
+  const ids = (input.ids ?? []).filter((id) => typeof id === "string" && id.trim().length > 0).slice(0, 80);
+  assertFriends(ids.length > 0, "Nessun aggiornamento da segnare come visto.");
+  const placeholders = ids.map((_, index) => `?${index + 3}`).join(", ");
+
+  await db
+    .prepare(
+      `UPDATE friends_user_updates
+       SET viewed_at = COALESCE(viewed_at, ?1)
+       WHERE user_id = ?2 AND id IN (${placeholders}) AND viewed_at IS NULL`,
+    )
+    .bind(now, input.userId, ...ids)
+    .run();
+
+  return { ok: true };
+}
+
+async function createFriendsUserUpdate(
+  db: D1Database,
+  input: {
+    competitionId: string;
+    detail?: Record<string, unknown>;
+    eventType: string;
+    participantId?: string | null;
+    roundId?: string | null;
+    summary: string;
+    title: string;
+    userId: string;
+  },
+) {
+  await db
+    .prepare(
+      `INSERT INTO friends_user_updates (
+        id, competition_id, user_id, participant_id, round_id, event_type, title, summary, detail_json, created_at, viewed_at
+      ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL)`,
+    )
+    .bind(
+      crypto.randomUUID(),
+      input.competitionId,
+      input.userId,
+      input.participantId ?? null,
+      input.roundId ?? null,
+      input.eventType,
+      input.title,
+      input.summary,
+      input.detail ? JSON.stringify(input.detail) : null,
+      nowIso(),
+    )
+    .run();
+}
+
+async function listLifeRoundResults(db: D1Database, competitionId: string, roundId?: string) {
+  const query = roundId
+    ? `SELECT id, competition_id, round_id, participant_id, life_id, user_id, life_number,
+         selected_team_id, selected_team, selected_side, match_id, match_label, match_result,
+         outcome, remaining_lives_after_round, created_at
+       FROM friends_life_round_results
+       WHERE competition_id = ?1 AND round_id = ?2
+       ORDER BY life_number ASC`
+    : `SELECT id, competition_id, round_id, participant_id, life_id, user_id, life_number,
+         selected_team_id, selected_team, selected_side, match_id, match_label, match_result,
+         outcome, remaining_lives_after_round, created_at
+       FROM friends_life_round_results
+       WHERE competition_id = ?1
+       ORDER BY created_at ASC, life_number ASC`;
+
+  const statement = db.prepare(query);
+  const rows = roundId
+    ? await statement.bind(competitionId, roundId).all<FriendsLifeRoundResultRow>()
+    : await statement.bind(competitionId).all<FriendsLifeRoundResultRow>();
+
+  return rows.results ?? [];
+}
+
+function getFriendsUserStatus(
+  competition: FriendsCompetitionRow,
+  participant: FriendsParticipantRow | null | undefined,
+  participants: FriendsParticipantRow[],
+): FriendsUserStatus {
+  if (!participant) {
+    return "NOT_JOINED";
+  }
+
+  if (participant.status === "PENDING") {
+    return "PENDING";
+  }
+
+  if (participant.status === "WINNER") {
+    const winners = participants.filter((item) => item.status === "WINNER").length;
+
+    return winners > 1 ? "SHARED_WINNER" : "WINNER";
+  }
+
+  if (participant.status === "ELIMINATED") {
+    return "ELIMINATED";
+  }
+
+  if (competition.status === "COMPLETED") {
+    return participant.alive_lives > 0 ? "WINNER" : "ELIMINATED";
+  }
+
+  return "ACTIVE";
+}
+
+function matchLabel(match: FriendsMatchRow | null | undefined) {
+  return match ? `${match.home_team} - ${match.away_team}` : null;
+}
+
+function matchResultText(result: MatchResult | null | undefined) {
+  if (!result || result === "PENDING") {
+    return "Risultato non inserito";
+  }
+
+  if (result === "HOME_WIN") {
+    return "Vittoria casa";
+  }
+
+  if (result === "AWAY_WIN") {
+    return "Vittoria trasferta";
+  }
+
+  if (result === "DRAW") {
+    return "Pareggio";
+  }
+
+  if (result === "POSTPONED") {
+    return "Rinviata";
+  }
+
+  return "Annullata";
+}
+
+function updateLifeSummary(result: FriendsLifeRoundResultRow) {
+  return {
+    lifeId: result.life_id,
+    lifeNumber: result.life_number,
+    matchLabel: result.match_label,
+    matchResult: result.match_result,
+    matchResultLabel: matchResultText(result.match_result),
+    outcome: result.outcome,
+    selectedTeam: result.selected_team,
+  };
+}
+
+function getUpdateSummaryFromResults(results: FriendsLifeRoundResultRow[], remainingLives: number) {
+  const eliminated = results.filter((result) => result.outcome === "ELIMINATED" || result.outcome === "NO_CHOICE").length;
+  const survived = results.filter((result) => result.outcome === "SURVIVED" || result.outcome === "VOID").length;
+
+  if (eliminated > 0 && survived > 0) {
+    return `Round concluso: ${survived} vite sopravvissute, ${eliminated} eliminate. Ti restano ${remainingLives} vite.`;
+  }
+
+  if (eliminated > 0 && remainingLives === 0) {
+    return "Tutte le tue vite sono state eliminate. Il torneo pero' e' ancora in corso.";
+  }
+
+  if (eliminated > 0) {
+    return `Hai perso ${eliminated} vite. Ti restano ${remainingLives} vite in gioco.`;
+  }
+
+  return `Le tue vite hanno superato il round. Ti restano ${remainingLives} vite in gioco.`;
+}
+
+async function buildFriendsHistoryReport(
+  db: D1Database,
+  competitionId: string,
+  rounds: Array<FriendsRoundRow & { matches: FriendsMatchRow[] }>,
+  participants: Array<FriendsParticipantRow & { lives: Array<FriendsLifeRow & { selections: FriendsSelectionRow[] }> }>,
+) {
+  const storedResults = await listLifeRoundResults(db, competitionId);
+  const roundNumbers = new Map(rounds.map((round) => [round.id, round.round_number]));
+
+  return rounds.map((round) => {
+    const storedRoundResults = storedResults.filter((result) => result.round_id === round.id);
+
+    return {
+      calculated_at: round.calculated_at,
+      fixture_competition_id: round.fixture_competition_id,
+      fixture_matchday: round.fixture_matchday,
+      participants: participants
+        .filter((participant) => participant.status !== "REMOVED")
+        .map((participant) => {
+          const participantResults = storedRoundResults.filter((result) => result.participant_id === participant.id);
+          const resultsByLifeId = new Map(participantResults.map((result) => [result.life_id, result]));
+          const lives = participant.lives.map((life) => {
+            const storedResult = resultsByLifeId.get(life.id);
+            const selection = life.selections.find((item) => item.round_id === round.id);
+            const match = selection ? round.matches.find((item) => item.id === selection.match_id) : null;
+
+            if (storedResult) {
+              return {
+                life_id: storedResult.life_id,
+                life_number: storedResult.life_number,
+                match_label: storedResult.match_label,
+                match_result: storedResult.match_result,
+                outcome: storedResult.outcome,
+                selected_team: storedResult.selected_team,
+                selected_team_id: storedResult.selected_team_id,
+                used_teams_after: life.selections
+                  .filter((item) => (roundNumbers.get(item.round_id) ?? 0) <= round.round_number && item.status !== "VOID")
+                  .map((item) => item.selected_team),
+              } satisfies FriendsHistoryLifeReport;
+            }
+
+            return {
+              life_id: life.id,
+              life_number: life.life_number,
+              match_label: matchLabel(match),
+              match_result: match?.result ?? null,
+              outcome: selection
+                ? selection.status === "VOID"
+                  ? "VOID"
+                  : selection.status === "SURVIVED"
+                    ? "SURVIVED"
+                    : selection.status === "ELIMINATED"
+                      ? "ELIMINATED"
+                      : "PENDING"
+                : storedRoundResults.length > 0 && round.status === "CALCULATED"
+                  ? "NOT_PLAYING"
+                  : "NO_CHOICE",
+              selected_team: selection?.selected_team ?? null,
+              selected_team_id: selection?.selected_team_id ?? null,
+              used_teams_after: life.selections
+                .filter((item) => (roundNumbers.get(item.round_id) ?? 0) <= round.round_number && item.status !== "VOID")
+                .map((item) => item.selected_team),
+            } satisfies FriendsHistoryLifeReport;
+          });
+          const computedRemainingLives = lives.filter((life) => life.outcome === "SURVIVED" || life.outcome === "VOID" || life.outcome === "PENDING").length;
+          const remainingLives = participantResults[0]?.remaining_lives_after_round ?? (round.status === "CALCULATED" ? computedRemainingLives : participant.alive_lives);
+
+          return {
+            lives,
+            participant_id: participant.id,
+            remaining_lives_after_round: remainingLives,
+            status: participant.status,
+            user_id: participant.user_id,
+            username: participant.username,
+          };
+        }),
+      round_id: round.id,
+      round_number: round.round_number,
+      status: round.status,
+    } satisfies FriendsHistoryRoundReport;
+  });
+}
+
 async function canUserJoin(db: D1Database, competition: FriendsCompetitionRow, userId: string) {
   if (competition.owner_user_id === userId) {
     return true;
@@ -1020,24 +1450,32 @@ export async function getFriendsCompetitionBundle(
   const canJoin = competition.status === "ACTIVE" && !activeParticipant && await canUserJoin(db, competition, userId);
 
   assertFriends(isOwner || activeParticipant || canJoin, "Non hai accesso a questa competizione Friends.", 403);
+  const hydratedParticipant = activeParticipant
+    ? participants.find((item) => item.id === activeParticipant.id) ?? {
+        ...activeParticipant,
+        lives: await listParticipantLives(db, activeParticipant.id),
+      }
+    : null;
+  const [historyReport, unviewedUpdates] = await Promise.all([
+    buildFriendsHistoryReport(db, competition.id, hydratedRounds, participants),
+    activeParticipant ? listFriendsUserUpdatesForCompetition(db, competition.id, userId) : Promise.resolve([]),
+  ]);
 
   return {
     ...competition,
     can_join: canJoin,
     current_round: currentRound,
     events,
+    history_report: historyReport,
     invitation_count: invitationCount,
     is_owner: isOwner,
     is_participant: !!activeParticipant,
-    participant: activeParticipant
-      ? {
-          ...activeParticipant,
-          lives: await listParticipantLives(db, activeParticipant.id),
-        }
-      : null,
+    participant: hydratedParticipant,
     participants,
     public_choices: publicChoices,
     rounds: hydratedRounds,
+    unviewed_updates: unviewedUpdates,
+    user_status: getFriendsUserStatus(competition, hydratedParticipant, participants),
   };
 }
 
@@ -1413,6 +1851,7 @@ export async function terminateFriendsCompetition(db: D1Database, competitionId:
     message: "Competizione terminata manualmente dall'organizzatore.",
     userId: organizerId,
   });
+  await createManualCompetitionClosedUpdates(db, competition);
 
   return getFriendsCompetitionBundle(db, competition.id, organizerId);
 }
@@ -1452,6 +1891,8 @@ export async function deleteFriendsCompetition(db: D1Database, competitionId: st
   const competition = await assertOwner(db, competitionId, organizerId);
 
   await db.prepare("DELETE FROM friends_events WHERE competition_id = ?1").bind(competition.id).run();
+  await db.prepare("DELETE FROM friends_user_updates WHERE competition_id = ?1").bind(competition.id).run();
+  await db.prepare("DELETE FROM friends_life_round_results WHERE competition_id = ?1").bind(competition.id).run();
   await db.prepare("DELETE FROM friends_selections WHERE competition_id = ?1").bind(competition.id).run();
   await db.prepare("DELETE FROM friends_lives WHERE competition_id = ?1").bind(competition.id).run();
   await db.prepare("DELETE FROM friends_participants WHERE competition_id = ?1").bind(competition.id).run();
@@ -1588,6 +2029,7 @@ export async function openFriendsRound(db: D1Database, competitionId: string, or
   const now = nowIso();
   await db.prepare("UPDATE friends_rounds SET status = 'OPEN', updated_at = ?1 WHERE id = ?2").bind(now, round.id).run();
   await db.prepare("UPDATE friends_competitions SET status = 'ACTIVE', published_at = COALESCE(published_at, ?1), updated_at = ?1 WHERE id = ?2").bind(now, competitionId).run();
+  await createRoundOpenedUpdates(db, competition, round);
 
   return getFriendsCompetitionBundle(db, competitionId, organizerId);
 }
@@ -1934,6 +2376,241 @@ export async function chooseFriendsLifeTeam(
   return getFriendsCompetitionBundle(db, life.competition_id, input.userId);
 }
 
+type RoundLifeResolution = {
+  life: FriendsLifeRow;
+  match: FriendsMatchRow | null;
+  outcome: FriendsLifeRoundOutcome;
+  result: MatchResult | null;
+  selection: FriendsSelectionRow | null;
+  survives: boolean;
+};
+
+type FriendsFinalOutcome = {
+  completed: boolean;
+  shared: boolean;
+  winners: Array<{
+    alive_lives: number;
+    decisive_lives: number;
+    participant_id: string;
+    user_id: string;
+    username: string;
+  }>;
+};
+
+async function getRemainingLivesMap(db: D1Database, competitionId: string) {
+  const rows = await db
+    .prepare(
+      `SELECT participant_id, COUNT(*) AS count
+       FROM friends_lives
+       WHERE competition_id = ?1 AND status IN ('ALIVE', 'WINNER')
+       GROUP BY participant_id`,
+    )
+    .bind(competitionId)
+    .all<{ count: number; participant_id: string }>();
+
+  return new Map((rows.results ?? []).map((row) => [row.participant_id, Number(row.count ?? 0)]));
+}
+
+async function recordFriendsLifeRoundResults(
+  db: D1Database,
+  input: {
+    competitionId: string;
+    createdAt: string;
+    resolutions: RoundLifeResolution[];
+    roundId: string;
+  },
+) {
+  const remainingLivesByParticipant = await getRemainingLivesMap(db, input.competitionId);
+
+  for (const resolution of input.resolutions) {
+    await db
+      .prepare(
+        `INSERT OR REPLACE INTO friends_life_round_results (
+          id,
+          competition_id,
+          round_id,
+          participant_id,
+          life_id,
+          user_id,
+          life_number,
+          selected_team_id,
+          selected_team,
+          selected_side,
+          match_id,
+          match_label,
+          match_result,
+          outcome,
+          remaining_lives_after_round,
+          created_at
+        ) VALUES (
+          COALESCE((SELECT id FROM friends_life_round_results WHERE round_id = ?1 AND life_id = ?2), ?3),
+          ?4, ?1, ?5, ?2, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16
+        )`,
+      )
+      .bind(
+        input.roundId,
+        resolution.life.id,
+        crypto.randomUUID(),
+        input.competitionId,
+        resolution.life.participant_id,
+        resolution.life.user_id,
+        resolution.life.life_number,
+        resolution.selection?.selected_team_id ?? null,
+        resolution.selection?.selected_team ?? null,
+        resolution.selection?.selected_side ?? null,
+        resolution.match?.id ?? null,
+        matchLabel(resolution.match),
+        resolution.result,
+        resolution.outcome,
+        remainingLivesByParticipant.get(resolution.life.participant_id) ?? 0,
+        input.createdAt,
+      )
+      .run();
+  }
+}
+
+async function createRoundResultUserUpdates(
+  db: D1Database,
+  input: {
+    competition: FriendsCompetitionRow;
+    finalOutcome: FriendsFinalOutcome | null;
+    round: FriendsRoundRow;
+  },
+) {
+  const [participants, roundResults] = await Promise.all([
+    listFriendsParticipants(db, input.competition.id),
+    listLifeRoundResults(db, input.competition.id, input.round.id),
+  ]);
+  const resultsByParticipant = new Map<string, FriendsLifeRoundResultRow[]>();
+
+  roundResults.forEach((result) => {
+    const current = resultsByParticipant.get(result.participant_id) ?? [];
+    current.push(result);
+    resultsByParticipant.set(result.participant_id, current);
+  });
+
+  for (const participant of participants.filter((item) => item.status !== "REMOVED" && item.status !== "PENDING")) {
+    const participantResults = resultsByParticipant.get(participant.id) ?? [];
+    const winner = input.finalOutcome?.winners.find((item) => item.participant_id === participant.id) ?? null;
+
+    if (!input.finalOutcome && participantResults.length === 0) {
+      continue;
+    }
+
+    const remainingLives = participantResults[0]?.remaining_lives_after_round ?? participant.alive_lives;
+    const title = input.finalOutcome
+      ? winner
+        ? input.finalOutcome.shared
+          ? "La gloria si condivide!"
+          : "Complimenti! Hai vinto il Survival!"
+        : "Il Survival si e' concluso"
+      : remainingLives === 0
+        ? "Sei stato eliminato dal Survival"
+        : participantResults.some((result) => result.outcome === "ELIMINATED" || result.outcome === "NO_CHOICE")
+          ? "Round concluso: risultati misti"
+          : "Complimenti, sei ancora in gioco!";
+    const summary = input.finalOutcome
+      ? winner
+        ? input.finalOutcome.shared
+          ? `Hai vinto insieme ad altri ${input.finalOutcome.winners.length - 1} partecipanti.`
+          : "Sei l'ultimo sopravvissuto del torneo."
+        : "Il torneo e' terminato. Puoi consultare il report completo."
+      : getUpdateSummaryFromResults(participantResults, remainingLives);
+    const eventType = input.finalOutcome
+      ? winner
+        ? input.finalOutcome.shared
+          ? "friends_shared_winner"
+          : "friends_winner"
+        : "friends_tournament_completed"
+      : remainingLives === 0
+        ? "friends_user_eliminated"
+        : "friends_round_result";
+
+    await createFriendsUserUpdate(db, {
+      competitionId: input.competition.id,
+      detail: {
+        competitionName: input.competition.name,
+        eventKind: input.finalOutcome ? "tournament_completed" : "round_result",
+        lives: participantResults.map(updateLifeSummary),
+        remainingLives,
+        roundNumber: input.round.round_number,
+        tournamentCompleted: !!input.finalOutcome,
+        userStatus: participant.status,
+        winners: input.finalOutcome?.winners ?? [],
+      },
+      eventType,
+      participantId: participant.id,
+      roundId: input.round.id,
+      summary,
+      title,
+      userId: participant.user_id,
+    });
+  }
+}
+
+async function createRoundOpenedUpdates(db: D1Database, competition: FriendsCompetitionRow, round: FriendsRoundRow) {
+  const existing = await db
+    .prepare(
+      `SELECT id
+       FROM friends_user_updates
+       WHERE competition_id = ?1 AND round_id = ?2 AND event_type = 'friends_round_started'
+       LIMIT 1`,
+    )
+    .bind(competition.id, round.id)
+    .first<{ id: string }>();
+
+  if (existing) {
+    return;
+  }
+
+  const participants = await listFriendsParticipants(db, competition.id);
+
+  for (const participant of participants.filter((item) => item.status !== "REMOVED" && item.status !== "PENDING")) {
+    await createFriendsUserUpdate(db, {
+      competitionId: competition.id,
+      detail: {
+        competitionName: competition.name,
+        eventKind: "round_started",
+        fixtureMatchday: round.fixture_matchday,
+        remainingLives: participant.alive_lives,
+        roundNumber: round.round_number,
+        userStatus: participant.status,
+      },
+      eventType: "friends_round_started",
+      participantId: participant.id,
+      roundId: round.id,
+      summary: participant.status === "ELIMINATED"
+        ? `Il Round ${round.round_number} e' iniziato. Sei eliminato, ma puoi seguirne l'andamento.`
+        : `Il Round ${round.round_number} e' iniziato. Ti restano ${participant.alive_lives} vite.`,
+      title: `Nuovo round iniziato: Round ${round.round_number}`,
+      userId: participant.user_id,
+    });
+  }
+}
+
+async function createManualCompetitionClosedUpdates(db: D1Database, competition: FriendsCompetitionRow) {
+  const participants = await listFriendsParticipants(db, competition.id);
+
+  for (const participant of participants.filter((item) => item.status !== "REMOVED" && item.status !== "PENDING")) {
+    await createFriendsUserUpdate(db, {
+      competitionId: competition.id,
+      detail: {
+        competitionName: competition.name,
+        eventKind: "tournament_completed",
+        remainingLives: participant.alive_lives,
+        tournamentCompleted: true,
+        userStatus: participant.status,
+        winners: [],
+      },
+      eventType: "friends_tournament_completed",
+      participantId: participant.id,
+      summary: "Il torneo e' stato concluso dall'organizzatore. Puoi consultare lo storico completo.",
+      title: "Il Survival si e' concluso",
+      userId: participant.user_id,
+    });
+  }
+}
+
 export async function calculateFriendsRound(
   db: D1Database,
   input: {
@@ -1950,11 +2627,12 @@ export async function calculateFriendsRound(
 
   const matches = await listFriendsMatches(db, round.id);
   const resultMap = new Map(input.results.map((result) => [result.matchId, result.result]));
+  const now = nowIso();
 
   for (const match of matches) {
     const result = resultMap.get(match.id);
     assertFriends(result && result !== "PENDING", `Inserisci risultato per ${match.home_team} vs ${match.away_team}.`);
-    await db.prepare("UPDATE friends_matches SET result = ?1, updated_at = ?2 WHERE id = ?3").bind(result, nowIso(), match.id).run();
+    await db.prepare("UPDATE friends_matches SET result = ?1, updated_at = ?2 WHERE id = ?3").bind(result, now, match.id).run();
   }
 
   const aliveRows = await db
@@ -1968,6 +2646,7 @@ export async function calculateFriendsRound(
     .bind(competition.id)
     .all<FriendsLifeRow>();
   const livesBefore = aliveRows.results ?? [];
+  const resolutions: RoundLifeResolution[] = [];
 
   for (const life of livesBefore) {
     const selection = await getSelectionForRound(db, life.id, round.id);
@@ -1981,20 +2660,30 @@ export async function calculateFriendsRound(
         (result === "HOME_WIN" && selection.selected_side === "HOME") ||
         (result === "AWAY_WIN" && selection.selected_side === "AWAY"));
     const isVoid = result === "POSTPONED" || result === "CANCELLED";
+    const outcome: FriendsLifeRoundOutcome = !selection ? "NO_CHOICE" : isVoid ? "VOID" : survives ? "SURVIVED" : "ELIMINATED";
+
+    resolutions.push({
+      life,
+      match: selectedMatch ?? null,
+      outcome,
+      result: result ?? null,
+      selection: selection ?? null,
+      survives,
+    });
 
     if (selection) {
       await db
         .prepare("UPDATE friends_selections SET status = ?1, updated_at = ?2 WHERE id = ?3")
-        .bind(isVoid ? "VOID" : survives ? "SURVIVED" : "ELIMINATED", nowIso(), selection.id)
+        .bind(isVoid ? "VOID" : survives ? "SURVIVED" : "ELIMINATED", now, selection.id)
         .run();
     }
 
     if (!survives) {
-      await db.prepare("UPDATE friends_lives SET status = 'ELIMINATED', eliminated_at = ?1 WHERE id = ?2").bind(nowIso(), life.id).run();
+      await db.prepare("UPDATE friends_lives SET status = 'ELIMINATED', eliminated_at = ?1 WHERE id = ?2").bind(now, life.id).run();
     }
   }
 
-  await db.prepare("UPDATE friends_rounds SET status = 'CALCULATED', calculated_at = ?1, updated_at = ?1 WHERE id = ?2").bind(nowIso(), round.id).run();
+  await db.prepare("UPDATE friends_rounds SET status = 'CALCULATED', calculated_at = ?1, updated_at = ?1 WHERE id = ?2").bind(now, round.id).run();
   await db
     .prepare(
       `UPDATE friends_participants
@@ -2008,12 +2697,25 @@ export async function calculateFriendsRound(
     .run();
 
   const survivors = await getAliveFriendsLives(db, competition.id);
+  let finalOutcome: FriendsFinalOutcome | null = null;
 
   if (survivors.length <= 1) {
-    await completeFriendsCompetition(db, competition, survivors);
+    finalOutcome = await completeFriendsCompetition(db, competition, survivors, livesBefore);
   } else {
     await ensureNextFriendsRound(db, competition, round);
   }
+
+  await recordFriendsLifeRoundResults(db, {
+    competitionId: competition.id,
+    createdAt: now,
+    resolutions,
+    roundId: round.id,
+  });
+  await createRoundResultUserUpdates(db, {
+    competition,
+    finalOutcome,
+    round,
+  });
 
   return getFriendsCompetitionBundle(db, competition.id, input.organizerId);
 }
@@ -2033,7 +2735,12 @@ async function getAliveFriendsLives(db: D1Database, competitionId: string) {
   return rows.results ?? [];
 }
 
-async function completeFriendsCompetition(db: D1Database, competition: FriendsCompetitionRow, survivors: FriendsLifeRow[]) {
+async function completeFriendsCompetition(
+  db: D1Database,
+  competition: FriendsCompetitionRow,
+  survivors: FriendsLifeRow[],
+  decisiveLives: FriendsLifeRow[] = [],
+): Promise<FriendsFinalOutcome> {
   const now = nowIso();
   await db.prepare("UPDATE friends_competitions SET status = 'COMPLETED', completed_at = ?1, updated_at = ?1 WHERE id = ?2").bind(now, competition.id).run();
 
@@ -2049,12 +2756,57 @@ async function completeFriendsCompetition(db: D1Database, competition: FriendsCo
       participantId: winner.participant_id,
       userId: winner.user_id,
     });
+
+    const participants = await listFriendsParticipants(db, competition.id);
+    const winnerParticipant = participants.find((participant) => participant.id === winner.participant_id);
+
+    return {
+      completed: true,
+      shared: false,
+      winners: winnerParticipant
+        ? [{
+            alive_lives: Math.max(winnerParticipant.alive_lives, 1),
+            decisive_lives: 1,
+            participant_id: winnerParticipant.id,
+            user_id: winnerParticipant.user_id,
+            username: winnerParticipant.username,
+          }]
+        : [],
+    };
   } else {
+    const decisiveLivesByParticipant = new Map<string, number>();
+    decisiveLives.forEach((life) => {
+      decisiveLivesByParticipant.set(life.participant_id, (decisiveLivesByParticipant.get(life.participant_id) ?? 0) + 1);
+    });
+
+    for (const participantId of decisiveLivesByParticipant.keys()) {
+      await db.prepare("UPDATE friends_participants SET status = 'WINNER' WHERE id = ?1").bind(participantId).run();
+    }
+
     await logFriendsEvent(db, {
       competitionId: competition.id,
-      eventType: "friends_no_survivors",
-      message: "Competizione conclusa: nessuna vita sopravvissuta.",
+      eventType: decisiveLivesByParticipant.size > 0 ? "friends_shared_winners" : "friends_no_survivors",
+      message: decisiveLivesByParticipant.size > 0
+        ? "Competizione conclusa: vincitori condivisi determinati."
+        : "Competizione conclusa: nessuna vita sopravvissuta.",
     });
+
+    const participants = await listFriendsParticipants(db, competition.id);
+    const winners = participants
+      .filter((participant) => decisiveLivesByParticipant.has(participant.id))
+      .map((participant) => ({
+        alive_lives: participant.alive_lives,
+        decisive_lives: decisiveLivesByParticipant.get(participant.id) ?? 0,
+        participant_id: participant.id,
+        user_id: participant.user_id,
+        username: participant.username,
+      }));
+
+    return {
+      completed: true,
+      shared: winners.length > 1,
+      winners,
+    };
   }
 }
 

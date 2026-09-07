@@ -32,6 +32,15 @@ type PopupMessage = {
   title: string;
 };
 
+type TournamentUpdate = {
+  competition_id: string;
+  competition_name: string;
+  created_at: string;
+  id: string;
+  summary: string;
+  title: string;
+};
+
 const demoBalance = "0 Coppe";
 
 function formatCups(value: number) {
@@ -45,6 +54,7 @@ export function UserLayout({ children, currentPage }: UserLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [popupMessages, setPopupMessages] = useState<PopupMessage[]>([]);
+  const [tournamentUpdates, setTournamentUpdates] = useState<TournamentUpdate[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -93,10 +103,15 @@ export function UserLayout({ children, currentPage }: UserLayoutProps) {
 
     async function loadPopupMessages() {
       try {
-        const response = await fetch("/api/messages/popup", {
-          credentials: "include",
-        });
-        const data = (await response.json()) as
+        const [messagesResponse, updatesResponse] = await Promise.all([
+          fetch("/api/messages/popup", {
+            credentials: "include",
+          }),
+          fetch("/api/friends/updates", {
+            credentials: "include",
+          }),
+        ]);
+        const data = (await messagesResponse.json()) as
           | {
               messages: PopupMessage[];
               ok: true;
@@ -104,9 +119,21 @@ export function UserLayout({ children, currentPage }: UserLayoutProps) {
           | {
               ok: false;
             };
+        const updatesData = (await updatesResponse.json()) as
+          | {
+              ok: true;
+              updates: TournamentUpdate[];
+            }
+          | {
+              ok: false;
+            };
 
         if (isMounted && data.ok) {
           setPopupMessages(data.messages);
+        }
+
+        if (isMounted && updatesData.ok) {
+          setTournamentUpdates(updatesData.updates);
         }
       } catch {
         // I messaggi admin non devono bloccare l'accesso all'area utente.
@@ -164,6 +191,34 @@ export function UserLayout({ children, currentPage }: UserLayoutProps) {
     }).catch(() => undefined);
   };
 
+  const tournamentUpdateGroups = tournamentUpdates.reduce<Array<{ competitionId: string; name: string; updates: TournamentUpdate[] }>>(
+    (groups, update) => {
+      const existing = groups.find((group) => group.competitionId === update.competition_id);
+
+      if (existing) {
+        existing.updates.push(update);
+      } else {
+        groups.push({
+          competitionId: update.competition_id,
+          name: update.competition_name,
+          updates: [update],
+        });
+      }
+
+      return groups;
+    },
+    [],
+  );
+  const tournamentUpdateGroup = tournamentUpdateGroups[0] ?? null;
+
+  const handleDismissTournamentUpdateGroup = () => {
+    if (!tournamentUpdateGroup) {
+      return;
+    }
+
+    setTournamentUpdates((current) => current.filter((update) => update.competition_id !== tournamentUpdateGroup.competitionId));
+  };
+
   if (isLoading || !user) {
     return (
       <main className="user-page">
@@ -197,7 +252,35 @@ export function UserLayout({ children, currentPage }: UserLayoutProps) {
 
       <div className="user-main-shell">{children(user)}</div>
 
-      {popupMessages[0] ? (
+      {tournamentUpdateGroup ? (
+        <div className="user-message-modal" role="dialog" aria-modal="true" aria-labelledby="user-tournament-popup-title">
+          <Card className="user-message-modal-card">
+            <p className="user-page-kicker">Aggiornamenti Survival</p>
+            <h2 id="user-tournament-popup-title">
+              {tournamentUpdateGroup.updates.length > 1
+                ? `Ci sono ${tournamentUpdateGroup.updates.length} aggiornamenti`
+                : "C'e' un aggiornamento"}
+            </h2>
+            <PremiumDivider />
+            <p>Ci sono aggiornamenti su {tournamentUpdateGroup.name}. Apri il torneo per vedere cosa e&apos; successo alle tue vite.</p>
+            <div className="arena-modal-actions">
+              <Button
+                onClick={() => {
+                  const target = `/tornei/dettaglio?id=${tournamentUpdateGroup.competitionId}`;
+                  setTournamentUpdates([]);
+                  router.push(target);
+                }}
+                type="button"
+              >
+                Vai al torneo
+              </Button>
+              <Button onClick={handleDismissTournamentUpdateGroup} type="button" variant="secondary">
+                Non ora
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : popupMessages[0] ? (
         <div className="user-message-modal" role="dialog" aria-modal="true" aria-labelledby="user-popup-title">
           <Card className="user-message-modal-card">
             <p className="user-page-kicker">Survivor Arena</p>

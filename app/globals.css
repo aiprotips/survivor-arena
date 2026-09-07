@@ -11550,6 +11550,228 @@ a {
     }
   }
 
+  .arena-game-state-danger {
+    border-color: color-mix(in srgb, var(--color-danger) 40%, transparent);
+    color: color-mix(in srgb, var(--color-danger) 78%, var(--color-white));
+  }
+
+  .arena-game-state-gold {
+    border-color: color-mix(in srgb, var(--color-gold) 48%, transparent);
+    color: var(--color-gold-strong);
+  }
+
+  .friends-personal-status {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+    border-radius: var(--radius-card);
+    background:
+      radial-gradient(circle at top left, color-mix(in srgb, var(--color-blue) 12%, transparent), transparent 16rem),
+      color-mix(in srgb, var(--color-card) 84%, transparent);
+    padding: clamp(0.85rem, 3vw, 1rem);
+  }
+
+  .friends-personal-status svg {
+    width: 1.25rem;
+    flex: 0 0 auto;
+    color: var(--color-blue-hover);
+  }
+
+  .friends-personal-status strong {
+    display: block;
+    color: var(--color-white);
+    font-size: 0.98rem;
+    font-weight: 760;
+  }
+
+  .friends-personal-status p {
+    margin: 0.18rem 0 0;
+    color: var(--color-muted);
+    font-size: 0.88rem;
+    font-weight: 540;
+    line-height: 1.45;
+  }
+
+  .friends-personal-status-danger {
+    border-color: color-mix(in srgb, var(--color-danger) 28%, transparent);
+  }
+
+  .friends-personal-status-danger svg {
+    color: var(--color-danger);
+  }
+
+  .friends-personal-status-gold {
+    border-color: color-mix(in srgb, var(--color-gold) 32%, transparent);
+  }
+
+  .friends-personal-status-gold svg {
+    color: var(--color-gold-strong);
+  }
+
+  .friends-update-modal {
+    max-height: min(82vh, 45rem);
+    overflow: auto;
+  }
+
+  .friends-update-list,
+  .friends-report-rounds,
+  .friends-report-participants,
+  .friends-report-life-list {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .friends-update-card,
+  .friends-update-winners,
+  .friends-report-round,
+  .friends-report-participant,
+  .friends-report-life {
+    border: 1px solid color-mix(in srgb, var(--color-border) 74%, transparent);
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--color-surface) 68%, transparent);
+  }
+
+  .friends-update-card,
+  .friends-update-winners,
+  .friends-report-round {
+    display: grid;
+    gap: 0.7rem;
+    padding: 0.9rem;
+  }
+
+  .friends-update-card > span,
+  .friends-update-card small,
+  .friends-report-round-head span,
+  .friends-report-participant-head span,
+  .friends-report-life small,
+  .friends-report-used-teams {
+    color: var(--color-muted-soft);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .friends-update-card strong,
+  .friends-update-winners strong,
+  .friends-report-round-head strong,
+  .friends-report-participant-head strong,
+  .friends-report-life b {
+    color: var(--color-white);
+    font-weight: 780;
+  }
+
+  .friends-update-card p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .friends-update-life-list {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .friends-update-life-row {
+    display: grid;
+    gap: 0.25rem;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--color-card-strong) 70%, transparent);
+    padding: 0.65rem;
+  }
+
+  .friends-update-life-row span,
+  .friends-update-life-row em,
+  .friends-update-life-row i,
+  .friends-update-winners span,
+  .friends-report-life span,
+  .friends-report-life em {
+    color: var(--color-muted);
+    font-size: 0.83rem;
+    font-style: normal;
+    font-weight: 650;
+  }
+
+  .friends-update-life-row i,
+  .friends-report-life em {
+    color: color-mix(in srgb, var(--color-danger) 78%, var(--color-white));
+  }
+
+  .friends-update-life-row .friends-update-life-ok,
+  .friends-report-life .friends-report-life-ok {
+    color: var(--color-success);
+  }
+
+  .friends-update-winners span {
+    display: block;
+  }
+
+  .friends-report-section {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .friends-report-round-head,
+  .friends-report-participant-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
+  }
+
+  .friends-report-participant {
+    display: grid;
+    gap: 0.65rem;
+    padding: 0.75rem;
+  }
+
+  .friends-report-life {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.45rem 0.8rem;
+    align-items: center;
+    padding: 0.7rem;
+  }
+
+  .friends-report-life > div {
+    display: grid;
+    min-width: 0;
+    gap: 0.18rem;
+  }
+
+  .friends-report-life span,
+  .friends-report-life small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .friends-report-used-teams {
+    grid-column: 1 / -1;
+    text-transform: none;
+  }
+
+  @media (min-width: 58rem) {
+    .friends-update-life-row {
+      grid-template-columns: auto minmax(8rem, 0.8fr) minmax(10rem, 1fr) auto;
+      align-items: center;
+    }
+  }
+
+  @media (max-width: 47.99rem) {
+    .friends-report-round-head,
+    .friends-report-participant-head {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .friends-report-life {
+      grid-template-columns: 1fr;
+    }
+  }
+
   @media (max-width: 47.99rem) {
     .admin-images-intro-card {
       grid-template-columns: 1fr;

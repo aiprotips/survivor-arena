@@ -34,12 +34,17 @@ const metrics = {
   disabledChoicesInvalidated: 0,
   disabledChoicesKept: 0,
   duplicateTeamBlocked: 0,
+  eliminatedStillInActiveTournaments: 0,
+  historyReportsVerified: 0,
   invitedByCode: 0,
   invitedByManager: 0,
   nextRoundsCreated: 0,
   participantsApproved: 0,
   participantsPending: 0,
   roundCalculations: 0,
+  roundStartedUpdatesVerified: 0,
+  userUpdatesMarkedViewed: 0,
+  userUpdatesVerified: 0,
   usersRegistered: 0,
 };
 
@@ -463,6 +468,18 @@ async function lockAndCalculate(owner, competition, index) {
   metrics.roundCalculations += 1;
 
   current = calculate.data.competition;
+  assert(Array.isArray(current.history_report), "competition should include a history report", current);
+  assert(
+    current.history_report.some((round) => round.status === "CALCULATED" && round.participants.length > 0),
+    "calculated round should be present in history report",
+    current.history_report,
+  );
+  metrics.historyReportsVerified += 1;
+
+  assert(Array.isArray(current.unviewed_updates), "competition should include personal updates", current);
+  assert(current.unviewed_updates.length > 0, "owner should receive a round update", current.unviewed_updates);
+  metrics.userUpdatesVerified += 1;
+
   const alive = current.participants.flatMap((participant) => participant.lives).filter((life) => life.status === "ALIVE" || life.status === "WINNER");
 
   if (current.status === "COMPLETED") {
@@ -479,6 +496,61 @@ async function lockAndCalculate(owner, competition, index) {
   metrics.nextRoundsCreated += 1;
 
   return current;
+}
+
+async function verifyPersonalUpdateFlow(entries, competition) {
+  const eliminated = competition.participants.find((participant) => participant.status === "ELIMINATED");
+  if (!eliminated || competition.status === "COMPLETED") {
+    return;
+  }
+
+  const entry = entries.find((candidate) => candidate.user.id === eliminated.user_id);
+  if (!entry) {
+    return;
+  }
+
+  const list = await entry.client.request("/api/friends/competitions");
+  expectStatus(list, 200, `eliminated list ${entry.user.username}`);
+  const listed = list.data.competitions.find((item) => item.id === competition.id);
+  assert(listed, "eliminated user should still see the tournament", list.data);
+  assert(listed.status !== "COMPLETED", "eliminated user should still see tournament as active globally", listed);
+  metrics.eliminatedStillInActiveTournaments += 1;
+
+  const detail = await getCompetition(entry.client, competition.id);
+  assert(detail.user_status === "ELIMINATED", "eliminated user should have a personal eliminated status", detail);
+  assert(detail.status !== "COMPLETED", "personal elimination must not complete the tournament", detail);
+  assert(detail.history_report.some((round) => round.status === "CALCULATED"), "eliminated user should see calculated history", detail.history_report);
+
+  const updates = await entry.client.request("/api/friends/updates");
+  expectStatus(updates, 200, `updates ${entry.user.username}`);
+  assert(updates.data.updates.some((update) => update.competition_id === competition.id), "eliminated user should have an unviewed update", updates.data);
+
+  const marked = await entry.client.request("/api/friends/updates", {
+    body: { competitionId: competition.id },
+    method: "PATCH",
+  });
+  expectStatus(marked, 200, `mark updates viewed ${entry.user.username}`);
+  const after = await entry.client.request("/api/friends/updates");
+  expectStatus(after, 200, `updates after viewed ${entry.user.username}`);
+  assert(!after.data.updates.some((update) => update.competition_id === competition.id), "viewed updates should not reappear", after.data);
+  metrics.userUpdatesMarkedViewed += 1;
+}
+
+async function verifyRoundStartedUpdate(entries, competition) {
+  const active = competition.participants.find((participant) => participant.status === "ACTIVE");
+  const entry = active ? entries.find((candidate) => candidate.user.id === active.user_id) : null;
+  if (!entry) {
+    return;
+  }
+
+  const updates = await entry.client.request("/api/friends/updates");
+  expectStatus(updates, 200, `round started updates ${entry.user.username}`);
+  assert(
+    updates.data.updates.some((update) => update.competition_id === competition.id && update.event_type === "friends_round_started"),
+    "opening a new round should create a personal round-started update",
+    updates.data,
+  );
+  metrics.roundStartedUpdatesVerified += 1;
 }
 
 async function importAndOpenNextRound(owner, competition, index, fixtureCompetitionId) {
@@ -610,9 +682,11 @@ async function run() {
     competition = await addAndApproveParticipants(owner, competition, candidates, index);
     competition = await exerciseChoices(owner, competition, candidates, index);
     competition = await lockAndCalculate(owner, competition, index);
+    await verifyPersonalUpdateFlow([owner, ...candidates], competition);
 
     if (competition.status !== "COMPLETED" && index % 2 === 0) {
       competition = await importAndOpenNextRound(owner, competition, index, serieA.id);
+      await verifyRoundStartedUpdate([owner, ...candidates], competition);
       competition = await exerciseChoices(owner, competition, candidates, index + 100);
       await lockAndCalculate(owner, competition, index + 100);
     }
